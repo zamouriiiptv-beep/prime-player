@@ -318,6 +318,95 @@ class FallbackPolicyTest {
         assertNull(EngineMemory.NONE.preferred("anything"))
     }
 
+    /* ------------------------------------------------ what the memory is allowed to keep */
+
+    /**
+     * The taxonomy again, for the memory: every reason says whether it is a claim about the stream.
+     *
+     * A table over `entries`, as the one for the backup is, so a new reason is decided on purpose and not by
+     * whichever branch a `when` happens to put it in.
+     */
+    @Test
+    fun `every reason states whether it is lasting`() {
+        val lasting = setOf(
+            PlaybackError.DECODER_INIT,
+            PlaybackError.DECODING,
+            PlaybackError.CONTAINER,
+            PlaybackError.UNSUPPORTED_FORMAT,
+        )
+        val passing = setOf(
+            PlaybackError.TIMEOUT,
+            PlaybackError.UNKNOWN,
+            PlaybackError.DRM,
+            PlaybackError.NETWORK,
+            PlaybackError.NOT_FOUND,
+            PlaybackError.PERMISSION,
+            PlaybackError.SOURCE,
+        )
+
+        assertEquals("every reason is in exactly one of the two sets", PlaybackError.entries.toSet(), lasting + passing)
+        assertTrue("and in no more than one", lasting.intersect(passing).isEmpty())
+        lasting.forEach { assertTrue("$it says the device cannot decode the stream", FallbackPolicy.isLasting(it)) }
+        passing.forEach { assertFalse("$it says nothing lasting about the stream", FallbackPolicy.isLasting(it)) }
+    }
+
+    /**
+     * What is remembered is a verdict that the backup was needed, so it can only be a reason that sends a source
+     * to the backup in the first place. A lasting reason the backup could not help with would be a memory that
+     * records a handover that never happens.
+     */
+    @Test
+    fun `a lasting reason is one the backup can help with`() {
+        PlaybackError.entries.filter(FallbackPolicy::isLasting).forEach {
+            assertTrue("$it is remembered, so the backup must be able to play it", FallbackPolicy.canBackupHelp(it))
+        }
+    }
+
+    /**
+     * The defect: the budget running out was written down as a verdict on the stream. A source that merely took
+     * longer than three seconds to start on a cold link became the backup's for ever, because a remembered source
+     * is never offered to the primary again and so is never corrected.
+     */
+    @Test
+    fun `a backup that drew only because the primary ran out of time is not remembered`() {
+        assertFalse(FallbackPolicy.shouldRemember(EngineId.BACKUP, PlaybackError.TIMEOUT))
+        assertFalse("nor one nothing identified", FallbackPolicy.shouldRemember(EngineId.BACKUP, PlaybackError.UNKNOWN))
+    }
+
+    @Test
+    fun `a backup that drew because the primary could not decode the stream is remembered`() {
+        listOf(
+            PlaybackError.DECODER_INIT,
+            PlaybackError.DECODING,
+            PlaybackError.CONTAINER,
+            PlaybackError.UNSUPPORTED_FORMAT,
+        ).forEach {
+            assertTrue("$it is about the stream and the device", FallbackPolicy.shouldRemember(EngineId.BACKUP, it))
+        }
+    }
+
+    /**
+     * The two ends the rule must not disturb: a source the memory already sent to the backup is written again as
+     * what it is, and the primary drawing a frame is written as it always was, which is what removes a row that
+     * was once the backup's.
+     */
+    @Test
+    fun `a source the memory sent to the backup, and one the primary drew, are written as before`() {
+        assertTrue(FallbackPolicy.shouldRemember(EngineId.BACKUP, primaryLeftFor = null))
+        PlaybackError.entries.forEach {
+            assertTrue("a frame on the primary is always written down: $it", FallbackPolicy.shouldRemember(EngineId.PRIMARY, it))
+        }
+        assertTrue(FallbackPolicy.shouldRemember(EngineId.PRIMARY, primaryLeftFor = null))
+    }
+
+    /** Not remembering must not mean not falling over: the budget still hands a silent source to the backup. */
+    @Test
+    fun `a timeout still hands the source to the backup, and that is all it changes`() {
+        assertTrue(FallbackPolicy.canBackupHelp(PlaybackError.TIMEOUT))
+        assertTrue(FallbackPolicy.decideAutomatically(PlaybackError.TIMEOUT))
+        assertEquals(EngineId.BACKUP, FallbackPolicy.nextEngine(EngineId.PRIMARY, PlaybackError.TIMEOUT))
+    }
+
     private class RecordingMemory : EngineMemory {
         private val entries = mutableMapOf<String, EngineId>()
         override fun preferred(sourceKey: String): EngineId? = entries[sourceKey]

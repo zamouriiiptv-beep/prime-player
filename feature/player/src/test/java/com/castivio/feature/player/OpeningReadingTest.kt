@@ -2,6 +2,7 @@ package com.castivio.feature.player
 
 import com.castivio.playback.api.EngineId
 import com.castivio.playback.api.OpeningMarks
+import com.castivio.playback.api.PlaybackError
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -125,6 +126,69 @@ class OpeningReadingTest {
         assertTrue(text, "ready→frame≈ 400 ms" in text)
     }
 
+    // ------------------------------------------------------------- the primary giving the source up
+
+    @Test
+    fun `a fallback says why the primary left and that nothing had reached it`() {
+        val reading = afterThePrimary(Handover(PlaybackError.TIMEOUT, afterMs = 3_004, serverAnsweredMs = null, firstBytesMs = null))
+
+        val line = reading.lines()[1]
+
+        assertEquals("primary left: TIMEOUT at 3.00 s · server did not answer · no bytes arrived", line.text)
+        assertEquals("it is the line to read, so it is not one of the muted ones", HudTone.RUNNING, line.tone)
+        assertTrue(reading.row(), "fallback (TIMEOUT, no bytes)" in reading.row())
+    }
+
+    @Test
+    fun `a fallback says when the server answered and when bytes arrived`() {
+        val reading = afterThePrimary(Handover(PlaybackError.TIMEOUT, afterMs = 3_004, serverAnsweredMs = 1_200, firstBytesMs = 2_400))
+
+        assertEquals(
+            "primary left: TIMEOUT at 3.00 s · server answered 1.20 s · bytes arrived 2.40 s",
+            reading.lines()[1].text,
+        )
+        assertTrue(reading.row(), "fallback (TIMEOUT, bytes)" in reading.row())
+    }
+
+    /** What the line is for: a silent network and a refused stream read differently, without decoding a dash. */
+    @Test
+    fun `a refused stream is told apart from a silent network`() {
+        val refused = afterThePrimary(Handover(PlaybackError.DECODER_INIT, afterMs = 420, serverAnsweredMs = 90, firstBytesMs = 140))
+        val silent = afterThePrimary(Handover(PlaybackError.TIMEOUT, afterMs = 3_004, serverAnsweredMs = null, firstBytesMs = null))
+
+        assertEquals(
+            "primary left: DECODER_INIT at 0.42 s · server answered 0.09 s · bytes arrived 0.14 s",
+            refused.lines()[1].text,
+        )
+        assertTrue(refused.row(), "fallback (DECODER_INIT, bytes)" in refused.row())
+        assertTrue(silent.row(), "fallback (TIMEOUT, no bytes)" in silent.row())
+    }
+
+    @Test
+    fun `an opening the primary did not give up has no such line and no tag`() {
+        val reading = media3(status = OpeningStatus.SHOWN, totalMs = 270, marks = OpeningMarks(firstFrameMs = 210))
+
+        assertFalse(reading.lines().any { it.text.startsWith("primary left") })
+        assertEquals("#3 MEDIA3 · engine reused · 0.27 s · Al Aoula", reading.row())
+    }
+
+    /** One screenshot of the panel is the whole account: the latest opening's line, and every row's reason. */
+    @Test
+    fun `the panel carries the reason for the latest opening and for each row of the table`() {
+        OpeningDiagnostics.publish(
+            afterThePrimary(Handover(PlaybackError.TIMEOUT, 3_004, 1_200, null), id = 1),
+        )
+        OpeningDiagnostics.publish(
+            afterThePrimary(Handover(PlaybackError.DECODER_INIT, 420, 90, 140), id = 2),
+        )
+
+        val panel = OpeningDiagnostics.panel.value.map { it.text }
+
+        assertTrue(panel.toString(), panel.any { it.startsWith("primary left: DECODER_INIT") })
+        assertTrue(panel.toString(), panel.any { "fallback (DECODER_INIT, bytes)" in it && it.startsWith("#7 LIBVLC") })
+        assertTrue(panel.toString(), panel.any { "fallback (TIMEOUT, no bytes)" in it })
+    }
+
     // ------------------------------------------------------------- the main thread
 
     @Test
@@ -168,6 +232,24 @@ class OpeningReadingTest {
     }
 
     // -------------------------------------------------------------------- fixtures
+
+    /** The backup's opening after the primary gave the source up: the shape of the owner's `Bfm alpes`. */
+    private fun afterThePrimary(handover: Handover, id: Int = 1) = OpeningReading(
+        id = id,
+        attempt = 7,
+        channel = "Bfm alpes",
+        case = OpeningCase.FALLBACK,
+        status = OpeningStatus.SHOWN,
+        totalMs = 5_761,
+        timing = OpeningTiming(
+            engine = EngineId.BACKUP, fallback = true, reused = false,
+            pressToOpenMs = 36, releaseMs = 21, setupMs = 2, prepareMs = 3_064,
+            marks = OpeningMarks(firstBytesMs = 2_680, firstFrameMs = 2_697, firstFrameExact = false),
+            firstFrameMs = 5_761,
+            handover = handover,
+        ),
+        stalls = MainThreadStalls(),
+    )
 
     private fun media3(
         status: OpeningStatus,

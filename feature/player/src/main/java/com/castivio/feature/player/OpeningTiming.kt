@@ -2,6 +2,7 @@ package com.castivio.feature.player
 
 import com.castivio.playback.api.EngineId
 import com.castivio.playback.api.OpeningMarks
+import com.castivio.playback.api.PlaybackError
 
 /**
  * One opening, stage by stage, from the press to the first frame.
@@ -38,6 +39,8 @@ data class OpeningTiming(
     val marks: OpeningMarks,
     /** The press, to the first frame. Null for an attempt that has none, or ended without one. */
     val firstFrameMs: Long?,
+    /** Why the primary gave this source up and how far it had got, for an attempt that is the backup's. */
+    val handover: Handover? = null,
 ) {
 
     /** The engine being asked to open, to the first frame: what the source and the device took. */
@@ -69,7 +72,39 @@ data class OpeningTiming(
         append(" frame ").append(ms(marks.firstFrameMs))
         append(" | prepare→frame ").append(ms(prepareToFrameMs))
         append(" press→frame ").append(ms(firstFrameMs))
+        handover?.let { left ->
+            append(" | primary left ").append(left.reason)
+            append(" after ").append(left.afterMs).append("ms")
+            append(" server ").append(ms(left.serverAnsweredMs))
+            append(" bytes ").append(ms(left.firstBytesMs))
+        }
     }
 
     private fun ms(value: Long?): String = if (value == null) "–" else "${value}ms"
+}
+
+/**
+ * The primary engine giving a source up, as the backup's attempt inherits it: why, when, and whether the
+ * source had said anything to it.
+ *
+ * The backup's own figures describe the backup. Without this, the three seconds the primary was given are a
+ * block of "other" time before the engine was asked, and a channel the network never answered looks the same
+ * as one the decoder refused. The two are told apart by what the primary had received when it was let go, which
+ * is read before its engine is released -- see `PlayerViewModel.fallOver`.
+ *
+ * Figures are milliseconds **from the press**, as the panel's own are, and null for an event that had not come.
+ */
+data class Handover(
+    /** What the primary reported, or [PlaybackError.TIMEOUT] when the budget ran out first. */
+    val reason: PlaybackError,
+    /** The press, to the primary being given up. */
+    val afterMs: Long,
+    /** The press, to the server answering the primary. */
+    val serverAnsweredMs: Long?,
+    /** The press, to the first bytes of the stream reaching the primary. */
+    val firstBytesMs: Long?,
+) {
+
+    /** Whether any of the stream had reached the primary: the difference between a network that said nothing and a stream that was refused. */
+    val bytesArrived: Boolean get() = firstBytesMs != null
 }

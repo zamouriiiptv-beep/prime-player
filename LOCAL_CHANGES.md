@@ -865,6 +865,20 @@
 
 **40.1 (مُلتزَم به، بطلب المالك):** حُذف المختبر `app/src/debug` كله من الشجرة (ثمانية ملفات: النشاط الذي كان أيقونة ثانية «Castivio DB Lab» وملفات القياس)؛ يبقى في تاريخ git (`a98a7219` والتعديل عليه في `c11238b9`) ونسخه الاحتياطية في `/home/user/backup-dblab`. السبب أن النسخة التي يجرّبها المالك صارت بأيقونتين، ولا يريد غير التطبيق. لم يتغيّر شيء آخر: بقي حذف فهرس EPG وتأجيل `sort_title` وإصلاح البطاقة كما هي، وبقي معامل `defersSortTitleIndex` في `RoomCatalogWriter` لأن اختبارًا يستعمله.
 
+## 41) VLC لا يُحفظ بسبب مهلة، ولوحة الفتح تقول لماذا تُرك Media3 — لم يُجرَّب على جهاز، غير مُلتزَم به
+
+**السبب (من لقطات لوحة الفتح على 4G):** أغلب القنوات تنتهي على LibVLC مع أن Media3 يفتح FRANCE 4 UHD في 1.14 ث وLa Chaîne Parlementaire في 2.09 ث. صفّا Bfm alpes وLigue 1+ 2 HD يقولان «other 3005/3029 ms قبل أن يُسأل المحرّك»: مضت مهلة الثلاث ثوانٍ لا خطأ. والخلل أن `PlayerViewModel.onFirstFrame` كان يكتب `BACKUP` في `EngineMemoryStore` بعد أي نجاح للنسخة الاحتياطية، فلا يُعرض المصدر على Media3 بعدها أبدًا، ولا يُحذف الصف إلا بنجاح على Media3 (وهو لا يُجرَّب) — فمهلة واحدة بطيئة على شبكة باردة تثبّت القناة على VLC للأبد.
+
+**1) القرار (`FallbackPolicy`، نقيّ):** `isLasting(error)` — `DECODER_INIT` و`DECODING` و`CONTAINER` و`UNSUPPORTED_FORMAT` فقط أحكام على البث وعلى الجهاز؛ و`TIMEOUT` و`UNKNOWN` وباقي الأسباب لا. و`shouldRemember(engine, primaryLeftFor)`: الإطار على Media3 يُكتب كما كان، وإطار VLC يُكتب إن لم يُترك Media3 في هذا الفتح (فُتح على VLC من الذاكرة) أو كان سبب تركه دائمًا. الانتقال إلى VLC عند `TIMEOUT` كما هو (`canBackupHelp` و`decideAutomatically` و`nextEngine` لم تتغير)، ومهلة الثلاث ثوانٍ لم تتغير.
+
+**2) `PlayerViewModel`:** حقل `handover` (سبب ترك Media3) يُقرأ في `fallOver` و`tryBackup` **قبل** تحرير المحرّك (فيه علاماته)، ويُصفَّر في `open`؛ و`onFirstFrame` يسأل `shouldRemember` قبل `memory.remember`. لا تغيير في أي مسار آخر.
+
+**3) إعادة ضبط الذاكرة القديمة (`EngineMemoryStore`):** الملف صار `castivio.engines.v2`، ويُحذف الملف القديم `castivio.engines` (أو يُفرَّغ تحت API 24) عند أول قراءة؛ لا يُهاجَر منه شيء لأن الملف لا يفرّق بين صف أبطأته الشبكة وصف رفضه المفكّك. لا يمسّ الاشتراكات ولا الكتالوج ولا أي ملف تفضيلات آخر.
+
+**4) لوحة الفتح (مؤقتة):** `Handover` في `OpeningTiming` (السبب، ومتى، ومتى ردّ الخادم ومتى وصلت أول بايتات — من الضغط) يظهر سطرًا بعد السطر الأول: `primary left: TIMEOUT at 3.00 s · server answered 1.20 s · bytes arrived 2.40 s` (أو `server did not answer · no bytes arrived`)، وفي كل صف من جدول آخر 8: `fallback (TIMEOUT, no bytes)` / `(DECODER_INIT, bytes)`؛ وفي سطر السجل `primary left …`. فصورة واحدة للّوحة تفرّق شبكة صامتة عن بث رُفض.
+
+**الاختبارات (JVM):** `FallbackPolicyTest` (+6)، `OpeningReadingTest` (+5) و`OpeningTimingTest` (+3)، `PlayerPathTest` (+9: مهلة ثم نجاح VLC لا تترك ذاكرة وتعيد القناة إلى Media3 في الفتحة التالية، `UNKNOWN` بضغط المشاهد لا يُحفظ، الأسباب الأربعة تُحفظ، مصدر من الذاكرة يبقى محفوظًا، والسجل بأسبابه وبالبايتات)، و`EngineMemoryStoreTest` (Robolectric، جديد، 6 اختبارات، لم يُشغَّل محليًا). شُغّلت محليًا بـkotlinc مع stubs صغيرة خارج المستودع: `FallbackPolicyTest` (24) و`OpeningReadingTest`+`OpeningTimingTest` (21) و`PlayerPathTest` (153)، ونجحت كلها؛ وتحوير تجريبي (حفظ دائم كما كان) أسقط اختبارَي المهلة و`UNKNOWN` تحديدًا.
+
 ## ملفات معدَّلة (`M`) وجديدة (`??`) — القائمة الكاملة
 
 **معدَّلة (74 ملفًا):**
@@ -991,3 +1005,4 @@
 | 2026-10-28 | القسم 39 (محلي، لم يُجرَّب على جهاز): قياس الضغط والنقل في شريط التحميل — الترميز والبروتوكول والطول المعلن والبايتات على السلك مقابل المفكوكة وأول بايت والجسم ونسبة انتظار القارئ للشبكة، قياس فقط بلا تغيير سلوك وبلا روابط؛ `WireFigures.kt` و`MeteredInputStream.kt` و`CallMetrics.kt` و`XtreamHttpApi.kt` و`LoadTrace.kt`، واختبارات جديدة. |
 | 2026-10-29 | القسم 40 (مُلتزَم به، لم يُجرَّب على جهاز): حذف `idx_media_epg` بترحيل 8→9، وتأجيل `idx_media_source_kind_sort_title` في أول تحميل لاشتراك فقط مع إعادته في `finish` و`abort` وأول خطوة لتحميل لاحق، وحارس يعيده قبل كل ترحيل لاحق؛ `RoomCatalogWriter.kt` و`SortTitleIndex.kt` و`CastivioMigrations.kt` و`MediaEntity.kt` و`CastivioDatabase.kt`، واختبارات `SortTitleDeferralTest` و`MigrationGuardTest`، وتعديل المختبر |
 | 2026-10-29 | القسم 40.1 (مُلتزَم به): حذف مختبر الفهارس `app/src/debug` من الشجرة بطلب المالك (APK بلا أيقونة ثانية)؛ التعديلات الأخرى كما هي |
+| 2026-10-29 | القسم 41 (محلي، غير مُلتزَم به، لم يُجرَّب على جهاز): VLC لا يُحفظ في ذاكرة المحركات إن كان الانتقال إليه بسبب `TIMEOUT` أو `UNKNOWN` (يُحفظ عند خطأ ترميز/حاوية حقيقي فقط)، وإعادة ضبط ذاكرة المحركات القديمة (`castivio.engines` → `castivio.engines.v2`)، وسطر في لوحة الفتح بسبب ترك Media3 ووصول البايتات؛ `EngineFallback.kt` و`PlayerViewModel.kt` و`EngineMemoryStore.kt` و`OpeningTiming.kt` و`OpeningReading.kt`، واختبارات. مهلة الثلاث ثوانٍ لم تتغير. |

@@ -2313,6 +2313,201 @@ class PlayerPathTest {
         )
     }
 
+    /* ----------------------------------------- what the memory is allowed to keep */
+
+    /**
+     * The defect: a deadline was written down as a verdict.
+     *
+     * Three seconds is the primary's whole budget, and on a cold cellular link a provider that starts a channel for
+     * its first viewer can take longer. The backup then plays it, and the memory used to write that down as "this
+     * source needs the backup" -- for ever, because a remembered source is not given to the primary again and so
+     * never has the chance to show the entry wrong. The channel is still handed to the backup when the budget runs
+     * out; it is just not *remembered* there, so the next press gives the primary the source with a warm server.
+     */
+    @Test
+    fun `a backup that drew only because the primary ran out of time is not remembered`() = playerTest {
+        val model = model()
+        val request = liveRequest()
+        model.open(request)
+        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 100)
+        runCurrent()
+        assertEquals("the budget still hands it to the backup", listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.built)
+
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        assertTrue("and the backup plays it", model.state.value?.picture is Picture.Playing)
+        assertNull(
+            "but a slow start is a statement about the network, and the memory is about the stream",
+            memory.preferred(FallbackPolicy.sourceKey(request.url)),
+        )
+
+        engines.built.clear()
+        val next = model()
+        next.open(request)
+        runCurrent()
+
+        assertEquals("the next press gives the primary its chance again", listOf(EngineId.PRIMARY), engines.built)
+    }
+
+    /** `UNKNOWN` identified nothing, so a viewer pressing the backup's button is not a claim about the stream either. */
+    @Test
+    fun `an unidentified failure the viewer sent to the backup is not remembered`() = playerTest {
+        val model = model()
+        val request = liveRequest()
+        model.open(request)
+        runCurrent()
+        engines.last.fail(PlaybackError.UNKNOWN)
+        runCurrent()
+        model.tryBackup()
+        runCurrent()
+        assertEquals(listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.built)
+
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        assertNull(memory.preferred(FallbackPolicy.sourceKey(request.url)))
+    }
+
+    /** The other half: a failure that is about the stream and this device's decoders is what the memory is for. */
+    @Test
+    fun `a failure that is about the stream is still remembered`() = playerTest {
+        listOf(
+            PlaybackError.DECODER_INIT,
+            PlaybackError.DECODING,
+            PlaybackError.CONTAINER,
+            PlaybackError.UNSUPPORTED_FORMAT,
+        ).forEachIndexed { n, reason ->
+            val request = liveRequest(url = "http://provider.tv/live/${100 + n}.ts", title = "Channel $n")
+            val model = model()
+            model.open(request)
+            runCurrent()
+            engines.last.fail(reason)
+            runCurrent()
+            assertEquals("$reason hands the channel to the backup", EngineId.BACKUP, engines.built.last())
+
+            engines.last.renderFirstFrame()
+            runCurrent()
+
+            assertEquals(
+                "$reason is a verdict on the stream, so the backup is written down",
+                EngineId.BACKUP,
+                memory.preferred(FallbackPolicy.sourceKey(request.url)),
+            )
+        }
+    }
+
+    /** A source the memory already sent to the backup is written again as what it is: nothing about it changes. */
+    @Test
+    fun `a source the memory sent to the backup stays remembered when the backup plays it`() = playerTest {
+        val request = liveRequest()
+        val key = FallbackPolicy.sourceKey(request.url)
+        memory.remember(key, EngineId.BACKUP)
+        val model = model()
+        model.open(request)
+        runCurrent()
+        assertEquals("opened straight on the backup", listOf(EngineId.BACKUP), engines.built)
+
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        assertEquals(EngineId.BACKUP, memory.preferred(key))
+    }
+
+    /* ------------------------------------- why the primary gave the source up */
+
+    /**
+     * The opening panel's second half of a fallback: the backup's own figures cannot say whether the primary had
+     * heard from the server, and that is what tells a silent network from a refused stream.
+     */
+    @Test
+    fun `an opening the primary gave up for the budget says so, and that bytes had arrived`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        engines.last.marks = OpeningMarks(serverAnsweredMs = 1_200, firstBytesMs = 2_400)
+        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 100)
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        val opening = model.opening!!
+        val left = opening.handover!!
+        assertEquals(EngineId.BACKUP, opening.engine)
+        assertEquals(PlaybackError.TIMEOUT, left.reason)
+        assertTrue("bytes had reached the primary before it was let go", left.bytesArrived)
+        assertTrue("from the press, so never less than the engine's own figure: $left", left.serverAnsweredMs!! >= 1_200)
+        assertTrue("$left", left.firstBytesMs!! >= 2_400)
+        assertTrue(opening.render(), opening.render().contains("primary left TIMEOUT"))
+    }
+
+    @Test
+    fun `a primary that heard nothing says so`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 100)
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        val left = model.opening!!.handover!!
+        assertEquals(PlaybackError.TIMEOUT, left.reason)
+        assertFalse("nothing reached the primary", left.bytesArrived)
+        assertNull(left.serverAnsweredMs)
+    }
+
+    @Test
+    fun `a decoder refusal is recorded with the reason and what had reached the primary`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.marks = OpeningMarks(serverAnsweredMs = 80, firstBytesMs = 120)
+        engines.last.fail(PlaybackError.DECODER_INIT)
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        val left = model.opening!!.handover!!
+        assertEquals(PlaybackError.DECODER_INIT, left.reason)
+        assertTrue(left.bytesArrived)
+    }
+
+    @Test
+    fun `the viewer's choice of the backup records the reason on the card`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        engines.last.fail(PlaybackError.UNKNOWN)
+        runCurrent()
+        model.tryBackup()
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        assertEquals(PlaybackError.UNKNOWN, model.opening!!.handover!!.reason)
+    }
+
+    /** The record belongs to one open: the next channel, on the primary, starts with none. */
+    @Test
+    fun `an opening on the primary has no handover, and a new press clears the last one`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 100)
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        assertEquals(PlaybackError.TIMEOUT, model.opening!!.handover!!.reason)
+
+        model.switchTo(secondChannel())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        assertEquals("the next channel opened on the primary", EngineId.PRIMARY, model.opening!!.engine)
+        assertNull(model.opening!!.handover)
+        assertFalse(model.opening!!.render().contains("primary left"))
+    }
+
     /**
      * Changing channel releases the old engine before it builds the new one.
      *

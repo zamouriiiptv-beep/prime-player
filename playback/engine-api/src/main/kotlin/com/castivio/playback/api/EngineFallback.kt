@@ -54,10 +54,17 @@ enum class EngineId {
  * Which engine a source needed last time.
  *
  * The point is that a source pays the fallback cost **once**. A channel that engine 1
- * cannot open will never be able to open — the codec does not change — so remembering
+ * cannot decode will never be able to decode — the codec does not change — so remembering
  * the answer turns a two-attempt open into a one-attempt open for every play after the
  * first. On a provider whose whole bundle is one awkward container that is the
  * difference between every channel being slow and one channel having been slow once.
+ *
+ * **Only what is true of the stream is remembered.** A source that is handed to the backup
+ * is never offered to engine 1 again, so a wrong entry is never corrected: it is a
+ * permanent verdict from a single open. That is right when the verdict is "this device
+ * cannot decode it" and wrong when it is "nothing arrived in three seconds", which is a
+ * statement about the network at that moment. [FallbackPolicy.shouldRemember] draws the
+ * line.
  *
  * Reads are synchronous because the caller is the opening path and the opening path may
  * not wait for anything. It is one string in a key-value file; an asynchronous store
@@ -211,6 +218,57 @@ object FallbackPolicy {
      */
     fun decideAutomatically(error: PlaybackError): Boolean =
         canBackupHelp(error) && error != PlaybackError.UNKNOWN
+
+    /**
+     * Whether a failure of the primary engine says something about the *source*, which is what
+     * [EngineMemory] is allowed to keep.
+     *
+     * ## Why the memory needs its own question
+     *
+     * [canBackupHelp] asks whether the backup could play this *now*. The memory asks whether
+     * the primary will *never* play it, because a remembered source is not given the primary
+     * again, and so never gets the chance to prove the memory wrong. The two answers differ
+     * for exactly the reasons that are about the moment and not about the stream:
+     *
+     * - **DECODER_INIT, DECODING, CONTAINER, UNSUPPORTED_FORMAT** — the stream and this device's
+     *   decoders disagree. That does not change between one press and the next. Lasting.
+     * - **TIMEOUT** — nothing arrived inside the budget. On a cold cellular link, or a provider
+     *   starting a channel for its first viewer, the first byte can take longer than the budget
+     *   and the same channel opens in a second on the next press. Not lasting: the device
+     *   measured the network, and the memory is about the stream.
+     * - **UNKNOWN** — nothing identified itself, so there is no claim to remember.
+     * - **DRM, NETWORK, NOT_FOUND, PERMISSION, SOURCE** — about getting the bytes or the keys.
+     *   They never hand a source to the backup, and are here so that a new one is decided on
+     *   purpose.
+     */
+    fun isLasting(error: PlaybackError): Boolean = when (error) {
+        PlaybackError.DECODER_INIT -> true
+        PlaybackError.DECODING -> true
+        PlaybackError.CONTAINER -> true
+        PlaybackError.UNSUPPORTED_FORMAT -> true
+
+        PlaybackError.TIMEOUT -> false
+        PlaybackError.UNKNOWN -> false
+        PlaybackError.DRM -> false
+        PlaybackError.NETWORK -> false
+        PlaybackError.NOT_FOUND -> false
+        PlaybackError.PERMISSION -> false
+        PlaybackError.SOURCE -> false
+    }
+
+    /**
+     * Whether the engine that has just drawn a frame is to be written into [EngineMemory].
+     *
+     * @param engine the engine that drew the frame.
+     * @param primaryLeftFor why the primary gave the source up during this open, or null when it
+     *   did not: the source opened on the primary, or the memory sent it straight to the backup.
+     *   A source the memory sent to the backup is remembered again, which changes nothing; it is
+     *   not a new claim.
+     */
+    fun shouldRemember(engine: EngineId, primaryLeftFor: PlaybackError?): Boolean = when (engine) {
+        EngineId.PRIMARY -> true
+        EngineId.BACKUP -> primaryLeftFor == null || isLasting(primaryLeftFor)
+    }
 
     /**
      * The key a source is remembered under.

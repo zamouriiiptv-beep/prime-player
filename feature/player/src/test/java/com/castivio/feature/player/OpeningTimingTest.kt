@@ -2,7 +2,9 @@ package com.castivio.feature.player
 
 import com.castivio.playback.api.EngineId
 import com.castivio.playback.api.OpeningMarks
+import com.castivio.playback.api.PlaybackError
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -81,5 +83,31 @@ class OpeningTimingTest {
     @Test
     fun `an engine kept from the last channel says so`() {
         assertTrue(timing(reused = true).render().startsWith("engine=PRIMARY fallback=no reused=yes |"))
+    }
+
+    // ------------------------------------------------------------- the primary giving the source up
+
+    @Test
+    fun `an attempt the primary gave up says why, when, and what had reached it`() {
+        val left = Handover(PlaybackError.TIMEOUT, afterMs = 3_004, serverAnsweredMs = 1_200, firstBytesMs = null)
+
+        val line = timing(fallback = true).copy(handover = left).render()
+
+        assertTrue(line, line.endsWith(" | primary left TIMEOUT after 3004ms server 1200ms bytes –"))
+        assertFalse("no bytes is not the same as bytes", left.bytesArrived)
+    }
+
+    @Test
+    fun `an attempt the primary did not give up has no such column`() {
+        assertFalse(timing().render().contains("primary left"))
+        assertNull(timing().handover)
+    }
+
+    @Test
+    fun `bytes that arrived before the primary left are said as that`() {
+        val left = Handover(PlaybackError.DECODER_INIT, afterMs = 420, serverAnsweredMs = 90, firstBytesMs = 140)
+
+        assertTrue(left.bytesArrived)
+        assertTrue(timing(fallback = true).copy(handover = left).render().contains("bytes 140ms"))
     }
 }

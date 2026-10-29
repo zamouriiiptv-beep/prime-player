@@ -115,6 +115,17 @@ class PlayerViewModel @Inject constructor(
     /** Set when the primary has already been tried and refused, so a second failure is final. */
     private var backupTried = false
 
+    /**
+     * Why the primary gave this source up, and how far it had got, once it has. Null for an open the
+     * primary did not give up: one that opened on it, or that the memory sent straight to the backup.
+     *
+     * Two readers. [onFirstFrame] asks [FallbackPolicy.shouldRemember] with its reason, so a source the
+     * backup played only because the primary ran out of time is not written down as one that needs it; and
+     * the opening panel shows it beside the backup's own figures. Read before the primary is released, which
+     * is what the engine's marks are gone with.
+     */
+    private var handover: Handover? = null
+
     /** Whether the current attempt ended by the budget expiring rather than by an error. */
     private var timedOut = false
 
@@ -228,6 +239,7 @@ class PlayerViewModel @Inject constructor(
         timeFrom(pressOf(request, openedAt), openedAt, releasedAt = System.nanoTime())
 
         backupTried = false
+        handover = null
         timedOut = false
         reopenOnReturn = false
         engineId = next
@@ -532,7 +544,12 @@ class PlayerViewModel @Inject constructor(
             "first frame on $engineId ${timing.firstFrameMs}ms after the press" +
                 (if (backupTried) " (after the fallback)" else "") + ": ${timing.render()}",
         )
-        memory.remember(FallbackPolicy.sourceKey(current.request.url), engineId)
+        // What the picture proves about the *stream* is what is written down. The backup drawing it after the
+        // primary ran out of time proves the primary was slow, not that it cannot decode it: see
+        // [FallbackPolicy.shouldRemember]. Left out, the source is simply given to the primary again next time.
+        if (FallbackPolicy.shouldRemember(engineId, handover?.reason)) {
+            memory.remember(FallbackPolicy.sourceKey(current.request.url), engineId)
+        }
         // The picture is here, so the wait is over; the spinner goes with the opening below.
         waitJob?.cancel(); waitJob = null
         _state.value = current.copy(engine = engineId, switching = false)
@@ -579,6 +596,7 @@ class PlayerViewModel @Inject constructor(
         // from the server is the difference between a channel the network failed and one the
         // decoder did, and only this line can say which.
         val gaveUp = timing().copy(fallback = false)
+        handover = handoverOf(gaveUp, reason)
         Log.i(
             TAG,
             "falling over to the backup after ${(System.nanoTime() - askedAtNanos) / NANOS_PER_MS}ms: " +
@@ -613,6 +631,11 @@ class PlayerViewModel @Inject constructor(
     fun tryBackup() {
         val current = _state.value ?: return
         backupTried = true
+        // The card's own reason, and what the engine had received, both read before the engine is let go.
+        handover = handoverOf(
+            timing().copy(fallback = false),
+            (current.picture as? Picture.Failed)?.reason ?: PlaybackError.UNKNOWN,
+        )
         val pressed = System.nanoTime()
         stopEngine()
         timeFrom(pressed, pressed, releasedAt = System.nanoTime())
@@ -1377,6 +1400,20 @@ class PlayerViewModel @Inject constructor(
         prepareMs = (preparedAtNanos - askedAtNanos) / NANOS_PER_MS,
         marks = engine?.openingMarks() ?: OpeningMarks(),
         firstFrameMs = frameAtNanos?.let { (it - askedAtNanos) / NANOS_PER_MS },
+        handover = handover,
+    )
+
+    /**
+     * The primary giving up for [reason], from [left] -- its timing, taken while its engine still exists.
+     *
+     * The engine's marks are milliseconds after it was asked, and the panel's figures are from the press, so each
+     * is moved by the stages that came before the engine was asked.
+     */
+    private fun handoverOf(left: OpeningTiming, reason: PlaybackError) = Handover(
+        reason = reason,
+        afterMs = (System.nanoTime() - askedAtNanos) / NANOS_PER_MS,
+        serverAnsweredMs = left.marks.serverAnsweredMs?.let { left.prepareMs + it },
+        firstBytesMs = left.marks.firstBytesMs?.let { left.prepareMs + it },
     )
 
     /* ------------------------------------------------- the opening panel (temporary, for development) */

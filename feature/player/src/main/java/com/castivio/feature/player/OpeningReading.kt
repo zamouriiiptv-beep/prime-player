@@ -60,6 +60,10 @@ internal data class OpeningReading(
         val lines = ArrayList<HudLine>(8)
         lines += HudLine("#$attempt $channel · $engine · ${case.label} · ${seconds(totalMs)}$approx · $ending", tone)
 
+        // Why the primary let the source go, and whether anything had reached it: the second half of a fallback's
+        // story, which the backup's own figures below cannot tell. Amber, because it is the line to read.
+        timing.handover?.let { lines += HudLine(handoverLine(it), HudTone.RUNNING) }
+
         // The application's stages, one after another: they add up to when the engine was asked.
         val other = (timing.prepareMs - timing.pressToOpenMs - timing.releaseMs - timing.setupMs).coerceAtLeast(0)
         lines += HudLine(
@@ -106,7 +110,23 @@ internal data class OpeningReading(
             OpeningStatus.FAILED -> "FAILED ${failure ?: DASH} ${seconds(totalMs)}"
             OpeningStatus.REPLACED -> "replaced ${seconds(totalMs)}"
         }
-        return "#$attempt ${engineName(timing.engine)} · ${case.label} · $end · ${channel.take(CHANNEL_ROW)}"
+        // A fallback says in the table why it was one, so a screenshot of the last eight is the whole account.
+        val label = timing.handover?.let { "${case.label} (${it.reason}, ${if (it.bytesArrived) "bytes" else "no bytes"})" }
+            ?: case.label
+        return "#$attempt ${engineName(timing.engine)} · $label · $end · ${channel.take(CHANNEL_ROW)}"
+    }
+
+    /**
+     * `primary left: TIMEOUT at 3.00 s · server answered 1.34 s · bytes arrived 2.40 s`, or what did not come.
+     *
+     * The instants are from the press, as every other in the panel is. A server that never answered and bytes that
+     * never arrived are said in words and not as a dash: this line is read to tell a network that was silent from a
+     * stream that was refused, and a dash would have to be decoded first.
+     */
+    private fun handoverLine(left: Handover): String {
+        val server = left.serverAnsweredMs?.let { "server answered ${seconds(it)}" } ?: "server did not answer"
+        val bytes = left.firstBytesMs?.let { "bytes arrived ${seconds(it)}" } ?: "no bytes arrived"
+        return "primary left: ${left.reason} at ${seconds(left.afterMs)} · $server · $bytes"
     }
 
     /** The row's tone: a failure stands out, an opening that is still going is amber, the rest are quiet. */
