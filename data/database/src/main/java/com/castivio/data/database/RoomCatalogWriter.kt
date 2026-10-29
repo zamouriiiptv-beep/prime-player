@@ -62,9 +62,9 @@ import java.util.concurrent.TimeUnit
  * @param tell notifies the observers that the tables changed. Raw statements bypass Room's
  *   write path, so nothing else would.
  * @param defersSortTitleIndex whether a subscription's first load leaves the sort-title index
- *   to be built after its rows -- see [SortTitleIndex]. On in the app. Off only for the
- *   index-cost lab, which times this writer with each index in the place its case puts it, and
- *   must not have this one move it. Before [clock], which stays last so a trailing lambda is its.
+ *   to be built after its rows -- see [SortTitleIndex]. On in the app. Off only where a caller
+ *   times or tests this writer with the index in place, as the removed index-cost lab did (commit
+ *   a98a7219) and a test does. Before [clock], which stays last so a trailing lambda is its.
  */
 class RoomCatalogWriter(
     private val database: CastivioDatabase,

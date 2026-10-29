@@ -13,7 +13,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  * while a library is written, and the one a first load needs least: it is read only by the lists the
  * viewer sorts by name, and the list a section opens with is the provider's order. Building it once over
  * the finished rows is a sort and a sequential write: 101 ms against the 1,255 ms keeping it up cost over
- * 55,801 rows, on the phone the index-cost lab ran on.
+ * 55,801 rows, as the index-cost lab measured on a mid-range phone (commit a98a7219; the lab itself is
+ * no longer in the tree).
  *
  * The other four it could be confused with are not candidates. `idx_media_source_kind_order` and
  * `idx_media_source_kind_group_order` are read *during* the load -- by the counts every card draws and by
