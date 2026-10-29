@@ -312,6 +312,113 @@ class FallbackPolicyTest {
         )
     }
 
+    /* ------------------------------------------------ the primary's opening budget */
+
+    /**
+     * The defect the rule exists for: a source silent for three seconds was handed to the backup, which
+     * asks the same server the same question. The panel read it on a phone over 4G -- no byte for either
+     * engine in six seconds, on channels that played when pressed again a little later.
+     */
+    @Test
+    fun `a primary that nothing has reached is waited on, not handed over`() {
+        listOf(0L, 100, 2_900, 3_000, 3_100, 6_000, 11_900).forEach {
+            assertEquals(
+                "at $it ms with no byte: the backup cannot fix silence",
+                PrimaryVerdict.WAIT,
+                FallbackPolicy.primaryVerdict(elapsedMs = it, bytesAtMs = null, tracksAtMs = null),
+            )
+        }
+    }
+
+    @Test
+    fun `a primary that nothing reached for the whole bound is given a card, and still not the backup`() {
+        listOf(FallbackPolicy.NO_ANSWER_DEADLINE_MS, FallbackPolicy.NO_ANSWER_DEADLINE_MS + 1, 60_000L).forEach {
+            assertEquals(
+                PrimaryVerdict.GIVE_UP,
+                FallbackPolicy.primaryVerdict(elapsedMs = it, bytesAtMs = null, tracksAtMs = null),
+            )
+        }
+    }
+
+    /** From the first bytes and not from the press: that is the whole difference from the flat budget. */
+    @Test
+    fun `bytes with no tracks hand the source over three seconds after the bytes`() {
+        val bytesAt = 500L
+        val budget = FallbackPolicy.OPEN_DEADLINE_MS
+
+        assertEquals(PrimaryVerdict.WAIT, FallbackPolicy.primaryVerdict(bytesAt + budget - 1, bytesAt, null))
+        assertEquals(PrimaryVerdict.FALL_OVER, FallbackPolicy.primaryVerdict(bytesAt + budget, bytesAt, null))
+        assertEquals(PrimaryVerdict.FALL_OVER, FallbackPolicy.primaryVerdict(bytesAt + budget + 5_000, bytesAt, null))
+    }
+
+    @Test
+    fun `a late first byte gets its own three seconds`() {
+        val late = 8_000L
+        val budget = FallbackPolicy.OPEN_DEADLINE_MS
+
+        assertEquals(
+            "eight seconds after the press is not three seconds of silence",
+            PrimaryVerdict.WAIT,
+            FallbackPolicy.primaryVerdict(late + budget - 1, late, null),
+        )
+        assertEquals(PrimaryVerdict.FALL_OVER, FallbackPolicy.primaryVerdict(late + budget, late, null))
+    }
+
+    /** Once the server has spoken, the bound for silence is not the engine's to be held to. */
+    @Test
+    fun `the silence bound does not apply once a byte has been seen`() {
+        val bytesAt = FallbackPolicy.NO_ANSWER_DEADLINE_MS - 100
+
+        assertEquals(
+            PrimaryVerdict.WAIT,
+            FallbackPolicy.primaryVerdict(FallbackPolicy.NO_ANSWER_DEADLINE_MS + 1_000, bytesAt, null),
+        )
+    }
+
+    /** A stream that has told the engine what it carries has done what the stuck ones do not. */
+    @Test
+    fun `tracks start the three seconds again`() {
+        val bytesAt = 500L
+        val tracksAt = 2_000L
+        val budget = FallbackPolicy.OPEN_DEADLINE_MS
+
+        assertEquals(
+            "the bytes' three seconds ended at ${bytesAt + budget}, but the tracks came inside them",
+            PrimaryVerdict.WAIT,
+            FallbackPolicy.primaryVerdict(bytesAt + budget + 1, bytesAt, tracksAt),
+        )
+        assertEquals(PrimaryVerdict.WAIT, FallbackPolicy.primaryVerdict(tracksAt + budget - 1, bytesAt, tracksAt))
+        assertEquals(PrimaryVerdict.FALL_OVER, FallbackPolicy.primaryVerdict(tracksAt + budget, bytesAt, tracksAt))
+    }
+
+    @Test
+    fun `tracks are taken as bytes when only they were seen`() {
+        assertEquals(PrimaryVerdict.WAIT, FallbackPolicy.primaryVerdict(2_900, bytesAtMs = null, tracksAtMs = 100))
+        assertEquals(PrimaryVerdict.FALL_OVER, FallbackPolicy.primaryVerdict(3_100, bytesAtMs = null, tracksAtMs = 100))
+    }
+
+    /**
+     * Not asserted to an exact figure, as the open deadline's is not -- but to the range outside which it
+     * stops being what it is for. Under what a provider needs to start a channel and a connection retry
+     * it hands the card to sources that were about to play; over about twenty seconds it is a spinner
+     * nobody is watching.
+     */
+    @Test
+    fun `the silence bound stays inside the range that makes it a bound`() {
+        assertTrue(
+            "shorter than the open deadline would hand a silent source over sooner than a stuck one",
+            FallbackPolicy.NO_ANSWER_DEADLINE_MS > FallbackPolicy.OPEN_DEADLINE_MS,
+        )
+        assertTrue(
+            "under eight seconds is a provider's cold start given up on",
+            FallbackPolicy.NO_ANSWER_DEADLINE_MS >= 8_000,
+        )
+        assertTrue(
+            "over twenty seconds is a spinner for a dead host",
+            FallbackPolicy.NO_ANSWER_DEADLINE_MS <= 20_000,
+        )
+    }
+
     @Test
     fun `the empty memory remembers nothing`() {
         EngineMemory.NONE.remember("anything", EngineId.BACKUP)

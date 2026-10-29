@@ -70,9 +70,9 @@ import org.junit.Test
  *    cancel it. [playerTest] clears the [ViewModelStore] first, cancelling
  *    `viewModelScope` exactly as the framework does when a real player screen goes away.
  *  - **`advanceUntilIdle` hangs the same way inside a test**, and is wrong a second time
- *    over: before a first frame it runs the opening budget, a `delay` of
- *    [FallbackPolicy.OPEN_DEADLINE_MS], and switching to the backup engine is the exact
- *    thing several of these tests assert does not happen.
+ *    over: before a first frame it runs the opening budget -- the primary's ticks, up to
+ *    [FallbackPolicy.NO_ANSWER_DEADLINE_MS] -- and switching to the backup engine or showing
+ *    the card is the exact thing several of these tests assert does not happen.
  *
  * `runCurrent` runs everything already queued and moves the clock by nothing, which is
  * what "let the pending work settle" was always supposed to mean. Where a test genuinely
@@ -386,23 +386,176 @@ class PlayerPathTest {
     }
 
     /**
-     * A source that says nothing at all is still bounded.
+     * A stream the engine cannot make a picture of is still bounded.
      *
-     * The failure a retry count does not cover: a host that accepts the connection and then
-     * sends nothing produces no error, so nothing triggers a fallback and the user watches a
-     * spinner until a read timeout somewhere decides to fire. The deadline is what makes
-     * that case finite.
+     * The failure a retry count does not cover: bytes arrive, nothing is an error, so nothing
+     * triggers a fallback and the user watches a spinner until a read timeout somewhere decides
+     * to fire. The budget is what makes that case finite, and it is counted from the last step
+     * the stream made -- here its first bytes -- and not from the press.
      */
     @Test
-    fun `a source that never opens falls over when the budget runs out`() = playerTest {
+    fun `a stream the engine cannot make a picture of falls over when the budget runs out`() = playerTest {
         val model = model()
         model.open(vodRequest())
+        runCurrent()
+        engines.last.receives(bytesMs = 50)
         advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS - 100)
         assertEquals("still on the first engine inside the budget", 1, engines.built.size)
 
-        advanceTimeBy(200)
+        advanceTimeBy(500)
         runCurrent()
         assertEquals("and on the second once it is spent", 2, engines.built.size)
+    }
+
+    /**
+     * A source that has sent nothing is waited on, and then given a card -- not the backup.
+     *
+     * The defect, read off the opening panel on a phone over 4G: channels to which neither engine got a byte in
+     * six seconds, the primary for three and then the backup for three, and which played when pressed again a
+     * little later. The backup puts the same question to the same server, so handing a silent source over is the
+     * one switch that cannot help -- and on an account that allows one connection it asks while the first request
+     * is still being let go. The primary stays on its connection; what ends the wait is a bound, and it is a card.
+     */
+    @Test
+    fun `a source that has sent nothing is waited on and then given a card, not handed to the backup`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS * 2)
+        runCurrent()
+        assertEquals("six seconds of silence is not a reason for a second engine", listOf(EngineId.PRIMARY), engines.built)
+        assertTrue("still opening: ${model.now().picture}", model.now().picture is Picture.Opening)
+
+        advanceTimeBy(FallbackPolicy.NO_ANSWER_DEADLINE_MS - FallbackPolicy.OPEN_DEADLINE_MS * 2 - 200)
+        runCurrent()
+        assertTrue("and still inside the bound: ${model.now().picture}", model.now().picture is Picture.Opening)
+
+        advanceTimeBy(400)
+        runCurrent()
+        val picture = model.now().picture
+        assertTrue("a card: $picture", picture is Picture.Failed)
+        picture as Picture.Failed
+        assertEquals(PlaybackError.TIMEOUT, picture.reason)
+        assertTrue("with the backup on it for the viewer to choose", picture.canTryBackup)
+        assertFalse("the spinner went with the wait", model.now().longWait)
+        assertFalse(model.now().switching)
+        assertEquals("and no second engine was built", listOf(EngineId.PRIMARY), engines.built)
+        assertTrue(
+            "the report says how long it waited: ${model.now().diagnosis}",
+            model.now().diagnosis!!.timedOutAfterMs!! >= FallbackPolicy.NO_ANSWER_DEADLINE_MS,
+        )
+    }
+
+    /** The viewer's two ways out of that card: the backup by hand, and the same engine again. */
+    @Test
+    fun `the card after a silent source builds the backup on a press, and Retry asks the primary again`() = playerTest {
+        val first = model()
+        first.open(liveRequest())
+        advanceTimeBy(FallbackPolicy.NO_ANSWER_DEADLINE_MS + 200)
+        runCurrent()
+        assertTrue(first.now().picture is Picture.Failed)
+
+        first.tryBackup()
+        runCurrent()
+        assertEquals("the press builds the backup", listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.built)
+        assertTrue(first.now().picture is Picture.Opening)
+
+        engines.built.clear()
+        val second = model()
+        second.open(liveRequest())
+        advanceTimeBy(FallbackPolicy.NO_ANSWER_DEADLINE_MS + 200)
+        runCurrent()
+        assertTrue(second.now().picture is Picture.Failed)
+        engines.built.clear()
+
+        second.retry()
+        runCurrent()
+        assertEquals("Retry asks the primary again, which had not been given up for a reason", listOf(EngineId.PRIMARY), engines.built)
+        assertTrue(second.now().picture is Picture.Opening)
+    }
+
+    /**
+     * Bytes that arrive late are timed from their arrival.
+     *
+     * Five seconds of silence, and then the stream starts: the three seconds the engine gets to make a picture
+     * of it begin at the first byte, not at the press, or a slow start would have used them all up.
+     */
+    @Test
+    fun `a late first byte gets its own three seconds`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        advanceTimeBy(5_000)
+        runCurrent()
+        assertEquals(listOf(EngineId.PRIMARY), engines.built)
+        engines.last.receives(bytesMs = 5_000)
+
+        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS - 100)
+        runCurrent()
+        assertEquals("three seconds after the press is not three seconds after the bytes", listOf(EngineId.PRIMARY), engines.built)
+
+        advanceTimeBy(600)
+        runCurrent()
+        assertEquals("three seconds after the bytes it is", listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.built)
+
+        engines.last.renderFirstFrame()
+        runCurrent()
+        assertTrue("and the record says bytes had arrived", model.opening!!.handover!!.bytesArrived)
+    }
+
+    /** A stream that has told the engine what it carries has done what the stuck ones do not: its wait is longer. */
+    @Test
+    fun `a stream whose tracks are known is given three seconds more`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        engines.last.receives(bytesMs = 50)
+        advanceTimeBy(2_500)
+        runCurrent()
+        engines.last.receives(bytesMs = 50, tracksMs = 2_400)
+
+        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS - 100)
+        runCurrent()
+        assertEquals("the bytes' three seconds are over, but the tracks restarted them", listOf(EngineId.PRIMARY), engines.built)
+
+        advanceTimeBy(600)
+        runCurrent()
+        assertEquals("three seconds after the tracks, with no picture, it is handed over", listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.built)
+    }
+
+    /** An error the engine reports is decided the moment it arrives, however long the engine has been waited on. */
+    @Test
+    fun `a failure the primary reports after a long silence is still handed over at once`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        advanceTimeBy(8_000)
+        runCurrent()
+        assertEquals(listOf(EngineId.PRIMARY), engines.built)
+
+        engines.last.fail(PlaybackError.DECODER_INIT)
+        runCurrent()
+
+        assertEquals(listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.built)
+    }
+
+    /**
+     * A stream that begins after the card is up draws over it.
+     *
+     * The primary is left on its connection behind the card, so a provider that was only slow still gets its
+     * channel on the screen, and no press is needed to take the card away.
+     */
+    @Test
+    fun `a frame after the silent card puts the picture over it`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        advanceTimeBy(FallbackPolicy.NO_ANSWER_DEADLINE_MS + 200)
+        runCurrent()
+        assertTrue(model.now().picture is Picture.Failed)
+
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        assertTrue("the picture: ${model.now().picture}", model.now().picture is Picture.Playing)
+        assertEquals(EngineId.PRIMARY, model.now().engine)
+        assertEquals(listOf(EngineId.PRIMARY), engines.built)
     }
 
     /**
@@ -438,7 +591,9 @@ class PlayerPathTest {
     fun `a source that never opens is reported as a timeout, not as a codec problem`() = playerTest {
         val model = model()
         model.open(vodRequest())
-        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 100)
+        runCurrent()
+        engines.last.receives()
+        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 500)
         runCurrent()
         // The budget switched to the backup. Let that one expire too.
         advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 100)
@@ -2329,7 +2484,9 @@ class PlayerPathTest {
         val model = model()
         val request = liveRequest()
         model.open(request)
-        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 100)
+        runCurrent()
+        engines.last.receives()
+        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 200)
         runCurrent()
         assertEquals("the budget still hands it to the backup", listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.built)
 
@@ -2426,7 +2583,7 @@ class PlayerPathTest {
         model.open(liveRequest())
         runCurrent()
         engines.last.marks = OpeningMarks(serverAnsweredMs = 1_200, firstBytesMs = 2_400)
-        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 100)
+        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 200)
         runCurrent()
         engines.last.renderFirstFrame()
         runCurrent()
@@ -2441,11 +2598,18 @@ class PlayerPathTest {
         assertTrue(opening.render(), opening.render().contains("primary left TIMEOUT"))
     }
 
+    /**
+     * A primary that heard nothing is only ever handed over by the viewer, from the card: the budget does not.
+     * Its record says so, and says that nothing had reached it.
+     */
     @Test
-    fun `a primary that heard nothing says so`() = playerTest {
+    fun `a primary that heard nothing says so when the viewer sends the source to the backup`() = playerTest {
         val model = model()
-        model.open(liveRequest())
-        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 100)
+        val request = liveRequest()
+        model.open(request)
+        advanceTimeBy(FallbackPolicy.NO_ANSWER_DEADLINE_MS + 200)
+        runCurrent()
+        model.tryBackup()
         runCurrent()
         engines.last.renderFirstFrame()
         runCurrent()
@@ -2454,6 +2618,10 @@ class PlayerPathTest {
         assertEquals(PlaybackError.TIMEOUT, left.reason)
         assertFalse("nothing reached the primary", left.bytesArrived)
         assertNull(left.serverAnsweredMs)
+        assertNull(
+            "and a backup the viewer chose after silence is not a claim about the stream",
+            memory.preferred(FallbackPolicy.sourceKey(request.url)),
+        )
     }
 
     @Test
@@ -2492,7 +2660,9 @@ class PlayerPathTest {
     fun `an opening on the primary has no handover, and a new press clears the last one`() = playerTest {
         val model = model()
         model.open(liveRequest())
-        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 100)
+        runCurrent()
+        engines.last.receives()
+        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 200)
         runCurrent()
         engines.last.renderFirstFrame()
         runCurrent()
@@ -3071,10 +3241,15 @@ class PlayerPathTest {
         val model = model()
         model.open(liveRequest())
         runCurrent()
+        // Bytes reach the first channel at once, so its budget ends three seconds in -- a second after the switch.
+        engines.last.receives()
         advanceTimeBy(2_000)
 
         model.switchTo(secondChannel())
         runCurrent()
+        // What a real engine does on `open`, and the fake does not: the next source starts with no marks of its own.
+        engines.last.marks = OpeningMarks()
+        engines.last.receives()
         advanceTimeBy(1_500)
         runCurrent()
         assertEquals("the first channel's deadline did not fire on the second", listOf(EngineId.PRIMARY), engines.built)
@@ -3499,8 +3674,9 @@ class PlayerPathTest {
         val model = model()
         model.open(liveRequest())
         runCurrent()
+        engines.last.receives()
 
-        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 1)
+        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 200)
         runCurrent()
         assertEquals(listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.built)
         assertTrue("through the switch", model.now().longWait)
@@ -3571,9 +3747,10 @@ class PlayerPathTest {
         val model = model()
         model.open(liveRequest())
         runCurrent()
-        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 1)
+        engines.last.receives()
+        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 200)
         runCurrent()
-        assertEquals("the primary still has its three seconds", listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.built)
+        assertEquals("the primary had its three seconds", listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.built)
         val backup = engines.last
 
         advanceTimeBy(600)
@@ -3793,6 +3970,14 @@ class PlayerPathTest {
     }
 
     /* ------------------------------------------------------------------------ fakes */
+
+    /**
+     * What the server has sent the primary: its first bytes, and with [tracksMs] the stream's tracks too. The
+     * opening budget is read from exactly these, as the real engine's marks give them.
+     */
+    private fun FakeEngine.receives(bytesMs: Long = 50, tracksMs: Long? = null) {
+        marks = OpeningMarks(serverAnsweredMs = bytesMs / 2, firstBytesMs = bytesMs, tracksKnownMs = tracksMs)
+    }
 
     private fun liveRequest(
         url: String = "http://provider.tv/live/1.ts?token=abc",

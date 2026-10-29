@@ -6,9 +6,11 @@ package com.castivio.playback.api
  * ## The rule this file exists to enforce
  *
  * **The fallback is a budget, not a retry loop.** Engine 1 gets exactly one attempt to
- * open a source, bounded by a deadline; if it has not produced a frame by then, or has
- * failed with something a different engine could plausibly fix, engine 2 takes over —
- * once. There is no third attempt and no exponential backoff on the opening path.
+ * open a source, bounded by a deadline; if it has stopped making progress on a stream that
+ * is reaching it, or has failed with something a different engine could plausibly fix,
+ * engine 2 takes over — once. A source that has sent engine 1 nothing at all is not handed
+ * over: a second engine cannot fix silence, and [FallbackPolicy.primaryVerdict] says what
+ * happens instead. There is no third attempt and no exponential backoff on the opening path.
  *
  * That is a performance decision before it is a correctness one. A retry loop turns a
  * dead source into eight seconds of spinner, and eight seconds of spinner on a channel
@@ -48,6 +50,20 @@ enum class EngineId {
      * it is what a source earns by failing, never what one starts on.
      */
     BACKUP,
+}
+
+/**
+ * What [FallbackPolicy.primaryVerdict] says about a primary engine that has not drawn yet.
+ */
+enum class PrimaryVerdict {
+    /** Neither bound has been reached: keep waiting on the engine that has the source. */
+    WAIT,
+
+    /** The stream is reaching the engine and it has stopped making progress: the backup can plausibly fix it. */
+    FALL_OVER,
+
+    /** Nothing has reached the engine in [FallbackPolicy.NO_ANSWER_DEADLINE_MS]: a card, because the backup cannot fix silence. */
+    GIVE_UP,
 }
 
 /**
@@ -99,28 +115,56 @@ interface EngineMemory {
 object FallbackPolicy {
 
     /**
-     * How long engine 1 gets to produce a first frame before engine 2 is given the
-     * source instead.
+     * How long an engine may go without a sign of life before it is given up on.
      *
-     * Three seconds is chosen against the failure it is protecting from rather than
-     * against a healthy stream. A healthy IPTV channel on a working connection renders
-     * inside a second; one that has not rendered in three is not slow, it is refusing —
-     * a codec the decoder will not take, a manifest the reader cannot parse, a host that
-     * accepted the connection and then said nothing.
+     * For the **primary** the three seconds are counted from its last sign of life, not from
+     * the press: from the first bytes of the stream, and again from its tracks being known.
+     * See [primaryVerdict]. Before any byte has reached it there is nothing to count from,
+     * and [NO_ANSWER_DEADLINE_MS] is the bound. For the **backup** they are the time to
+     * start, counted from the open, as they always were.
      *
-     * Longer, and every genuinely broken source costs the user the whole deadline before
-     * anything else is tried. Shorter, and a cold cellular connection on a high-bitrate
-     * stream gets pulled off an engine that was about to succeed and handed to the slower
+     * Three seconds is chosen against the failure it protects from rather than against a
+     * healthy stream: bytes arriving that the engine cannot make a picture of -- a transport
+     * stream whose table the strict reader will not parse, a decoder that never draws. On a
+     * working connection a channel goes from its first bytes to a picture in a second or two
+     * (0.75 s in the one measurement taken on a phone), so three seconds without a step is not
+     * slow, it is stuck.
+     *
+     * Longer, and every stream the primary cannot read costs the user the whole deadline
+     * before anything else is tried. Shorter, and a link that delivers the first keyframe
+     * slowly gets pulled off an engine that was about to succeed and handed to the slower
      * one, which is a worse outcome arrived at faster.
      */
     const val OPEN_DEADLINE_MS: Long = 3_000
 
     /**
-     * How long an engine that has started gets to show its first picture, counted from the
+     * How long the primary is waited on while nothing of the stream has reached it at all.
+     *
+     * ## Why this is not [OPEN_DEADLINE_MS]
+     *
+     * The three seconds were chosen on the reading that a source silent for three seconds is
+     * refusing. The opening panel on a phone over 4G read otherwise: channels to which neither
+     * engine got a single byte in six seconds -- the primary for three, then the backup for
+     * three -- and the same kind of channel playing when pressed again a little later. A
+     * provider that starts a channel for its first viewer, or a link that is still warming up,
+     * is slow and not refusing; and handing a silent source to the backup is the one switch
+     * that cannot help, because the backup puts the same question to the same server, and on
+     * an account that allows one connection may put it while the first is still being let go.
+     *
+     * So before the first byte the primary is left on its connection, and what ends the wait
+     * is this bound, which is a card -- the viewer's retry, or the backup by hand -- and not
+     * an automatic switch. Long enough for a provider's cold start and the primary's own
+     * connection retry; short enough that a dead host does not turn the spinner for ever.
+     */
+    const val NO_ANSWER_DEADLINE_MS: Long = 12_000
+
+    /**
+     * How long a **backup** that has started gets to show its first picture, counted from the
      * same open as [OPEN_DEADLINE_MS].
      *
-     * [OPEN_DEADLINE_MS] is measured to [PlaybackEngine.startedAtMs]. For Media3 that is the
-     * first frame, so this never comes into it. LibVLC starts before it draws: it fills its
+     * [OPEN_DEADLINE_MS] is measured, for the backup, to [PlaybackEngine.startedAtMs]. For
+     * Media3 that is the first frame, and the primary is timed by [primaryVerdict] instead, so
+     * this never comes into it. LibVLC starts before it draws: it fills its
      * network cache — a second for a film, half of one for a channel — and then waits for a
      * picture it can decode, which on a live stream can be a keyframe several seconds away.
      * A backup that had started inside three seconds always counted as open; giving its
@@ -133,6 +177,43 @@ object FallbackPolicy {
      * turns for ever over a sound with no picture.
      */
     const val PICTURE_DEADLINE_MS: Long = 10_000
+
+    /**
+     * What to do about a primary engine that has not drawn yet, from what has reached it.
+     *
+     * ## Silence after progress, not a flat budget from the press
+     *
+     * A flat three seconds from the press handed to the backup every source whose server was
+     * slow to start, and that is the one switch that cannot help: the backup asks the same
+     * server the same question. What the engine has been *given* separates the two cases the
+     * flat budget could not tell apart:
+     *
+     * - **Nothing has reached it** -- no byte of the stream. The source is slow or gone, and
+     *   no other engine decodes what has not arrived. Wait, up to [NO_ANSWER_DEADLINE_MS],
+     *   and then [PrimaryVerdict.GIVE_UP]: a card, with the backup left to the viewer.
+     * - **Bytes are arriving and it cannot make a picture of them.** That is the engine's
+     *   problem, and the backup's demuxer and decoders are what can fix it. After
+     *   [OPEN_DEADLINE_MS] without a step -- from the first bytes, and again from the tracks
+     *   being known, because a stream that has told the engine what it carries has done
+     *   what the strict reader could not do for the streams the backup exists for --
+     *   [PrimaryVerdict.FALL_OVER].
+     *
+     * A frame ends all of this, and is the caller's to notice: this only answers for an
+     * engine that has not drawn.
+     *
+     * Pure, over times the caller measures on one clock, so the rule is tested without a
+     * player. A failure the engine reports is not this function's: it is decided by
+     * [decideAutomatically] the moment it arrives, however long the engine has waited.
+     *
+     * @param elapsedMs since the engine was asked to open the source.
+     * @param bytesAtMs when the first bytes of the stream were seen, on the same clock, or null.
+     * @param tracksAtMs when the stream's tracks were seen, or null. Tracks imply bytes.
+     */
+    fun primaryVerdict(elapsedMs: Long, bytesAtMs: Long?, tracksAtMs: Long?): PrimaryVerdict {
+        val lastStepAt = tracksAtMs ?: bytesAtMs
+            ?: return if (elapsedMs >= NO_ANSWER_DEADLINE_MS) PrimaryVerdict.GIVE_UP else PrimaryVerdict.WAIT
+        return if (elapsedMs - lastStepAt >= OPEN_DEADLINE_MS) PrimaryVerdict.FALL_OVER else PrimaryVerdict.WAIT
+    }
 
     /**
      * Which engine opens this source right now.

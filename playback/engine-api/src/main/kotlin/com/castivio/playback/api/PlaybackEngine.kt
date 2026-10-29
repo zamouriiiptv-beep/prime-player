@@ -199,8 +199,16 @@ interface PlaybackEngine {
      *
      * A pull, like [sample], and for the same reason: the marks are timestamps the engine
      * takes as the platform tells it things, and nothing is computed until the player asks --
-     * once, when the first frame arrives or the source is given up. An engine that sees none
-     * of the steps answers with empty marks, which is what the default does.
+     * when the first frame arrives or the source is given up, and, for the primary, every tenth
+     * of a second until it has drawn (see below). An engine that sees none of the steps answers
+     * with empty marks, which is what the default does.
+     *
+     * **For the primary engine two of the marks are also what its opening budget is read from:**
+     * [OpeningMarks.firstBytesMs] and [OpeningMarks.tracksKnownMs]. They decide whether it is
+     * waited on or handed to the backup -- see [FallbackPolicy.primaryVerdict] -- so a primary
+     * that reports neither is waited on for [FallbackPolicy.NO_ANSWER_DEADLINE_MS] and then given
+     * a card, and is never handed over by the budget. Reading them is a few atomic loads and one
+     * small object, which is why the player may ask this often.
      */
     fun openingMarks(): OpeningMarks = OpeningMarks()
 

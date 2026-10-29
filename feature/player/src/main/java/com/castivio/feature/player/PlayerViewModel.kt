@@ -14,6 +14,7 @@ import com.castivio.playback.api.PlaybackEngine
 import com.castivio.playback.api.PlaybackDiagnosis
 import com.castivio.playback.api.PlaybackError
 import com.castivio.playback.api.PlaybackState
+import com.castivio.playback.api.PrimaryVerdict
 import com.castivio.playback.api.Track
 import com.castivio.playback.api.VideoOutput
 import com.castivio.playback.api.EngineFactory
@@ -52,10 +53,17 @@ import kotlinx.coroutines.launch
  *
  * ## The fallback, and why it has a deadline rather than a retry count
  *
- * Engine 1 is given [FallbackPolicy.OPEN_DEADLINE_MS] to produce a frame. Two things can
- * end that wait early: a frame, which cancels the deadline and remembers the engine, or a
- * failure that the other engine could plausibly fix. Anything else — a failure neither can
- * fix, or a second failure after the switch — is a card, not another attempt.
+ * Engine 1 is given time to produce a frame. Two things can end that wait early: a frame,
+ * which cancels the deadline and remembers the engine, or a failure that the other engine
+ * could plausibly fix. Anything else — a failure neither can fix, or a second failure after
+ * the switch — is a card, not another attempt.
+ *
+ * How the time is spent depends on what has reached the engine: see
+ * [FallbackPolicy.primaryVerdict]. A stream that is arriving and that engine 1 cannot make a
+ * picture of is handed to the backup after [FallbackPolicy.OPEN_DEADLINE_MS] without a step.
+ * A source that has sent it nothing is not: the backup would put the same question to the
+ * same server, so engine 1 is waited on for [FallbackPolicy.NO_ANSWER_DEADLINE_MS] and then
+ * there is a card, with the backup one press away.
  *
  * A deadline rather than a count because a count does not bound anything: three attempts
  * at a host that accepts connections and never sends bytes is three read timeouts, and the
@@ -425,25 +433,80 @@ class PlayerViewModel @Inject constructor(
     /**
      * This attempt's budget, on [running]. Every open has its own, a kept engine's included.
      *
-     * Two bounds from the open, and either one ending is the same TIMEOUT it always was.
-     * [FallbackPolicy.OPEN_DEADLINE_MS] is for the engine to start, which for Media3 is its
-     * first frame, so for the primary nothing comes after it. LibVLC starts before it draws,
-     * and a backup that has started is given until [FallbackPolicy.PICTURE_DEADLINE_MS] for
-     * its picture rather than a card at three seconds over a source that is about to play.
+     * Of two kinds, by engine, and either one ending is the same TIMEOUT it always was.
+     *
+     * The **primary** is timed by what has reached it, until it draws: [awaitPrimary].
+     *
+     * The **backup** is timed from the open. [FallbackPolicy.OPEN_DEADLINE_MS] is for the engine
+     * to start. LibVLC starts before it draws, and a backup that has started is given until
+     * [FallbackPolicy.PICTURE_DEADLINE_MS] for its picture rather than a card at three seconds
+     * over a source that is about to play: [awaitBackup].
      */
     private fun deadlineFor(running: PlaybackEngine, id: EngineId): Job = viewModelScope.launch {
+        when (id) {
+            EngineId.PRIMARY -> awaitPrimary(running)
+            EngineId.BACKUP -> awaitBackup(running)
+        }
+    }
+
+    /**
+     * Waits on the primary by what it has been given, a tenth of a second at a time, until it
+     * draws or the verdict is not to wait: [FallbackPolicy.primaryVerdict] is the rule, and this is
+     * the clock and the eyes it needs.
+     *
+     * The primary's first bytes and its tracks are read from [PlaybackEngine.openingMarks] and
+     * stamped on this loop's own clock, when first seen, so that the rule is over one clock and
+     * a test moves it with the scheduler. A tenth of a second late at the most, which is nothing
+     * against three seconds and against twelve.
+     *
+     * Ends, without a verdict, when a card is already up: the engine has said what went wrong,
+     * and the budget has nothing to add. A frame ends it from [onFirstFrame].
+     */
+    private suspend fun awaitPrimary(running: PlaybackEngine) {
+        var elapsed = 0L
+        var bytesAt: Long? = null
+        var tracksAt: Long? = null
+        while (true) {
+            delay(OPENING_TICK_MS)
+            elapsed += OPENING_TICK_MS
+            if (running.firstFrameAtMs.value != null || _state.value?.picture is Picture.Failed) return
+            val marks = running.openingMarks()
+            if (bytesAt == null && marks.firstBytesMs != null) bytesAt = elapsed
+            if (tracksAt == null && marks.tracksKnownMs != null) tracksAt = elapsed
+            when (FallbackPolicy.primaryVerdict(elapsed, bytesAt, tracksAt)) {
+                PrimaryVerdict.WAIT -> Unit
+                PrimaryVerdict.FALL_OVER -> {
+                    Log.w(
+                        TAG,
+                        "${EngineId.PRIMARY} made no progress for ${FallbackPolicy.OPEN_DEADLINE_MS}ms " +
+                            "(bytes at ${bytesAt}ms, tracks at ${tracksAt}ms) at ${elapsed}ms",
+                    )
+                    timeOut(after = elapsed)
+                    return
+                }
+                PrimaryVerdict.GIVE_UP -> {
+                    Log.w(TAG, "${EngineId.PRIMARY} was sent nothing in ${elapsed}ms: waiting is over")
+                    giveUp(after = elapsed)
+                    return
+                }
+            }
+        }
+    }
+
+    /** The backup's two bounds from the open: to start, and then to draw. See [deadlineFor]. */
+    private suspend fun awaitBackup(running: PlaybackEngine) {
         delay(FallbackPolicy.OPEN_DEADLINE_MS)
         // Still not started. Not an error — the engine has not said anything — but the
         // budget is spent, and a source that has not opened in three seconds is not
         // about to.
         if (running.startedAtMs.value == null) {
-            Log.w(TAG, "$id did not start in ${FallbackPolicy.OPEN_DEADLINE_MS}ms")
+            Log.w(TAG, "${EngineId.BACKUP} did not start in ${FallbackPolicy.OPEN_DEADLINE_MS}ms")
             timeOut(after = FallbackPolicy.OPEN_DEADLINE_MS)
-            return@launch
+            return
         }
         delay(FallbackPolicy.PICTURE_DEADLINE_MS - FallbackPolicy.OPEN_DEADLINE_MS)
         if (running.firstFrameAtMs.value == null) {
-            Log.w(TAG, "$id started but drew nothing in ${FallbackPolicy.PICTURE_DEADLINE_MS}ms")
+            Log.w(TAG, "${EngineId.BACKUP} started but drew nothing in ${FallbackPolicy.PICTURE_DEADLINE_MS}ms")
             timeOut(after = FallbackPolicy.PICTURE_DEADLINE_MS)
         }
     }
@@ -460,6 +523,38 @@ class PlayerViewModel @Inject constructor(
         timedOut = true
         timedOutAfterMs = after
         fallOver(PlaybackError.TIMEOUT)
+    }
+
+    /**
+     * Nothing of the stream reached the primary in [after]: a card, and not the backup.
+     *
+     * The backup puts the same question to the same server, and on an account that allows one
+     * connection may put it while the first is still being let go, so handing a silent source over
+     * is the switch that cannot help. The card is the TIMEOUT one -- "nothing arrived" -- with the
+     * backup on it for the viewer to choose, and Retry for the viewer who would rather ask again.
+     *
+     * The engine is **not** stopped. It is still on its connection, and a stream that begins
+     * after the card is up draws over it: [onEngineState] takes the picture, as it does after any
+     * timeout. What the engine itself reports later -- a network failure once its own retries are
+     * spent -- replaces the card with the more specific reason, as it would have without this.
+     */
+    private fun giveUp(after: Long) {
+        val current = _state.value ?: return
+        if (current.picture is Picture.Failed) return
+        timedOut = true
+        timedOutAfterMs = after
+        noteFailure(PlaybackError.TIMEOUT)
+        waitJob?.cancel(); waitJob = null
+        val card = Picture.Failed(
+            reason = PlaybackError.TIMEOUT,
+            canTryBackup = !backupTried && engineId == EngineId.PRIMARY && FallbackPolicy.canBackupHelp(PlaybackError.TIMEOUT),
+        )
+        _state.value = current.copy(
+            picture = card,
+            switching = false,
+            longWait = false,
+            diagnosis = engine?.diagnosis?.value ?: timeoutDiagnosis(card) ?: current.diagnosis,
+        )
     }
 
     private fun onEngineState(playback: PlaybackState, hasFrame: Boolean) {
@@ -1639,6 +1734,13 @@ class PlayerViewModel @Inject constructor(
 
         /** How often the opening panel's reading is taken while a channel opens: ten times a second. */
         const val DIAGNOSTIC_TICK_MS = 100L
+
+        /**
+         * How often the primary's opening is looked at for its first bytes and its tracks: ten times a
+         * second, until it draws. Each look is a few atomic loads, and the error it can add to a budget of
+         * three seconds or twelve is one tick.
+         */
+        const val OPENING_TICK_MS = 100L
 
         /** Four times a second: enough for a moving position, cheap enough to ignore. */
         const val TICK_MS = 250L
