@@ -9,13 +9,40 @@ import com.castivio.domain.SourceKind
 import com.castivio.domain.SourceRepository
 import com.castivio.domain.SyncState
 import com.castivio.domain.nextPlaylistName
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 
+/**
+ * @param onActiveChanged told when another subscription becomes active, or the active one is deleted:
+ *   every catalogue read finds the active subscription through `source`, and all of them read again --
+ *   see `RoomCatalogRepository.activeChanged`. Before [clock], which stays last so a trailing lambda is its.
+ */
 class RoomSourceRepository(
     private val dao: SourceDao,
+    private val onActiveChanged: () -> Unit = {},
     private val clock: () -> Long = System::currentTimeMillis,
 ) : SourceRepository {
+
+    /**
+     * Every write through this repository, counted, so [sources] and [active] read again
+     * after each.
+     *
+     * Room's notice was all that moved them, and on a device the screens did not move: a
+     * subscription added from Home was saved and made active, and Home still said there was
+     * none when the app was closed seconds later; a deleted one stayed in the list. Every
+     * write to `source` at run time goes through this class, so this class says so -- as
+     * `RoomCatalogRepository` does for the orders and the hidden, whose readers Room's notice
+     * did not reach either. Room's notice, when it comes, reads once more what this already
+     * read, and `distinctUntilChanged` lets the second reading through only if it differs.
+     */
+    private val writes = MutableStateFlow(0L)
+
+    private fun changed() = writes.update { it + 1 }
 
     /**
      * Registers a provider and makes it the active one.
@@ -82,10 +109,15 @@ class RoomSourceRepository(
         return registered
     }
 
+    /** Read again after every write -- see [writes]. */
+    @OptIn(ExperimentalCoroutinesApi::class)
     override fun sources(): Flow<List<ProviderSource>> =
-        dao.all().map { rows -> rows.map { it.toDomain() } }
+        writes.flatMapLatest { dao.all() }.map { rows -> rows.map { it.toDomain() } }.distinctUntilChanged()
 
-    override fun active(): Flow<ProviderSource?> = dao.active().map { it?.toDomain() }
+    /** Read again after every write -- see [writes]. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override fun active(): Flow<ProviderSource?> =
+        writes.flatMapLatest { dao.active() }.map { it?.toDomain() }.distinctUntilChanged()
 
     override suspend fun activeNow(): ProviderSource? = dao.activeNow()?.toDomain()
 
@@ -107,9 +139,16 @@ class RoomSourceRepository(
             ),
         )
         if (source.isActive) dao.activate(source.id)
+        changed()
+        if ((existing?.isActive ?: false) != source.isActive) onActiveChanged()
     }
 
-    override suspend fun setActive(id: String) = dao.activate(id)
+    override suspend fun setActive(id: String) {
+        val before = dao.activeNow()?.id
+        dao.activate(id)
+        changed()
+        if (before != id) onActiveChanged()
+    }
 
     override suspend fun recordCatalogueImport(id: String, sync: SyncState) {
         dao.recordImport(
@@ -120,12 +159,40 @@ class RoomSourceRepository(
             importedAt = sync.lastImportAtMs ?: clock(),
             itemCount = sync.itemCount,
         )
+        changed()
     }
 
-    override suspend fun recordEpgImport(id: String, atMs: Long) = dao.recordEpgImport(id, atMs)
+    override suspend fun recordEpgImport(id: String, atMs: Long) {
+        dao.recordEpgImport(id, atMs)
+        changed()
+    }
 
-    /** The subscription and its catalogue, never another's. See [SourceDao.deleteWithCatalogue]. */
-    override suspend fun delete(id: String) = dao.deleteWithCatalogue(id)
+    /**
+     * The subscription, and then its catalogue, never another's.
+     *
+     * The row goes first, alone, and the readers are told: from that moment it is on no
+     * screen, because every catalogue read is scoped to the active subscription and one
+     * without a row cannot be it. The catalogue then goes behind it, a step at a time -- see
+     * [SourceDao.purgeStep] -- with what an earlier removal left when it was cut short. It
+     * used to be one transaction that removed the row last, and the row stayed on screen
+     * for as long as the device took to delete everything else.
+     */
+    override suspend fun delete(id: String) {
+        val wasActive = dao.byId(id)?.isActive == true
+        dao.delete(id)
+        changed()
+        if (wasActive) onActiveChanged()
+        for (gone in (listOf(id) + dao.orphaned()).distinct()) {
+            while (dao.purgeStep(gone, PURGE_STEP)) {
+                // Each step is its own transaction; between two, any other write has the connection.
+            }
+        }
+    }
+
+    private companion object {
+        /** Rows a purge step binds by id: clear of SQLite's 999 bind-variable limit on older Android. */
+        const val PURGE_STEP = 400
+    }
 }
 
 private fun SourceEntity.syncState() = SyncState(

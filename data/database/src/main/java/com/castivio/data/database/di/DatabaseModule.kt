@@ -129,5 +129,8 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun sources(dao: SourceDao): SourceRepository = RoomSourceRepository(dao)
+    fun sources(dao: SourceDao, catalog: RoomCatalogRepository): SourceRepository =
+        // The catalogue's counts, rails and lists are told when another subscription is active -- see
+        // `RoomCatalogRepository.activeChanged`.
+        RoomSourceRepository(dao, onActiveChanged = catalog::activeChanged)
 }

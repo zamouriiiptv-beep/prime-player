@@ -127,11 +127,24 @@ class RoomEpgWriter(
         }
     }
 
+    /**
+     * `synchronous = OFF` while the guide is written, and nothing about the journal.
+     *
+     * It set `journal_mode = MEMORY` as well -- the line `RoomCatalogWriter` lost when a device showed
+     * that in a rollback journal the writer locks the readers out (see its `applyImportPragmas`). This
+     * writer runs each time a channel whose guide is not stored yet is played from the board, and leaving
+     * WAL succeeds only when nothing is reading, as coming back to it does: on a screen that was reading,
+     * the database could stay in a rollback journal for the rest of the run, where a write waits for the
+     * reads in progress and the screens' reads wait for the write.
+     */
     private fun SupportSQLiteDatabase.applyImportPragmas() {
         runCatching { execSQL("PRAGMA synchronous = OFF") }
-        runCatching { execSQL("PRAGMA journal_mode = MEMORY") }
     }
 
+    /**
+     * Restores durability afterwards. The WAL statement is a repair, as in `RoomCatalogWriter`: this
+     * writer no longer moves the journal, and one an earlier build moved comes back.
+     */
     private fun SupportSQLiteDatabase.restoreNormalPragmas() {
         runCatching { execSQL("PRAGMA synchronous = NORMAL") }
         runCatching { execSQL("PRAGMA journal_mode = WAL") }

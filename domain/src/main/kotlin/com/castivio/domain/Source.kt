@@ -98,6 +98,10 @@ interface SourceRepository {
      * entries and guide — and nothing that belongs to another subscription. Favourites
      * and watch positions stay, so the same subscription added again finds them.
      *
+     * The subscription leaves [sources] and [active] first, before its catalogue has gone,
+     * which can take seconds on a large one, and this returns when everything has: a caller
+     * that must not leave it half-done must not be cancelled before then.
+     *
      * What lives outside this repository — section marks, the provider's recorded
      * answer — is [RemoveSource]'s to forget.
      */

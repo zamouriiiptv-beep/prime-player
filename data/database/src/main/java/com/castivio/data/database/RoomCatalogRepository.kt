@@ -146,6 +146,28 @@ class RoomCatalogRepository(
         return source
     }
 
+    /**
+     * **Which subscription is active is told to every reader here by the write that changes it**, for
+     * the reason the orders and the hidden are -- see [orderWrites]. Every read in this class finds the
+     * active subscription through `source` (see `ACTIVE_SOURCE`), so choosing another changes what all
+     * of them read, and that was left to Room's notice: on a device, switching between two playlists was
+     * slow to show. `RoomSourceRepository`, the one writer of `source`, tells [activeChanged]; the counts
+     * and the rail read again through [rereading], and the lists are [listReaders]. Room's own notice,
+     * where it comes, only reads once more what this already read.
+     */
+    private val activeWrites = MutableStateFlow(0L)
+
+    /** Another subscription is active, or none is: every list, the rail and the counts are read again. */
+    internal fun activeChanged() {
+        activeWrites.update { it + 1 }
+        listReaders.forEach { it.invalidate() }
+    }
+
+    /** [read], read again after every hide and restore -- see [hiddenWrites] -- and every change of subscription. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun <T> rereading(read: () -> Flow<T>): Flow<T> =
+        combine(hiddenWrites, activeWrites) { hidden, active -> hidden to active }.flatMapLatest { read() }
+
     // ------------------------------------------------------------- CatalogRepository
 
     /**
@@ -155,14 +177,14 @@ class RoomCatalogRepository(
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun groups(kind: MediaKind): Flow<List<MediaGroup>> =
         combine(
-            // Read again after every hide and every restore -- see [hiddenWrites].
-            hiddenWrites.flatMapLatest { groupDao.groupsOf(kind.name) },
+            // Read again after every hide and restore, and every change of subscription -- see [rereading].
+            rereading { groupDao.groupsOf(kind.name) },
             // Read again after every write to an order -- see [orderWrites].
             orderWrites.flatMapLatest { orderDao.positions(OrderScopes.bouquets(kind)) },
             // The channels hidden one by one: a bouquet's stored count is what the provider filed under
             // it, and the rail's is what the viewer can see -- so a bouquet whose channels are all hidden
             // reads empty, and is left out of the rail as an empty one is.
-            hiddenWrites.flatMapLatest { hiddenDao.channelsByGroup() },
+            rereading { hiddenDao.channelsByGroup() },
         ) { rows, saved, hidden ->
             val hiddenIn = hidden.associate { it.groupId to it.hidden }
             rows.map { row ->
@@ -223,10 +245,9 @@ class RoomCatalogRepository(
         }
     }
 
-    /** Read again after every hide and every restore -- see [hiddenWrites]. */
-    @OptIn(ExperimentalCoroutinesApi::class)
+    /** Read again after every hide and restore, and every change of subscription -- see [rereading]. */
     override fun count(kind: MediaKind, groupId: String?): Flow<Int> =
-        hiddenWrites.flatMapLatest {
+        rereading {
             if (groupId == null) mediaDao.countOf(kind.name) else mediaDao.countOfGroup(kind.name, groupId)
         }
 
@@ -509,7 +530,7 @@ class RoomCatalogRepository(
      * The `onEach` observes; it changes no page, no size and no ordering. `PagingConfig`
      * below is untouched.
      */
-    // Every list it pages is told of what is hidden -- see [hiddenWrites].
+    // Every list it pages is told of what is hidden and of a change of subscription -- see [hiddenWrites], [activeWrites].
     private fun <T : Any> pager(source: () -> androidx.paging.PagingSource<Int, T>) =
         rawPager { readingLists(source()) }.onEach {
             if (firstPageSeen.compareAndSet(false, true)) {

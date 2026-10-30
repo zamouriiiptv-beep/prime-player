@@ -297,6 +297,55 @@ class SourceAndMigrationTest {
             assertEquals(1, database.favoriteDao().page().firstPage().size)
         }
 
+    /** The catalogue goes a few hundred rows at a time: one larger than a step goes in as many as it takes. */
+    @Test
+    fun `a catalogue larger than one step is removed whole`() = runBlocking {
+        Fixtures.import(database, Fixtures.livePlaylist(1_000), sourceId = "big")
+        Fixtures.import(database, Fixtures.livePlaylist(2) { "News" }, sourceId = "m3u")
+
+        repository().delete("big")
+
+        assertEquals(0, rowsOf("media", "big"))
+        assertEquals(0, rowsOf("media_group", "big"))
+        assertEquals(2, rowsOf("media", "m3u"))
+        assertEquals("only the other subscription's search entries are left", 2, countOf("media_fts"))
+    }
+
+    /**
+     * The row goes before the catalogue, so a process that ends in between leaves a catalogue
+     * nobody owns: unread, because every read is scoped to the active subscription, and taken
+     * by the next removal.
+     */
+    @Test
+    fun `a removal cut short is finished by the next one`() = runBlocking {
+        Fixtures.import(database, Fixtures.livePlaylist(3), sourceId = "cut")
+        Fixtures.import(database, Fixtures.livePlaylist(2) { "News" }, sourceId = "next")
+        Fixtures.import(database, Fixtures.livePlaylist(1) { "Kids" }, sourceId = "kept")
+        guide("ch0", sourceId = "cut")
+        database.openHelper.writableDatabase.execSQL("DELETE FROM source WHERE id = 'cut'")
+
+        repository().delete("next")
+
+        assertEquals(0, rowsOf("media", "cut"))
+        assertEquals(0, rowsOf("media_group", "cut"))
+        assertEquals(0, rowsOf("programme", "cut"))
+        assertEquals(0, rowsOf("media", "next"))
+        assertEquals(1, rowsOf("media", "kept"))
+        assertEquals(1, countOf("media_fts"))
+    }
+
+    /** Added again while its old catalogue was being removed, a subscription's rows are its own again. */
+    @Test
+    fun `a subscription added again is not emptied by its earlier removal`() = runBlocking {
+        Fixtures.import(database, Fixtures.livePlaylist(3), sourceId = "xtream")
+        database.openHelper.writableDatabase.execSQL("DELETE FROM source WHERE id = 'xtream'")
+        repository().save(source("xtream"))
+
+        assertFalse(database.sourceDao().purgeStep("xtream", limit = 400))
+        assertEquals(3, rowsOf("media", "xtream"))
+        assertEquals(3, countOf("media_fts"))
+    }
+
     // ------------------------------------------------------- 2 → 3: scoped reads
 
     @Test

@@ -9,7 +9,9 @@ import com.castivio.domain.SourceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -17,7 +19,9 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * The subscriptions this box already holds, and which one is in use.
@@ -30,9 +34,10 @@ import kotlinx.coroutines.launch
  * written twice, and the two would disagree the first time an import registered a
  * provider without going through this screen.
  *
- * So this view model owns no state of its own. It maps two repository flows into one
+ * So this view model owns no state of the store's. It maps two repository flows into one
  * value the screen renders, and it forwards a switch. Everything that could be wrong
- * about it is wrong in one place.
+ * about it is wrong in one place. The one thing it does hold is a fact about a press
+ * rather than about the store: which deletions are still running -- see [removing].
  *
  * ## The expiry is read, not kept
  *
@@ -66,18 +71,31 @@ class SavedSourcesViewModel @Inject constructor(
     private val removeSource: RemoveSource,
 ) : ViewModel() {
 
+    /**
+     * Subscriptions deleted here whose removal has not finished: off the list from the press.
+     *
+     * The repository takes the row out before the catalogue and says so at once, but "at
+     * once" is after whatever write is ahead of it, and a press that nothing answers reads as
+     * a button that does not work: on a device the row stayed on screen for seconds after
+     * "Delete", and only its expiry went. So the row leaves with the press, and comes back
+     * only if the removal fails.
+     */
+    private val removing = MutableStateFlow<Set<String>>(emptySet())
+
     val state: StateFlow<SavedSourcesState> =
-        combine(sources.sources(), sources.active()) { all, active -> all to active }
+        combine(sources.sources(), sources.active(), removing) { all, active, gone ->
+            all.filterNot { it.id in gone } to active?.id?.takeUnless { it in gone }
+        }
             // Switched on the list rather than combined with it: the expiries are one
             // flow per saved subscription, so the set of flows to listen to changes
             // whenever a subscription is added or removed. `flatMapLatest` rebuilds that
             // set and drops the previous one, which is what keeps a deleted
             // subscription's record from outliving its row.
-            .flatMapLatest { (all, active) ->
+            .flatMapLatest { (all, activeId) ->
                 expiriesOf(all).map { expiries ->
                     SavedSourcesState.Ready(
                         saved = all,
-                        activeId = active?.id,
+                        activeId = activeId,
                         expiries = expiries,
                     )
                 }
@@ -160,9 +178,24 @@ class SavedSourcesViewModel @Inject constructor(
      *
      * Everything kept about it goes with it — its channels, its section marks, its
      * provider's last answer — and nothing kept about another. See [RemoveSource].
+     *
+     * **Gone from the list at the press, and finished whatever happens to the screen.** See
+     * [removing] for the first. The second is `NonCancellable`: deleting is the user's
+     * decision, and leaving this screen -- or closing the app from its own exit, which ends
+     * this holder -- is no reason to stop it half-way. It used to be cancelled there, and a
+     * cancelled transaction is rolled back: the subscription the user had deleted stayed.
      */
     fun delete(id: String) {
-        viewModelScope.launch { removeSource(id) }
+        removing.update { it + id }
+        viewModelScope.launch {
+            withContext(NonCancellable) {
+                try {
+                    removeSource(id)
+                } finally {
+                    removing.update { it - id }
+                }
+            }
+        }
     }
 
     private companion object {

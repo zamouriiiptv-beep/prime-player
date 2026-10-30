@@ -74,40 +74,76 @@ interface SourceDao {
     @Query("UPDATE source SET last_epg_import_at = :importedAt WHERE id = :id")
     suspend fun recordEpgImport(id: String, importedAt: Long)
 
+    /**
+     * The subscription's own row, and nothing else: one primary-key lookup.
+     *
+     * This is what makes a subscription disappear. Every catalogue read is scoped to the
+     * active subscription (see `ACTIVE_SOURCE`) and one without a row cannot be active, so
+     * from this statement on nothing it imported is on any screen. What it imported is
+     * removed after it, by [purgeStep].
+     */
     @Query("DELETE FROM source WHERE id = :id")
     suspend fun delete(id: String)
 
     /**
-     * A subscription and everything imported for it, in one transaction.
+     * Subscriptions whose row is gone and whose catalogue is not: the one just deleted, and
+     * any whose removal was cut short -- the process ended between two [purgeStep]s.
      *
-     * Deleting the `source` row alone left its channels in the catalogue, where the
-     * unscoped reads went on showing them under whichever subscription came next.
-     * Every statement here is keyed on this one id, so no other subscription's rows can
-     * be reached. User data is left alone on purpose: a favourite or a watch position
-     * points at a media id, ids are derived from the subscription, and the same one added
-     * again finds them where they were.
+     * Read from the categories, a few hundred rows, and not from the catalogue: [purgeStep]
+     * takes a subscription's categories last, so one with anything left still has them.
+     */
+    @Query("SELECT DISTINCT source_id FROM media_group WHERE source_id NOT IN (SELECT id FROM source)")
+    suspend fun orphaned(): List<String>
+
+    /**
+     * One short step of removing what was imported for a deleted subscription: up to [limit]
+     * of its catalogue rows with their search entries, or else up to [limit] programmes of
+     * its guide, or else up to [limit] of its categories. False when nothing is left -- and
+     * at once when the subscription has been added again, whose rows are its own from then
+     * on and not this removal's to take.
      *
-     * The search rows first, while `media` can still say which rows were this
-     * subscription's: the search table is standalone and nothing empties it on its own.
+     * Every statement is keyed on this one id, so no other subscription's rows can be
+     * reached. User data is left alone on purpose: a favourite or a watch position points at
+     * a media id, ids are derived from the subscription, and the same one added again finds
+     * them where they were.
+     *
+     * ## Why in steps, when it was one transaction
+     *
+     * The one transaction is what made a deletion slow. It held SQLite's one write
+     * connection until the whole catalogue was gone, and every other write waited behind it,
+     * Room's notices included. And it deleted the search entries by `media_id`, a column the
+     * search table does not index, so it visited every entry of every subscription: a
+     * subscription with nothing imported took as long as everything the device held.
+     *
+     * A step holds the connection for a few hundred rows and gives it back. The search
+     * entries go by `docid`, which is their row's rowid (see `MediaFtsEntity`), one lookup
+     * each, and in the same step as their rows, so a step cut short is rolled back whole and
+     * never leaves an entry without its row.
      */
     @Transaction
-    suspend fun deleteWithCatalogue(id: String) {
-        deleteSearchRowsOf(id)
-        deleteMediaOf(id)
-        deleteGroupsOf(id)
-        deleteProgrammesOf(id)
-        delete(id)
+    suspend fun purgeStep(id: String, limit: Int): Boolean {
+        if (byId(id) != null) return false
+        val rows = mediaRowsOf(id, limit)
+        if (rows.isNotEmpty()) {
+            deleteSearchRows(rows)
+            deleteMediaRows(rows)
+            return true
+        }
+        return deleteProgrammesOf(id, limit) > 0 || deleteGroupsOf(id, limit) > 0
     }
 
-    @Query("DELETE FROM media_fts WHERE media_id IN (SELECT id FROM media WHERE source_id = :id)")
-    suspend fun deleteSearchRowsOf(id: String)
+    @Query("SELECT rowid FROM media WHERE source_id = :id LIMIT :limit")
+    suspend fun mediaRowsOf(id: String, limit: Int): List<Long>
 
-    @Query("DELETE FROM media WHERE source_id = :id")
-    suspend fun deleteMediaOf(id: String)
+    @Query("DELETE FROM media_fts WHERE docid IN (:rows)")
+    suspend fun deleteSearchRows(rows: List<Long>)
 
-    @Query("DELETE FROM media_group WHERE source_id = :id")
-    suspend fun deleteGroupsOf(id: String)
+    @Query("DELETE FROM media WHERE rowid IN (:rows)")
+    suspend fun deleteMediaRows(rows: List<Long>)
 
-    @Query("DELETE FROM programme WHERE source_id = :id")
-    suspend fun deleteProgrammesOf(id: String)
+    @Query("DELETE FROM programme WHERE rowid IN (SELECT rowid FROM programme WHERE source_id = :id LIMIT :limit)")
+    suspend fun deleteProgrammesOf(id: String, limit: Int): Int
+
+    @Query("DELETE FROM media_group WHERE rowid IN (SELECT rowid FROM media_group WHERE source_id = :id LIMIT :limit)")
+    suspend fun deleteGroupsOf(id: String, limit: Int): Int
 }
