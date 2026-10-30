@@ -71,6 +71,37 @@ class SourceReadersTest {
     }
 
     @Test
+    fun `the active one deleted hands over to the oldest one left, which a reading screen sees`() = runTest {
+        repository.save(source("a", createdAt = 1))
+        repository.save(source("b", createdAt = 2))
+        repository.save(source("c", createdAt = 3, active = true))
+        val active = mutableListOf<ProviderSource?>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { repository.active().collect { active += it } }
+        catalogueTold = 0
+
+        repository.delete("c")
+
+        assertEquals("a", active.last()?.id)
+        assertEquals("the catalogue reads the successor", 1, catalogueTold)
+    }
+
+    /** What an earlier build left: subscriptions saved and none active -- put right when the app asks. */
+    @Test
+    fun `asked for the active one with none active, the oldest is made active and told`() = runTest {
+        repository.save(source("a", createdAt = 1))
+        repository.save(source("b", createdAt = 2))
+        val active = mutableListOf<ProviderSource?>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { repository.active().collect { active += it } }
+        assertNull(active.last())
+        catalogueTold = 0
+
+        assertEquals("a", repository.activeNow()?.id)
+
+        assertEquals("a", active.last()?.id)
+        assertEquals(1, catalogueTold)
+    }
+
+    @Test
     fun `another one made active is read by a screen already reading`() = runTest {
         repository.save(source("a", createdAt = 1, active = true))
         repository.save(source("b", createdAt = 2))
@@ -192,6 +223,7 @@ class SourceReadersTest {
 
         override suspend fun labels(): List<String> = rows.values.map { it.label }
         override suspend fun activeNow(): SourceEntity? = activeRow()
+        override suspend fun firstNow(): SourceEntity? = rows.values.minByOrNull { it.createdAt }
         override suspend fun byId(id: String): SourceEntity? = rows[id]
 
         override suspend fun upsert(source: SourceEntity) {

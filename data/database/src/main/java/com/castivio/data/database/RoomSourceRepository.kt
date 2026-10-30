@@ -119,7 +119,19 @@ class RoomSourceRepository(
     override fun active(): Flow<ProviderSource?> =
         writes.flatMapLatest { dao.active() }.map { it?.toDomain() }.distinctUntilChanged()
 
-    override suspend fun activeNow(): ProviderSource? = dao.activeNow()?.toDomain()
+    /**
+     * The active subscription -- and when none is but some are saved, the oldest, made active first.
+     *
+     * An earlier build left exactly that behind when the active subscription was deleted, and the
+     * app then opened on the activation screen with subscriptions on the device. The app asks this
+     * once at launch, so a device in that state is put right there.
+     */
+    override suspend fun activeNow(): ProviderSource? {
+        dao.activeNow()?.let { return it.toDomain() }
+        val oldest = dao.firstNow() ?: return null
+        setActive(oldest.id)
+        return oldest.copy(isActive = true).toDomain()
+    }
 
     override suspend fun get(id: String): ProviderSource? = dao.byId(id)?.toDomain()
 
@@ -176,10 +188,13 @@ class RoomSourceRepository(
      * [SourceDao.purgeStep] -- with what an earlier removal left when it was cut short. It
      * used to be one transaction that removed the row last, and the row stayed on screen
      * for as long as the device took to delete everything else.
+     *
+     * Deleting the active one makes the oldest of those left the active one, in the same
+     * transaction: the app does not come back to the activation screen with subscriptions saved.
      */
     override suspend fun delete(id: String) {
         val wasActive = dao.byId(id)?.isActive == true
-        dao.delete(id)
+        dao.deleteHandingOver(id)
         changed()
         if (wasActive) onActiveChanged()
         for (gone in (listOf(id) + dao.orphaned()).distinct()) {

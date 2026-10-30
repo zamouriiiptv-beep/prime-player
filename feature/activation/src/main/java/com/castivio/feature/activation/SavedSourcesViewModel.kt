@@ -84,7 +84,13 @@ class SavedSourcesViewModel @Inject constructor(
 
     val state: StateFlow<SavedSourcesState> =
         combine(sources.sources(), sources.active(), removing) { all, active, gone ->
-            all.filterNot { it.id in gone } to active?.id?.takeUnless { it in gone }
+            val remaining = all.filterNot { it.id in gone }
+            remaining to when {
+                active == null -> null
+                active.id !in gone -> active.id
+                // The repository hands the role to the oldest one left; the tick moves with the press.
+                else -> remaining.firstOrNull()?.id
+            }
         }
             // Switched on the list rather than combined with it: the expiries are one
             // flow per saved subscription, so the set of flows to listen to changes
@@ -169,12 +175,13 @@ class SavedSourcesViewModel @Inject constructor(
     /**
      * Remove a subscription from this device.
      *
-     * **Including the one in use, and nothing is activated in its place.** Which
-     * subscription the app shows is the user's choice, and picking one for them at the
-     * moment they deleted another is the app making that choice on their behalf — on a
-     * screen whose whole purpose is that they make it themselves. What the screen owes
-     * them instead is a warning that says plainly what deleting the active one costs,
-     * which is why [SavedSourcesState.Ready.activeId] is on screen beside every row.
+     * **Including the one in use, and the oldest one left takes its place.** It used to
+     * activate nothing, on the argument that picking for the user was the app choosing on
+     * their behalf; the cost was the app opening on the activation screen with
+     * subscriptions saved, and a user who then had to find the list to choose the only
+     * one there was. The repository does it, in the deleting transaction -- see
+     * [SourceRepository.delete] -- and [SavedSourcesState.Ready.activeId] moves at the
+     * press, with the row, to the one that will be.
      *
      * Everything kept about it goes with it — its channels, its section marks, its
      * provider's last answer — and nothing kept about another. See [RemoveSource].

@@ -66,10 +66,21 @@ class SavedSourcesViewModelTest {
             screen.model.delete("a"); runCurrent()
 
             assertEquals(listOf("b"), screen.ready.saved.map { it.id })
-            assertNull("the tick goes with its row", screen.ready.activeId)
+            assertEquals("the tick moves to the one that takes its place", "b", screen.ready.activeId)
             assertTrue("while the repository is still removing it", sources.removing)
             assertFalse(sources.removed)
         }
+
+    @Test
+    fun `the only subscription deleted leaves no tick`() = runTest(dispatcher) {
+        val sources = Sources(subscription("a", active = true))
+        val screen = screen(sources)
+
+        screen.model.delete("a"); runCurrent()
+
+        assertTrue(screen.ready.isEmpty)
+        assertNull(screen.ready.activeId)
+    }
 
     @Test
     fun `deleting one leaves the others and the tick where they were`() = runTest(dispatcher) {

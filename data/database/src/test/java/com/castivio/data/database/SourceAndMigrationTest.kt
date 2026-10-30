@@ -257,6 +257,56 @@ class SourceAndMigrationTest {
         assertNotNull(repository.get("b"))
     }
 
+    /** Playlist 2 active and deleted: Playlist 1, the oldest left, is the one the app opens on. */
+    @Test
+    fun `deleting the active source makes the oldest one left active`() = runBlocking {
+        val repository = repository()
+        repository.save(source("one").copy(createdAtMs = 1, isActive = false))
+        repository.save(source("two").copy(createdAtMs = 2, isActive = false))
+        repository.save(source("three").copy(createdAtMs = 3, isActive = true))
+
+        repository.delete("three")
+
+        assertEquals("one", repository.activeNow()?.id)
+        assertEquals("one", repository.active().first()?.id)
+        assertEquals(1, database.sourceDao().all().first().count { it.isActive })
+    }
+
+    @Test
+    fun `deleting the other source leaves the active one active`() = runBlocking {
+        val repository = repository()
+        repository.save(source("one").copy(createdAtMs = 1, isActive = true))
+        repository.save(source("two").copy(createdAtMs = 2, isActive = false))
+
+        repository.delete("two")
+
+        assertEquals("one", repository.activeNow()?.id)
+    }
+
+    @Test
+    fun `deleting the only source leaves nothing active`() = runBlocking {
+        val repository = repository()
+        repository.save(source("one").copy(createdAtMs = 1, isActive = true))
+
+        repository.delete("one")
+
+        assertNull(repository.activeNow())
+        assertNull(repository.active().first())
+    }
+
+    /** What an earlier build left behind: subscriptions saved, none active. */
+    @Test
+    fun `a device with subscriptions and none active has the oldest made active`() = runBlocking {
+        val repository = repository()
+        repository.save(source("one").copy(createdAtMs = 1, isActive = false))
+        repository.save(source("two").copy(createdAtMs = 2, isActive = false))
+        assertEquals(0, database.sourceDao().all().first().count { it.isActive })
+
+        assertEquals("one", repository.activeNow()?.id)
+        assertEquals("one", repository.active().first()?.id)
+        assertEquals(1, database.sourceDao().all().first().count { it.isActive })
+    }
+
     /**
      * Deleting used to remove the `source` row and nothing else, and the channels it
      * left behind were what an M3U subscription's board showed under its own name.

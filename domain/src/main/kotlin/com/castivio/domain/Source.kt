@@ -102,6 +102,9 @@ interface SourceRepository {
      * which can take seconds on a large one, and this returns when everything has: a caller
      * that must not leave it half-done must not be cancelled before then.
      *
+     * Deleting the active subscription makes the oldest one left the active one, so the app is
+     * never without one while any is saved; with none left, nothing is active.
+     *
      * What lives outside this repository — section marks, the provider's recorded
      * answer — is [RemoveSource]'s to forget.
      */

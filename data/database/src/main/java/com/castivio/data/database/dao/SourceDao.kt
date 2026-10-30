@@ -85,6 +85,25 @@ interface SourceDao {
     @Query("DELETE FROM source WHERE id = :id")
     suspend fun delete(id: String)
 
+    /** The oldest subscription, active or not: the one that takes over when the active one is deleted. */
+    @Query("SELECT * FROM source ORDER BY created_at LIMIT 1")
+    suspend fun firstNow(): SourceEntity?
+
+    /**
+     * [delete], and the active role handed to the oldest subscription left when the one deleted
+     * had it, in the same transaction.
+     *
+     * A moment with no active subscription while others exist is a moment the app opens on the
+     * activation screen, so there is never one: the row goes and its successor is active together.
+     * Deleting one that was not active changes nothing about which is.
+     */
+    @Transaction
+    suspend fun deleteHandingOver(id: String) {
+        val wasActive = byId(id)?.isActive == true
+        delete(id)
+        if (wasActive) firstNow()?.let { activate(it.id) }
+    }
+
     /**
      * Subscriptions whose row is gone and whose catalogue is not: the one just deleted, and
      * any whose removal was cut short -- the process ended between two [purgeStep]s.
