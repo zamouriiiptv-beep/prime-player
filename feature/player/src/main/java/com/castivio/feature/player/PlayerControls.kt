@@ -255,7 +255,7 @@ private fun ActionCluster(state: PlayerState, actions: PlayerActions) {
         // press -- and its slot keeps its size when there is no rating, so what is beside it does not move when one
         // arrives. Not drawn for a file on the device, which has no connection to rate.
         if (!isDeviceFile(state.request.url)) {
-            StreamQualityIcon(quality = state.quality, modifier = Modifier.testTag(PlayerTags.QUALITY))
+            StreamQualityIcon(quality = state.quality, modifier = Modifier.testTag(PlayerTags.STREAM_QUALITY))
         }
         val favorite = state.favorite
         val onFavorite = actions.onFavorite

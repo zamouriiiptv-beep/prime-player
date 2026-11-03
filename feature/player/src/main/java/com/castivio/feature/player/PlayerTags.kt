@@ -15,8 +15,13 @@ package com.castivio.feature.player
  */
 internal object PlayerTags {
 
-    /** The stream-quality indicator at the head of the top bar's controls: the same mark in the same place in every player. */
-    const val QUALITY = "player.quality"
+    /**
+     * The stream-quality indicator at the head of the top bar's controls: the same mark in the same place in every player.
+     *
+     * Not [QUALITY], which names the video-quality control in the tools row below: two nodes must not share a tag, and a
+     * second constant of the same name is a compile error besides.
+     */
+    const val STREAM_QUALITY = "player.streamQuality"
 
     /** The whole screen, and the surface the video is drawn on. */
     const val ROOT = "player.root"
