@@ -2,6 +2,7 @@ package com.castivio.feature.player
 
 import com.castivio.playback.api.EngineId
 import com.castivio.playback.api.OpeningMarks
+import com.castivio.playback.api.PlaybackDiagnosis
 import com.castivio.playback.api.PlaybackError
 
 /**
@@ -103,6 +104,12 @@ data class Handover(
     val serverAnsweredMs: Long?,
     /** The press, to the first bytes of the stream reaching the primary. */
     val firstBytesMs: Long?,
+    /**
+     * What the primary reported about the failure, kept for the panel: the engine that held it is released as the
+     * backup begins, and the backup playing says nothing of why it was needed. Null when the primary gave up
+     * without a report -- a budget that expired, or an engine with nothing to say.
+     */
+    val report: PlaybackDiagnosis? = null,
 ) {
 
     /** Whether any of the stream had reached the primary: the difference between a network that said nothing and a stream that was refused. */

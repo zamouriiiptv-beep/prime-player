@@ -236,13 +236,14 @@ class PlayerViewModel @Inject constructor(
      * same path on the engine the last channel played on when that one can be kept, and with
      * it released first when it cannot.
      */
-    fun open(request: PlayerRequest) {
-        if (_state.value?.request == request && engine != null) return
+    fun open(request: PlayerRequest, force: Boolean = false) {
+        // [force] is the retry button's: the same request, asked for again on purpose. Nothing else passes it.
+        if (!force && _state.value?.request == request && engine != null) return
         val openedAt = System.nanoTime()
         val next = FallbackPolicy.first(FallbackPolicy.sourceKey(request.url), memory)
         val kept = engine?.takeIf { keeps(it, next, request) }
         // For the opening panel: what this opening is, read before the engine and the state are replaced.
-        val case = openingCaseOf(hadEngine = engine != null, kept = kept != null)
+        val case = if (force) OpeningCase.RETRY else openingCaseOf(hadEngine = engine != null, kept = kept != null)
         if (kept != null) releaseSource() else release()
         timeFrom(pressOf(request, openedAt), openedAt, releasedAt = System.nanoTime())
 
@@ -691,7 +692,7 @@ class PlayerViewModel @Inject constructor(
         // from the server is the difference between a channel the network failed and one the
         // decoder did, and only this line can say which.
         val gaveUp = timing().copy(fallback = false)
-        handover = handoverOf(gaveUp, reason)
+        handover = handoverOf(gaveUp, reason, report)
         Log.i(
             TAG,
             "falling over to the backup after ${(System.nanoTime() - askedAtNanos) / NANOS_PER_MS}ms: " +
@@ -730,6 +731,7 @@ class PlayerViewModel @Inject constructor(
         handover = handoverOf(
             timing().copy(fallback = false),
             (current.picture as? Picture.Failed)?.reason ?: PlaybackError.UNKNOWN,
+            engine?.diagnosis?.value ?: current.diagnosis,
         )
         val pressed = System.nanoTime()
         stopEngine()
@@ -742,6 +744,28 @@ class PlayerViewModel @Inject constructor(
         )
         start(current.request, EngineId.BACKUP)
         diagnose(OpeningCase.FALLBACK)
+    }
+
+    /**
+     * **Development builds only.** The opening panel's button: try this channel on the primary engine again.
+     *
+     * A channel the backup has is there because an entry in the engine memory says so, and an entry is never offered
+     * to the primary again -- so a fault that has since gone away, or a new reading of the one that had not, cannot
+     * be tried without clearing it. This clears **this channel's entry and no other**: `remember(key, PRIMARY)` on
+     * the memory removes exactly that key and writes nothing. Then the channel is opened as any other, by [open],
+     * which lets the backup go, builds the primary and times all of it from this press -- that figure is the retry's
+     * own, not the earlier attempt's.
+     *
+     * It changes which engine the channel starts on and nothing else; if the primary fails again, the same rules as
+     * ever send it back to the backup, with a new report kept for the panel.
+     */
+    fun retryOnPrimary() {
+        if (!OpeningDiagnostics.enabled) return
+        val current = _state.value ?: return
+        if (current.engine != EngineId.BACKUP) return
+        val request = current.request
+        memory.remember(FallbackPolicy.sourceKey(request.url), EngineId.PRIMARY)
+        open(request, force = true)
     }
 
     /**
@@ -1504,11 +1528,12 @@ class PlayerViewModel @Inject constructor(
      * The engine's marks are milliseconds after it was asked, and the panel's figures are from the press, so each
      * is moved by the stages that came before the engine was asked.
      */
-    private fun handoverOf(left: OpeningTiming, reason: PlaybackError) = Handover(
+    private fun handoverOf(left: OpeningTiming, reason: PlaybackError, report: PlaybackDiagnosis?) = Handover(
         reason = reason,
         afterMs = (System.nanoTime() - askedAtNanos) / NANOS_PER_MS,
         serverAnsweredMs = left.marks.serverAnsweredMs?.let { left.prepareMs + it },
         firstBytesMs = left.marks.firstBytesMs?.let { left.prepareMs + it },
+        report = report,
     )
 
     /* ------------------------------------------------- the opening panel (temporary, for development) */

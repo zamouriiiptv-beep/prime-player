@@ -1,6 +1,8 @@
 package com.castivio.playback.media3
 
 import android.content.Context
+import android.media.MediaCodec
+import android.os.Build
 import android.os.SystemClock
 import android.util.Log
 import android.view.SurfaceView
@@ -26,12 +28,15 @@ import androidx.media3.exoplayer.ExoPlaybackException
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
+import androidx.media3.exoplayer.mediacodec.MediaCodecDecoderException
 import androidx.media3.exoplayer.mediacodec.MediaCodecRenderer
+import androidx.media3.exoplayer.mediacodec.MediaCodecUtil
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.extractor.ts.DefaultTsPayloadReaderFactory
 import com.castivio.core.common.FrameSize
+import com.castivio.core.platform.DevDiagnostics
 import com.castivio.playback.api.AspectMode
 import com.castivio.playback.api.DecoderReport
 import com.castivio.playback.api.FormatReport
@@ -164,6 +169,9 @@ class Media3Engine(
     private var decoderReadyAt: Long = 0
     private var decoderInitMs: Long? = null
     private var decoderKept = false
+
+    /** The last video decoder the player built for this source, by the platform's name: evidence for a failure report. */
+    private var videoDecoderName: String? = null
 
     /** Whether the source open now is a live one: the live window can be fallen behind. */
     private var liveRequest = false
@@ -335,6 +343,7 @@ class Media3Engine(
         decoderReadyAt = 0
         decoderInitMs = null
         decoderKept = false
+        videoDecoderName = null
         openedSource = safeSource(media.url)
         _diagnosis.value = null
         _firstFrameAtMs.value = null
@@ -740,6 +749,9 @@ class Media3Engine(
             }
             val decoderFailure = error.findCause<MediaCodecRenderer.DecoderInitializationException>()
             val reason = map(error, decoderFailure)
+            // Development builds only: the extra evidence is read out of the exception and the decoder list, which a
+            // release build has no use for. See [failureExtras].
+            val extras = if (DevDiagnostics.enabled) failureExtras(error, decoderFailure) else FailureExtras()
 
             val report = PlaybackDiagnosis(
                 engine = profile.id,
@@ -765,6 +777,9 @@ class Media3Engine(
                 video = videoFormat?.asReport(),
                 audio = audioFormat?.asReport(),
                 source = openedSource,
+                decoderName = extras.decoderName,
+                formatSupport = extras.formatSupport,
+                notes = extras.notes,
             )
             _diagnosis.value = report
 
@@ -816,7 +831,9 @@ class Media3Engine(
             initializedTimestampMs: Long,
             initializationDurationMs: Long,
         ) {
-            if (!current || decoderReadyAt != 0L) return
+            if (!current) return
+            videoDecoderName = decoderName
+            if (decoderReadyAt != 0L) return
             decoderReadyAt = initializedTimestampMs
             decoderInitMs = initializationDurationMs
         }
@@ -1073,6 +1090,92 @@ class Media3Engine(
         channelCount = channelCount.takeIf { it != Format.NO_VALUE },
         sampleRateHz = sampleRate.takeIf { it != Format.NO_VALUE },
         bitrate = bitrate.takeIf { it != Format.NO_VALUE },
+        // Only what the stream declared: a format with no colour information has no bit depth to report.
+        bitDepth = colorInfo?.lumaBitdepth?.takeIf { it > 0 },
+    )
+
+    /**
+     * What a failure's report adds in a development build: the decoder by name, what the platform said about the
+     * failing format, and the `MediaCodec.CodecException` fields.
+     *
+     * Every value is either read out of the exception and the device's own decoder list, or says in its words where
+     * it came from or why it is missing; nothing is filled in to make a line complete. Nothing here changes how the
+     * error is classified or handled -- the report is evidence, and the decision was made before this is called.
+     */
+    private fun failureExtras(
+        error: PlaybackException,
+        decoderFailure: MediaCodecRenderer.DecoderInitializationException?,
+    ): FailureExtras {
+        val renderer = (error as? ExoPlaybackException)?.takeIf { it.type == ExoPlaybackException.TYPE_RENDERER }
+        // The format the failing renderer was given; only a video one has a decoder worth looking up here.
+        val failing = renderer?.rendererFormat?.takeIf { it.sampleMimeType?.startsWith("video/") == true }
+
+        val named = decoderFailure?.codecInfo?.name ?: error.findCause<MediaCodecDecoderException>()?.codecInfo?.name
+        val name = when {
+            named != null -> named
+            // Not the exception's own word: the last decoder this source had built, which was the one running.
+            failing != null && videoDecoderName != null -> "$videoDecoderName (last initialized)"
+            else -> null
+        }
+
+        val support = buildList {
+            renderer?.let { add("renderer ${rendererSupportName(it.rendererFormatSupport)}") }
+            if (failing != null) add(decoderSupport(named ?: videoDecoderName, failing))
+        }.joinToString(" · ").ifEmpty { null }
+
+        val notes = buildList {
+            val codec = error.findCause<MediaCodec.CodecException>()
+            when {
+                codec != null -> {
+                    val code = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) codec.errorCode.toString() else "n/a"
+                    add("CodecException errorCode=$code recoverable=${codec.isRecoverable} transient=${codec.isTransient}")
+                    codec.diagnosticInfo?.let { add("diagnosticInfo: $it") }
+                }
+                renderer != null -> add("no MediaCodec.CodecException in the chain")
+            }
+        }
+        return FailureExtras(decoderName = name, formatSupport = support, notes = notes)
+    }
+
+    /** The renderer's own verdict on the format, in its constant's name. */
+    private fun rendererSupportName(support: Int): String = when (support) {
+        C.FORMAT_HANDLED -> "HANDLED"
+        C.FORMAT_EXCEEDS_CAPABILITIES -> "EXCEEDS_CAPABILITIES"
+        C.FORMAT_UNSUPPORTED_DRM -> "UNSUPPORTED_DRM"
+        C.FORMAT_UNSUPPORTED_SUBTYPE -> "UNSUPPORTED_SUBTYPE"
+        C.FORMAT_UNSUPPORTED_TYPE -> "UNSUPPORTED_TYPE"
+        else -> "code $support"
+    }
+
+    /**
+     * The decoder's own answer about [format], from the device's decoder list -- already built by the renderer, so this
+     * is a lookup and not a second query of the hardware. "n/a" with the reason wherever it cannot be asked.
+     */
+    private fun decoderSupport(decoder: String?, format: Format): String {
+        val mime = format.sampleMimeType ?: return "decoder n/a (no mime type)"
+        if (decoder == null) return "decoder n/a (none named)"
+        return try {
+            val info = MediaCodecUtil.getDecoderInfos(mime, false, false).firstOrNull { it.name == decoder }
+                ?: return "decoder $decoder n/a (not in the device's list for $mime)"
+            val formatOk = info.isFormatSupported(format)
+            val sizeOk = if (format.width > 0 && format.height > 0) {
+                val rate = if (format.frameRate > 0f) format.frameRate.toDouble() else Format.NO_VALUE.toDouble()
+                info.isVideoSizeAndRateSupportedV21(format.width, format.height, rate)
+            } else {
+                null
+            }
+            "decoder $decoder: format supported=$formatOk" + (sizeOk?.let { " · size/rate supported=$it" } ?: "")
+        } catch (e: MediaCodecUtil.DecoderQueryException) {
+            "decoder $decoder n/a (${e.javaClass.simpleName})"
+        } catch (e: RuntimeException) {
+            "decoder $decoder n/a (${e.javaClass.simpleName})"
+        }
+    }
+
+    private class FailureExtras(
+        val decoderName: String? = null,
+        val formatSupport: String? = null,
+        val notes: List<String> = emptyList(),
     )
 
     /**

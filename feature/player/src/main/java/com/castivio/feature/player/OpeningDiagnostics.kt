@@ -27,6 +27,9 @@ internal object OpeningDiagnostics {
     /** How many finished openings the table keeps: enough to set a reused engine beside a rebuilt one. */
     const val KEEP = 8
 
+    /** How many of them the table draws while a failure report is on the panel: the report needs the room. */
+    private const val REPORT_ROWS = 3
+
     @Volatile
     var enabled: Boolean = false
         private set
@@ -83,7 +86,9 @@ internal object OpeningDiagnostics {
 
     private fun draw() {
         val now = _current.value ?: return
-        val table = _recent.value
+        // While the opening carries a failure report the panel is already full, so the table keeps its newest rows
+        // only: the earlier ones are in the log line, and the report is worth more than they are here.
+        val table = _recent.value.let { if (now.failureReport != null) it.take(REPORT_ROWS) else it }
         _panel.value = buildList {
             addAll(now.lines())
             if (table.isNotEmpty()) {

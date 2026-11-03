@@ -1,6 +1,8 @@
 package com.castivio.feature.player
 
 import com.castivio.playback.api.EngineId
+import com.castivio.playback.api.PlaybackDiagnosis
+import com.castivio.playback.api.SourceRedaction
 import java.util.Locale
 
 /**
@@ -64,6 +66,26 @@ internal data class OpeningReading(
         // story, which the backup's own figures below cannot tell. Amber, because it is the line to read.
         timing.handover?.let { lines += HudLine(handoverLine(it), HudTone.RUNNING) }
 
+        // **The primary's failure report takes the place of the timing lines**, so the panel keeps the room it has:
+        // what failed is the question while a report is shown, and the figures it would otherwise draw are still in the
+        // log line and the table. The report in full is the Copy button's.
+        val report = failureReport
+        if (report != null) {
+            failureLines(report).forEach { lines += HudLine(it, HudTone.RUNNING) }
+        } else {
+            lines += timingLines(approx)
+        }
+
+        if (status == OpeningStatus.FAILED) {
+            lines += HudLine("FAILED ${failure ?: DASH} while ${waitingFor()}", HudTone.FAILED)
+        }
+        return lines
+    }
+
+    /** The application's stages, the engine's events, the gaps and the main thread: the lines a report stands in for. */
+    private fun timingLines(approx: String): List<HudLine> {
+        val lines = ArrayList<HudLine>(4)
+
         // The application's stages, one after another: they add up to when the engine was asked.
         val other = (timing.prepareMs - timing.pressToOpenMs - timing.releaseMs - timing.setupMs).coerceAtLeast(0)
         lines += HudLine(
@@ -95,12 +117,76 @@ internal data class OpeningReading(
             },
             if (stalls.count == 0) HudTone.MUTED else HudTone.RUNNING,
         )
-
-        if (status == OpeningStatus.FAILED) {
-            lines += HudLine("FAILED ${failure ?: DASH} while ${waitingFor()}", HudTone.FAILED)
-        }
         return lines
     }
+
+    /** What the primary reported when it gave this source up, when this opening is the backup's after a failure. */
+    val failureReport: PlaybackDiagnosis? get() = timing.handover?.report
+
+    /**
+     * The summary of [report], one line each and none longer than [LINE_MAX]: what the panel has room for.
+     *
+     * Every value is the primary's own, or says what it is. A figure read out of the codec string carries
+     * `(inferred)`, a decoder named from the last one built carries its own note, and one that was not available is
+     * `n/a`: no line is filled in to look complete. Addresses are redacted in every line, the exceptions' messages
+     * included, because those are text this code did not write.
+     */
+    private fun failureLines(report: PlaybackDiagnosis): List<String> {
+        val video = report.video
+        val derived = listOfNotNull(video?.profile, video?.level?.let { "L$it" }).joinToString(" ")
+        val width = video?.width
+        val height = video?.height
+        val root = report.causes.lastOrNull()
+        val lines = listOf(
+            "decoder: ${report.decoderName ?: report.decoder?.codecName ?: NOT_AVAILABLE}",
+            "video: ${video?.sampleMimeType ?: NOT_AVAILABLE} · ${video?.codecs ?: NOT_AVAILABLE}",
+            listOf(
+                if (derived.isEmpty()) "profile/level $NOT_AVAILABLE" else "$derived (inferred)",
+                if (width != null && height != null) "${width}x$height" else "size $NOT_AVAILABLE",
+                video?.frameRate?.let { "${rate(it)} fps" } ?: "fps $NOT_AVAILABLE",
+                video?.bitDepth?.let { "$it-bit" } ?: "depth $NOT_AVAILABLE",
+            ).joinToString(" · "),
+            "Media3 error: " + errorCodeText(report),
+            "support: ${report.formatSupport ?: NOT_AVAILABLE}",
+            report.notes.firstOrNull() ?: "codec exception: $NOT_AVAILABLE",
+            "cause: " + (root?.let { shortCause(it) } ?: NOT_AVAILABLE),
+        )
+        return lines.map { fit(SourceRedaction.scrub(it)) }
+    }
+
+    /**
+     * This opening as a block of text to copy: the channel and the line that says why the primary left, then the
+     * report in full -- the lines the panel had no room for included. Redacted as a whole, once, here.
+     */
+    fun copyText(): String? {
+        val left = timing.handover ?: return null
+        val report = left.report ?: return null
+        val text = "channel: $channel\n${handoverLine(left)}\n\n${report.render()}"
+        return SourceRedaction.scrub(text)
+    }
+
+    private fun errorCodeText(report: PlaybackDiagnosis): String {
+        val name = report.errorCodeName?.removePrefix("ERROR_CODE_")
+        val code = report.errorCode
+        return when {
+            name != null && code != null -> "$name ($code)"
+            name != null -> name
+            code != null -> "code $code"
+            else -> "$NOT_AVAILABLE (${report.reason}, no exception)"
+        }
+    }
+
+    /** `android.media.MediaCodec$CodecException: Error 0x…` as `MediaCodec$CodecException: Error 0x…`. */
+    private fun shortCause(cause: String): String {
+        val type = cause.substringBefore(": ")
+        val message = cause.substringAfter(": ", missingDelimiterValue = "")
+        return type.substringAfterLast('.') + if (message.isEmpty()) "" else ": $message"
+    }
+
+    private fun rate(frameRate: Float): String =
+        if (frameRate % 1f == 0f) frameRate.toInt().toString() else String.format(Locale.ROOT, "%.2f", frameRate)
+
+    private fun fit(line: String): String = if (line.length <= LINE_MAX) line else line.take(LINE_MAX - 1) + "…"
 
     /** This opening as one row of the table of the last few. */
     fun row(): String {
@@ -193,6 +279,12 @@ internal data class OpeningReading(
         const val CHANNEL_ROW = 24
         const val DASH = "-"
         const val UNAVAILABLE = "غير متاح"
+
+        /** A fact the report does not have, said in the panel's other language so it is never read as a value. */
+        const val NOT_AVAILABLE = "n/a"
+
+        /** One line of a report on the panel: as wide as the panel's text is, so a line never wraps into two. */
+        const val LINE_MAX = 62
     }
 }
 
@@ -212,6 +304,9 @@ internal enum class OpeningCase(val label: String) {
 
     /** The backup engine has this one, because the primary gave it up or the viewer asked. */
     FALLBACK("fallback"),
+
+    /** The viewer asked, from the panel, for the primary to try a channel the backup had: see `retryOnPrimary`. */
+    RETRY("retry on Media3"),
 }
 
 /** Where an opening is. */

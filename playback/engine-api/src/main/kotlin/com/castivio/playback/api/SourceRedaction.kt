@@ -35,6 +35,17 @@ object SourceRedaction {
         return "$scheme://$authority$path".take(MAX_LENGTH)
     }
 
+    /**
+     * Free text with every address in it made [safe].
+     *
+     * For text that was not written by this code -- an exception's message, a vendor's diagnostic string -- and so can
+     * carry the address that was being opened. Anything that looks like `scheme://…` up to the next space, quote or
+     * bracket is replaced by its redacted form; the rest of the text is left exactly as it was.
+     */
+    fun scrub(text: String): String = ADDRESS.replace(text) { safe(it.value) }
+
+    private val ADDRESS = Regex("""[a-z][a-z0-9+.\-]*://[^\s"'<>()\[\]{},]+""", RegexOption.IGNORE_CASE)
+
     /** Enough to identify a stream, too little to carry anything else out of the device. */
     private const val MAX_LENGTH = 120
 }

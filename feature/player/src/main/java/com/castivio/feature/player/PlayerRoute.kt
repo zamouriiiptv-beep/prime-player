@@ -355,7 +355,7 @@ fun PlayerRoute(
             channelList = channelList,
         )
         // The big player only: the compact one is a plate in somebody else's screen, with no room for lines.
-        if (!compact) OpeningPanel(Modifier.align(Alignment.CenterStart))
+        if (!compact) OpeningPanel(Modifier.align(Alignment.CenterStart), onRetryOnMedia3 = model::retryOnPrimary)
     }
 }
 
