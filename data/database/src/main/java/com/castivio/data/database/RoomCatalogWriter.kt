@@ -298,6 +298,7 @@ class RoomCatalogWriter(
         // nightly refresh does not make the whole library "recently added".
         statement.bindString(19, item.id)
         statement.bindLong(20, now)
+        statement.bindNullable(21, item.catchUpHours)
         statement.executeInsert()
         val details = item.details
         val providerRef = item.providerRef
@@ -828,10 +829,10 @@ class RoomCatalogWriter(
                 id, source_id, kind, title, sort_title, search_text, stream_url,
                 artwork_url, group_id, epg_channel_id, provider_ref, provider_order,
                 duration_seconds, series_id, series_title, season_number,
-                episode_number, generation, added_at
+                episode_number, generation, added_at, catch_up_hours
             ) VALUES (
                 ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                COALESCE((SELECT added_at FROM media WHERE id = ?), ?)
+                COALESCE((SELECT added_at FROM media WHERE id = ?), ?), ?
             )
         """
 

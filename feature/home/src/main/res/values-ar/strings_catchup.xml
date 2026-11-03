@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Catch-up: مشاهدة برنامج انتهى بثه من أرشيف المزوّد. الزر والعنوان بالإنجليزية كما في التصميم المعتمد. -->
+    <string name="catchup_button">Catch-up</string>
+    <string name="catchup_title">Catch-up</string>
+    <string name="catchup_subtitle">البرامج المتاحة للمشاهدة (الأرشيف)</string>
+    <string name="catchup_back">رجوع</string>
+    <string name="catchup_loading">جارٍ تحميل الأرشيف…</string>
+    <string name="catchup_empty">لا توجد برامج مؤرشفة لهذه القناة</string>
+    <string name="catchup_unsupported">هذا الاشتراك لا يدعم المشاهدة المؤرشفة</string>
+    <string name="catchup_failed">تعذّر الوصول إلى الأرشيف</string>
+    <string name="catchup_retry">إعادة المحاولة</string>
+    <string name="catchup_open_failed">تعذّر فتح هذا البرنامج</string>
+    <string name="catchup_yesterday">أمس</string>
+</resources>

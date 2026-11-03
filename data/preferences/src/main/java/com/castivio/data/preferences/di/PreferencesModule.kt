@@ -1,10 +1,12 @@
 package com.castivio.data.preferences.di
 
+import com.castivio.data.preferences.CatchUpBackfillStore
 import com.castivio.data.preferences.ChannelLockStore
 import com.castivio.data.preferences.ChannelQualityStore
 import com.castivio.data.preferences.PinStore
 import com.castivio.data.preferences.ProviderStatusStore
 import com.castivio.data.preferences.SectionCatalogueStore
+import com.castivio.domain.CatchUpBackfillMarks
 import com.castivio.domain.ChannelLocks
 import com.castivio.domain.ChannelQualities
 import com.castivio.domain.PinVault
@@ -49,4 +51,9 @@ abstract class PreferencesModule {
     @Binds
     @Singleton
     abstract fun pinVault(store: PinStore): PinVault
+
+    /** Which subscriptions have had their catch-up hours filled: see `CatchUpBackfill`. */
+    @Binds
+    @Singleton
+    abstract fun catchUpBackfillMarks(store: CatchUpBackfillStore): CatchUpBackfillMarks
 }

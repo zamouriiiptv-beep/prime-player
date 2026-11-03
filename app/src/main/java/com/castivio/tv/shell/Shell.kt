@@ -74,6 +74,7 @@ import com.castivio.domain.CatalogQuery
 import com.castivio.domain.Channel
 import com.castivio.domain.HiddenKind
 import com.castivio.domain.MediaKind as CatalogKind
+import com.castivio.domain.PulsePhase
 import com.castivio.domain.PlayerPulse
 import com.castivio.domain.PressVerdict
 import com.castivio.domain.pressVerdictFor
@@ -319,6 +320,14 @@ fun ShellScreen(
     // moved on. That is the whole of why the board's playing mark, its preview and its quality
     // badge cannot be fooled by a press.
     var pulse by remember { mutableStateOf<PlayerPulse?>(null) }
+
+    // A stream asked for and not yet stopped is told to the background work that waits for quiet -- the catch-up backfill --
+    // so that it never competes with a picture for the connection. From the same pulse the board reads, and nothing else:
+    // the sound of the radio is in its own destination, where Home is not on screen and nothing waits on it.
+    val playbackActivity: PlaybackActivityViewModel = hiltViewModel()
+    LaunchedEffect(pulse) {
+        playbackActivity.activity.set(pulse?.phase.let { it == PulsePhase.OPENING || it == PulsePhase.SHOWING })
+    }
 
     // ## Back, and the one place it asks before it acts
     //

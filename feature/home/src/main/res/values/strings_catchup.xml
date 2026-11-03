@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Catch-up: watching a programme that has already been on, from the provider's archive. -->
+    <string name="catchup_button">Catch-up</string>
+    <string name="catchup_title">Catch-up</string>
+    <string name="catchup_subtitle">Programmes available to watch (archive)</string>
+    <string name="catchup_back">Back</string>
+    <string name="catchup_loading">Loading the archive…</string>
+    <string name="catchup_empty">No archived programmes for this channel</string>
+    <string name="catchup_unsupported">This subscription does not offer catch-up</string>
+    <string name="catchup_failed">The archive did not answer</string>
+    <string name="catchup_retry">Try again</string>
+    <string name="catchup_open_failed">This programme could not be opened</string>
+    <string name="catchup_yesterday">Yesterday</string>
+</resources>

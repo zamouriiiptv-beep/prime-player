@@ -1018,6 +1018,8 @@ class XtreamImportEngine(
         providerRef = stream.streamId,
         providerOrder = stream.number ?: order,
         durationSeconds = null,
+        // The archive the panel says the channel keeps, which is already in the list being read.
+        catchUpHours = stream.catchUpHours,
     )
 
     /**

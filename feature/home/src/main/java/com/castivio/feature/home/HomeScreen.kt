@@ -256,7 +256,10 @@ fun HomeScreen(
     // leaving it, or the app, ends the wait, so nothing opens on the way back.
     val openSection by rememberUpdatedState(onSeeSection)
     LaunchedEffect(model) { model.opens.collect { openSection(it) } }
-    LifecycleStartEffect(model) { onStopOrDispose { model.leftHome() } }
+    LifecycleStartEffect(model) {
+        model.homeShown()
+        onStopOrDispose { model.leftHome() }
+    }
 
     // `safeDrawing`, and the metrics are read from what is left after it: turned
     // sideways the system's own navigation sits on one *side*, so a screen that

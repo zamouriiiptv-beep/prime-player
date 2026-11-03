@@ -111,6 +111,39 @@ object XtreamParser {
     }
 
     /**
+     * `get_live_streams` read for three fields only: which channels keep an archive, and for how many hours.
+     *
+     * The same list [parseStreams] reads whole, read for what catch-up needs and nothing else -- the stream id, `tv_archive`
+     * and `tv_archive_duration` -- with every other member of every channel stepped over unread. The rule for "keeps an
+     * archive" is [parseStreams]'s own and is stated once there: a real archive, `tv_archive` set **and** a duration, so a
+     * provider that reports a duration with `tv_archive: 0` is not offering catch-up. A channel without one is not reported.
+     *
+     * Returns how many channels were.
+     */
+    fun parseArchiveFlags(reader: Reader, onChannel: (streamId: String, archiveHours: Int) -> Unit): Int {
+        var count = 0
+        val scanner = JsonScanner(reader)
+        scanner.readArray {
+            var streamId: String? = null
+            var archiveDays = 0
+            var hasArchive = false
+            scanner.readObject { field ->
+                when (field) {
+                    "stream_id" -> streamId = scanner.string()
+                    "tv_archive_duration" -> archiveDays = scanner.int()
+                    "tv_archive" -> hasArchive = scanner.boolean()
+                }
+            }
+            val id = streamId
+            if (id != null && hasArchive && archiveDays > 0) {
+                onChannel(id, archiveDays * 24)
+                count++
+            }
+        }
+        return count
+    }
+
+    /**
      * `get_vod_info` — one film's details, which its list row does not carry.
      *
      * The reply is an object with an `info` object and a `movie_data` object. Every field is optional: a
@@ -434,6 +467,66 @@ object XtreamParser {
     }
 
     /**
+     * `get_simple_data_table` -- the whole guide of one channel as the panel keeps it: the programmes already shown, which
+     * `get_short_epg` leaves out, with the panel's own mark for the ones it still holds in its archive.
+     *
+     * The same `epg_listings` array as [parseShortEpg], read one element at a time and never held whole. What is added is
+     * what catch-up needs and the short guide does not carry:
+     *
+     *  - **`has_archive`**, which is the panel saying it recorded this programme. A programme without it is in the guide
+     *    and not in the archive, and asking for it would play nothing.
+     *  - **`start`**, the moment the programme began *as the panel writes it*, in the panel's own time zone. An archive is
+     *    asked for by that wall-clock string and not by an instant, so it is kept as it came: the zone it is in is the
+     *    panel's, and every attempt to guess it from the viewer's zone is a programme an hour or two out. It is paired
+     *    with `start_timestamp`, the instant, which is what the viewer's own clock is shown.
+     *
+     * An entry with no instant, or with no start string to address it by, cannot be watched and is not reported.
+     * Returns how many were.
+     */
+    fun parseArchiveListings(reader: Reader, onEntry: (XtreamArchiveEntry) -> Unit): Int {
+        var count = 0
+        val scanner = JsonScanner(reader)
+        scanner.readObject { field ->
+            if (field != "epg_listings") return@readObject
+            scanner.readArray {
+                var title: String? = null
+                var description: String? = null
+                var serverStart: String? = null
+                var start = 0L
+                var stop = 0L
+                var archived = false
+
+                scanner.readObject { entryField ->
+                    when (entryField) {
+                        "title" -> title = scanner.string()?.let(::decodeBase64OrSelf)
+                        "description" -> description = scanner.string()?.let(::decodeBase64OrSelf)
+                        "start" -> serverStart = scanner.string()
+                        "start_timestamp" -> start = scanner.long()
+                        "stop_timestamp" -> stop = scanner.long()
+                        "has_archive" -> archived = scanner.boolean()
+                    }
+                }
+
+                val written = serverStart
+                if (start > 0 && !written.isNullOrBlank()) {
+                    onEntry(
+                        XtreamArchiveEntry(
+                            title = title ?: "",
+                            description = description,
+                            startMs = start * 1000L,
+                            stopMs = if (stop > start) stop * 1000L else start * 1000L + DEFAULT_PROGRAMME_MS,
+                            serverStart = written,
+                            archived = archived,
+                        ),
+                    )
+                    count++
+                }
+            }
+        }
+        return count
+    }
+
+    /**
      * Decodes base64, or returns the input when it is not base64.
      *
      * `java.util.Base64` is API 26 and `android.util.Base64` is Android-only, and
@@ -573,4 +666,16 @@ data class XtreamEpgEntry(
     val description: String?,
     val startMs: Long,
     val stopMs: Long,
+)
+
+/** One programme of a channel's guide as `get_simple_data_table` lists it, with what catch-up needs: see [XtreamParser.parseArchiveListings]. */
+data class XtreamArchiveEntry(
+    val title: String,
+    val description: String?,
+    val startMs: Long,
+    val stopMs: Long,
+    /** The start as the panel wrote it, in the panel's own time zone: what an archive request is addressed by. */
+    val serverStart: String,
+    /** The panel says it recorded this programme. */
+    val archived: Boolean,
 )

@@ -51,7 +51,7 @@ object CastivioMigrations {
     val ALL: Array<Migration>
         get() = arrayOf(
             REKEY_SOURCES, SCOPE_TO_SOURCE, KEY_SEARCH_BY_ROW, ADD_CUSTOM_ORDER, ADD_HIDDEN_ITEM, ADD_VOD_DETAIL,
-            ADD_SERIES_DETAIL, guarded(DROP_EPG_INDEX),
+            ADD_SERIES_DETAIL, guarded(DROP_EPG_INDEX), guarded(ADD_CATCH_UP),
         )
 
     /** The first version a database may be in with the sort-title index out: see [guarded]. */
@@ -319,6 +319,30 @@ object CastivioMigrations {
     private val DROP_EPG_INDEX = object : Migration(8, 9) {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL("DROP INDEX IF EXISTS `idx_media_epg`")
+        }
+    }
+
+    /**
+     * 9 → 10: `media.catch_up_hours`, the archive a provider says a channel keeps.
+     *
+     * **One nullable column, no default, no row touched, and no sync state forgotten.** Adding a column is a change to
+     * the table's definition and not to its rows, so it costs nothing however large the catalogue is, and a row that
+     * has no value reads as null: "no archive known", which hides catch-up exactly as before.
+     *
+     * ## How the column gets its values for a catalogue that is already here
+     *
+     * Not by this migration, and not by a re-import. The values come from the provider's own channel list, which an
+     * import skips when a subscription is unchanged -- so left alone the column would stay null for as long as the
+     * provider's list did not change. Forgetting the sync state would force the whole catalogue to be read again, which
+     * is a cold load and the one thing this change must not cost. Instead `CatchUpBackfill` (in `:data:epg`) asks the
+     * panel once, in the background, for the one list it already has, reads three fields of it, and writes the column
+     * of the rows that have an archive by their stable ids -- one request, one transaction, no row rewritten. A
+     * subscription whose panel will not answer is left to its next ordinary import, which writes the column with the
+     * row as every import now does.
+     */
+    private val ADD_CATCH_UP = object : Migration(9, 10) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `media` ADD COLUMN `catch_up_hours` INTEGER")
         }
     }
 

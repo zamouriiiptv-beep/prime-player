@@ -155,6 +155,13 @@ data class CatalogItem(
      * Xtream and M3U do not. Written beside the row, so the film's page reads them without a request.
      */
     val details: MovieDetails? = null,
+    /**
+     * How far back the provider says this channel's archive goes, in hours, or null when it offers none.
+     *
+     * Read from the list the import already walks and written with the row, so that "does this channel have
+     * catch-up" is answered by the catalogue and not by a request -- see [CatchUpGateway].
+     */
+    val catchUpHours: Int? = null,
 )
 
 /** What an import actually did. Reported to the writer and to diagnostics. */

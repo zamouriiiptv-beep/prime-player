@@ -5,6 +5,7 @@ import com.castivio.data.database.CastivioDatabase
 import com.castivio.data.database.RoomCatalogRepository
 import com.castivio.data.database.RoomCatalogWriter
 import com.castivio.data.database.RoomEpgRepository
+import com.castivio.data.database.RoomCatchUpHours
 import com.castivio.data.database.RoomEpgWriter
 import com.castivio.data.database.RoomFavoritesRepository
 import com.castivio.data.database.RoomHiddenItems
@@ -21,6 +22,7 @@ import com.castivio.data.database.dao.SeriesDetailDao
 import com.castivio.data.database.dao.VodDetailDao
 import com.castivio.data.database.RoomMovieDetailsCache
 import com.castivio.data.database.RoomSeriesDetailsStore
+import com.castivio.domain.CatchUpHoursWriter
 import com.castivio.domain.CatalogOrder
 import com.castivio.domain.CatalogPager
 import com.castivio.domain.CatalogRepository
@@ -108,6 +110,11 @@ object DatabaseModule {
     /** Not a singleton, for the same reason as the catalogue writer. */
     @Provides
     fun epgWriter(database: CastivioDatabase): EpgWriter = RoomEpgWriter(database)
+
+    /** Stateless beyond the database it writes, and used once per subscription: see `CatchUpBackfill`. */
+    @Provides
+    fun catchUpHoursWriter(dao: MediaDao, database: CastivioDatabase): CatchUpHoursWriter =
+        RoomCatchUpHours(dao, database)
 
     @Provides
     @Singleton

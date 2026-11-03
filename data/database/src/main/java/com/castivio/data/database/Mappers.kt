@@ -58,6 +58,7 @@ internal fun MediaEntity.toDomain(): MediaItem = when (kindOrLive()) {
         groupId = groupId,
         streamUrl = streamUrl,
         epgChannelId = epgChannelId,
+        catchUpHours = catchUpHours,
     )
 }
 
@@ -90,6 +91,7 @@ internal fun CatalogItem.toEntity(generation: Long, now: Long): MediaEntity = Me
     episodeNumber = episodeNumber,
     generation = generation,
     addedAt = now,
+    catchUpHours = catchUpHours,
 )
 
 /**

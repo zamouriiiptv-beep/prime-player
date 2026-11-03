@@ -6,6 +6,7 @@ import com.castivio.core.common.Outcome
 import com.castivio.data.parsing.JsonFormatException
 import com.castivio.data.parsing.WholeSectionUnsupported
 import com.castivio.data.parsing.XtreamAccount
+import com.castivio.data.parsing.XtreamArchiveEntry
 import com.castivio.data.parsing.XtreamEpgEntry
 import com.castivio.data.parsing.XtreamImportEngine
 import com.castivio.data.parsing.XtreamParser
@@ -208,6 +209,51 @@ class XtreamHttpApi(
         Outcome.Failure(AppError.MALFORMED_PLAYLIST, e)
     }
 
+    /**
+     * One channel's whole guide as the panel keeps it, past programmes and the panel's mark for the archived ones
+     * included: `get_simple_data_table`.
+     *
+     * **Asked when a viewer opens a channel's catch-up and at no other time.** It is a kilobytes-to-hundreds-of-kilobytes
+     * reply for one channel, read one entry at a time and never held whole; the caller keeps only the programmes it can
+     * use: every programme comes back with the panel's archive mark, and what the mark says is the caller's to keep. One retry rather than two: a person is waiting on this one, and a panel that has not answered after the
+     * second try is better reported than tried a third time.
+     */
+    fun archiveListings(streamId: String): Outcome<List<XtreamArchiveEntry>> = try {
+        open(
+            XtreamUrls.api(
+                base, username, password,
+                action = "get_simple_data_table",
+                parameters = mapOf("stream_id" to streamId),
+            ),
+            maxRetries = ARCHIVE_RETRIES,
+        ).use { reader ->
+            val entries = ArrayList<XtreamArchiveEntry>()
+            XtreamParser.parseArchiveListings(reader) { entries.add(it) }
+            Outcome.Success(entries)
+        }
+    } catch (e: HttpStatusException) {
+        Outcome.Failure(e.error, e)
+    } catch (e: SocketTimeoutException) {
+        Outcome.Failure(AppError.TIMEOUT, e)
+    } catch (e: InterruptedIOException) {
+        Outcome.Failure(AppError.TIMEOUT, e)
+    } catch (e: UnknownHostException) {
+        Outcome.Failure(AppError.NETWORK_UNAVAILABLE, e)
+    } catch (e: IOException) {
+        Outcome.Failure(AppError.NETWORK_UNAVAILABLE, e)
+    } catch (e: JsonFormatException) {
+        // A panel that answers with something that is not JSON is a failed listing, not a crash of the screen.
+        Outcome.Failure(AppError.MALFORMED_PLAYLIST, e)
+    }
+
+    /**
+     * The address an archived programme plays from, made from this account and nothing else: no request.
+     *
+     * [start] is what [XtreamUrls.timeshiftStart] made of the programme's own start.
+     */
+    fun archiveUrl(streamId: String, durationMinutes: Int, start: String): String =
+        XtreamUrls.timeshift(base, username, password, streamId, durationMinutes, start)
+
     /** The provider's own XMLTV endpoint, for a full guide import. */
     fun xmltvUrl(): String = XtreamUrls.xmltv(base, username, password)
 
@@ -221,8 +267,8 @@ class XtreamHttpApi(
      * anything -- and without a credential reaching the trace, which is why the name is
      * built from one query parameter rather than from the URL.
      */
-    private fun open(url: String, noCache: Boolean = false): Reader =
-        trace(traceName(url)) { openWithRetry(url, noCache) }
+    private fun open(url: String, noCache: Boolean = false, maxRetries: Int = MAX_RETRIES): Reader =
+        trace(traceName(url)) { openWithRetry(url, noCache, maxRetries) }
 
     /**
      * One call, tried up to [MAX_RETRIES] more times if the failure was transient.
@@ -253,7 +299,7 @@ class XtreamHttpApi(
      * 500ms then 1s. The engine checks cancellation between categories, so the longest
      * a cancelled import can linger inside a backoff is one second.
      */
-    private fun openWithRetry(url: String, noCache: Boolean = false): Reader {
+    private fun openWithRetry(url: String, noCache: Boolean = false, maxRetries: Int = MAX_RETRIES): Reader {
         val action = actionOf(url)
         var attempt = 0
         while (true) {
@@ -261,7 +307,7 @@ class XtreamHttpApi(
             try {
                 return openNow(url, noCache)
             } catch (e: IOException) {
-                if (attempt >= MAX_RETRIES || !isTransient(e)) {
+                if (attempt >= maxRetries || !isTransient(e)) {
                     PerformanceLog.requestFailed(action, reasonOf(e))
                     throw e
                 }
@@ -443,6 +489,9 @@ class XtreamHttpApi(
 
         /** Attempts after the first. Two, and never unbounded -- see [openWithRetry]. */
         private const val MAX_RETRIES = 2
+
+        /** The archive listing is asked once more, and no more: see [archiveListings]. */
+        private const val ARCHIVE_RETRIES = 1
 
         /** Multiplied by the attempt number: 500ms, then 1s. */
         private const val BACKOFF_MS = 500L

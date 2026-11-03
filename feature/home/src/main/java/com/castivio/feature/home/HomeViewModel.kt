@@ -5,13 +5,17 @@ import androidx.lifecycle.viewModelScope
 import com.castivio.core.platform.LoadTrace
 import com.castivio.core.platform.NetworkState
 import com.castivio.domain.CatalogRepository
+import com.castivio.domain.CatchUpBackfill
+import com.castivio.domain.CatchUpBackfillSchedule
 import com.castivio.domain.MediaKind
+import com.castivio.domain.PlaybackActivity
 import com.castivio.domain.ProviderSource
 import com.castivio.domain.ProviderStatusCatalogue
 import com.castivio.domain.Recorded
 import com.castivio.domain.RefreshProvider
 import com.castivio.domain.Refreshed
 import com.castivio.domain.SectionCatalogue
+import com.castivio.domain.SectionLoad
 import com.castivio.domain.SectionLoads
 import com.castivio.domain.SectionRun
 import com.castivio.domain.SourceKind
@@ -312,10 +316,53 @@ class HomeViewModel @Inject constructor(
     private val clock: TrustedTime,
     private val loads: SectionLoads,
     private val network: NetworkState,
+    /** Fills the archive hours of a catalogue imported before catch-up existed: once, in the background, when all is quiet. */
+    private val catchUpBackfill: CatchUpBackfill,
+    /** Whether a stream is playing or opening: the backfill waits for it not to be. */
+    private val playback: PlaybackActivity,
 ) : ViewModel() {
 
     private val mac: String = identity.current().macAddress.value
     private val deviceKey: String = identity.key().value
+
+    /** Whether Home is what the viewer is looking at: told by the screen's own lifecycle, see [homeShown] and [leftHome]. */
+    private val homeVisible = MutableStateFlow(false)
+    private var quietWatch: Job? = null
+
+    /**
+     * Waits for quiet and then asks the backfill, once per subscription.
+     *
+     * **It never competes with anything the viewer is waiting on or watching.** The request is made only while Home is on
+     * screen and has loaded, while no section is queued or arriving and no stream is playing or opening, and only after
+     * all of that has held for [CatchUpBackfillSchedule.SETTLE_MS]; anything that starts in the meantime -- a section
+     * pressed, a channel opened, the screen left -- cancels the wait (and a request already out, which the backfill's own
+     * read gives up at once), and it begins again when things are quiet. Nothing is waited on by Home itself: this runs on
+     * its own coroutine, the heavy part on an IO thread at background priority.
+     *
+     * Not repeated: the backfill keeps one request in flight and remembers a subscription once it has been settled, and a
+     * change of subscription is another wait for the new one. A start that finds nothing left to do costs a flag read.
+     */
+    private suspend fun waitForQuiet() {
+        combine(
+            homeVisible,
+            state.map { !it.loading },
+            loads.runs.map { runs -> runs.values.any { it.load is SectionLoad.Queued || it.load is SectionLoad.Loading } },
+            playback.active,
+            sources.active().map { it?.id },
+        ) { shown, loaded, loadActive, playing, source ->
+            CatchUpBackfillSchedule.quiet(shown, loaded, loadActive, playing) to source
+        }.distinctUntilChanged().collectLatest { (quiet, _) ->
+            if (!quiet) return@collectLatest
+            delay(CatchUpBackfillSchedule.SETTLE_MS)
+            runCatching { catchUpBackfill.ensure() }
+        }
+    }
+
+    /** Home is on screen: the first time, the wait for quiet begins. Told by the screen's lifecycle. */
+    fun homeShown() {
+        homeVisible.value = true
+        if (quietWatch == null) quietWatch = viewModelScope.launch { waitForQuiet() }
+    }
 
     /**
      * Ask the provider again, and let the recorded answer move the header.
@@ -481,6 +528,7 @@ class HomeViewModel @Inject constructor(
     /** Home is no longer what the viewer is looking at: nothing opens by itself any more. */
     fun leftHome() {
         opener.stop()
+        homeVisible.value = false
     }
 
     /** The card pressed while its section is on its way: [HINT_MS] of "opens when loaded". */

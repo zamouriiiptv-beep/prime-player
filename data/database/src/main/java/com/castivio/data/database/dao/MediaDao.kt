@@ -325,6 +325,18 @@ interface MediaDao {
     )
     suspend fun refsFor(ids: List<String>): List<ChannelRefRow>
 
+    /**
+     * The archive a provider says one channel keeps, written to a row that is already there.
+     *
+     * Found by its id -- the primary key -- and checked against its source, so the write is a lookup and not a scan of
+     * the catalogue, and a row of another subscription is never touched. Returns how many rows it found: one, or zero
+     * for a channel the provider lists and the importer did not keep. Room prepares the statement once and reuses it
+     * for every call, which is what makes tens of thousands of these cheap inside one transaction. See
+     * `RoomCatchUpHours`, the only caller.
+     */
+    @Query("UPDATE media SET catch_up_hours = :hours WHERE id = :id AND source_id = :sourceId")
+    fun setCatchUpHours(id: String, sourceId: String, hours: Int): Int
+
     // -------------------------------------------------------------------- counts
     //
     // **What is left to the viewer, not what the provider filed.** A section's count is the indexed

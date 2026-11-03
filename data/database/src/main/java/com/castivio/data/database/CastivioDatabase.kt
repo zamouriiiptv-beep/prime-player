@@ -63,7 +63,10 @@ import com.castivio.data.database.entity.VodDetailEntity
     //    table and no row changed. From this version a subscription's first load may leave
     //    `idx_media_source_kind_sort_title` out until it ends, so every migration from here on is run through
     //    `CastivioMigrations.guarded`, which puts it back first -- see `SortTitleIndex`.
-    version = 9,
+    // 10: one column added to `media`, `catch_up_hours`, the archive a provider says a channel keeps -- see
+    //    `CastivioMigrations.ADD_CATCH_UP`. Nothing that was stored changed and no sync state is forgotten: the column
+    //    is filled for a catalogue that is already here by `CatchUpBackfill`, once, in the background.
+    version = 10,
     exportSchema = true,
 )
 abstract class CastivioDatabase : RoomDatabase() {

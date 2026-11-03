@@ -128,6 +128,17 @@ data class MediaEntity(
 
     @ColumnInfo(name = "added_at")
     val addedAt: Long,
+
+    /**
+     * Hours of archive the provider says this channel keeps, or null when it keeps none or does not say.
+     *
+     * Written by the import from the provider's own list, and read by nothing that touches a network: it is what
+     * decides whether a channel's guide offers catch-up. Null for every row written before it existed, which a
+     * migration answers by forgetting the sync state so the next refresh fills it -- see
+     * `CastivioMigrations.ADD_CATCH_UP`.
+     */
+    @ColumnInfo(name = "catch_up_hours")
+    val catchUpHours: Int? = null,
 )
 
 /**

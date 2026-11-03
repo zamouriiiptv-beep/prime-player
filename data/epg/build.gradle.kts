@@ -20,6 +20,7 @@ android {
 
 dependencies {
     implementation(project(":core:common"))
+    implementation(project(":core:platform"))
     implementation(project(":domain"))
     api(project(":data:networking"))
     implementation(project(":data:parsing"))

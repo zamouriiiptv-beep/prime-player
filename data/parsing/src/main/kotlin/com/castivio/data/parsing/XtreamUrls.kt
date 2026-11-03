@@ -97,6 +97,51 @@ object XtreamUrls {
         }
     }
 
+    /**
+     * The address of an archived programme: `http://host:8080/timeshift/user/pass/<minutes>/<start>/<stream id>.ts`.
+     *
+     * **One of the forms Xtream panels accept, and the one used here -- it is not a standard.** Community clients for the
+     * panel write the same path, with the duration in minutes and the start as `YYYY-MM-DD:HH-MM`, and the panel serves
+     * it from the same handler as its `streaming/timeshift.php?stream=&start=&duration=` address. Panels differ in the
+     * details (a duration in seconds, another start format), and this has not been tried against a live panel: see
+     * `LOCAL_CHANGES.md` section 56 for what is and is not verified.
+     *
+     * @param start the programme's start as the panel wrote it, already turned into the path's form by [timeshiftStart].
+     */
+    fun timeshift(
+        base: String,
+        username: String,
+        password: String,
+        streamId: String,
+        durationMinutes: Int,
+        start: String,
+        extension: String = "ts",
+    ): String = buildString {
+        append(normaliseBase(base)).append("/timeshift/")
+        append(encode(username)).append('/').append(encode(password)).append('/')
+        append(durationMinutes.coerceAtLeast(1)).append('/')
+        // Not encoded: [timeshiftStart] makes it of digits, `-` and `:` only, and a panel reads the colon as written.
+        append(start).append('/')
+        append(encode(streamId)).append('.').append(extension.trim().trimStart('.').ifEmpty { "ts" })
+    }
+
+    /**
+     * `2025-11-02 21:30:00` (or with a `T`) as the archive path writes it, `2025-11-02:21-30`, or null when the text is
+     * not a date and a time.
+     *
+     * The wall-clock digits are carried over **unchanged**: they are in the panel's time zone, which is the one an
+     * archive request is read in, and nothing here converts them to or from any other.
+     */
+    fun timeshiftStart(serverStart: String): String? {
+        val text = serverStart.trim()
+        if (text.length < 16) return null
+        if (text[4] != '-' || text[7] != '-' || (text[10] != ' ' && text[10] != 'T') || text[13] != ':') return null
+        for (i in intArrayOf(0, 1, 2, 3, 5, 6, 8, 9, 11, 12, 14, 15)) if (text[i] !in '0'..'9') return null
+        return buildString(16) {
+            append(text, 0, 10).append(':').append(text, 11, 13).append('-').append(text, 14, 16)
+        }
+    }
+
     /** The alternate container for a stream, used by playback fallback. */
     fun alternateLiveFormat(url: String): String? = when {
         url.endsWith(".ts", ignoreCase = true) -> url.dropLast(3) + ".m3u8"

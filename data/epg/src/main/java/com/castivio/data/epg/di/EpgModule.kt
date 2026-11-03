@@ -3,10 +3,16 @@ package com.castivio.data.epg.di
 import com.castivio.core.common.AppDispatchers
 import com.castivio.data.epg.DefaultEpgImporter
 import com.castivio.data.networking.HttpStreamSource
+import com.castivio.domain.CatchUpBackfill
+import com.castivio.domain.CatchUpBackfillMarks
+import com.castivio.domain.CatchUpGateway
+import com.castivio.domain.CatchUpHoursWriter
 import com.castivio.domain.ChannelGuideFetcher
 import com.castivio.domain.EpgImporter
 import com.castivio.domain.EpgWriter
 import com.castivio.domain.NowNextRefresher
+import com.castivio.data.epg.XtreamCatchUp
+import com.castivio.data.epg.XtreamCatchUpBackfill
 import com.castivio.data.epg.XtreamNowNextRefresher
 import okhttp3.OkHttpClient
 import dagger.Module
@@ -72,4 +78,39 @@ object EpgModule {
     @Provides
     @Singleton
     fun channelGuideFetcher(guide: XtreamNowNextRefresher): ChannelGuideFetcher = guide
+
+    /**
+     * Catch-up, asked of the active subscription's own archive.
+     *
+     * A singleton because it keeps a short memory of what a channel's archive held a moment ago, so that opening the same
+     * channel twice is one request; the memory is the object's own and nothing outside it can reach it. Only an Xtream
+     * panel is spoken to: any other kind of subscription is answered "not supported", and nothing is asked.
+     */
+    @Provides
+    @Singleton
+    fun catchUpGateway(
+        client: OkHttpClient,
+        sources: com.castivio.domain.SourceRepository,
+        dispatchers: AppDispatchers,
+    ): CatchUpGateway = XtreamCatchUp(client = client, sources = sources, dispatchers = dispatchers)
+
+    /**
+     * Fills the archive hours of a catalogue that was imported before the column existed, once, in the background -- not
+     * a re-import: see `CatchUpBackfill`. The writer is a provider because it is made for the one use.
+     */
+    @Provides
+    @Singleton
+    fun catchUpBackfill(
+        client: OkHttpClient,
+        sources: com.castivio.domain.SourceRepository,
+        writers: Provider<CatchUpHoursWriter>,
+        marks: CatchUpBackfillMarks,
+        dispatchers: AppDispatchers,
+    ): CatchUpBackfill = XtreamCatchUpBackfill(
+        client = client,
+        sources = sources,
+        writer = { writers.get() },
+        marks = marks,
+        dispatchers = dispatchers,
+    )
 }
