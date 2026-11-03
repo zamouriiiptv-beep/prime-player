@@ -6,6 +6,7 @@ import androidx.tracing.trace
 import com.castivio.core.common.UpdatePacer
 import com.castivio.core.platform.CastivioTrace
 import com.castivio.core.platform.DatabaseStep
+import com.castivio.core.platform.DevDiagnostics
 import com.castivio.core.platform.PerformanceLog
 import com.castivio.domain.CatalogItem
 import com.castivio.domain.CatalogWriter
@@ -14,6 +15,7 @@ import com.castivio.domain.ImportSummary
 import com.castivio.domain.MediaGroup
 import com.castivio.domain.MediaKind
 import com.castivio.domain.MovieDetails
+import java.io.File
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
@@ -104,6 +106,10 @@ class RoomCatalogWriter(
     private var toldRows = false
     private var toldCounts = false
 
+    // ------------------------------------------------------ measuring (development builds only)
+    private var measuring = false
+    private var figures = Figures()
+
     override fun begin(sourceId: String, mode: ImportMode, sections: Set<MediaKind>) {
         require(sections.isNotEmpty()) { "an import of no section" }
         val db = database.openHelper.writableDatabase
@@ -137,6 +143,8 @@ class RoomCatalogWriter(
         countedSinceCommit = false
         toldRows = false
         toldCounts = false
+        measuring = DevDiagnostics.enabled
+        figures = Figures()
         db.applyImportPragmas()
         deferSortTitle = false
         sortTitleDeferred = false
@@ -336,8 +344,10 @@ class RoomCatalogWriter(
     private fun commitNow() {
         if (!inTransaction) return
         val db = database.openHelper.writableDatabase
+        val endingAt = if (measuring) System.nanoTime() else 0L
         db.setTransactionSuccessful()
         db.endTransaction()
+        if (measuring) figures.committed(System.nanoTime() - endingAt)
         inTransaction = false
         // Raw statements bypass Room's write path, so nothing would tell the
         // observers that the tables changed. Without this the first import
@@ -397,6 +407,7 @@ class RoomCatalogWriter(
     override fun finish(summary: ImportSummary) {
         val source = sourceId ?: return
         val db = database.openHelper.writableDatabase
+        if (measuring) figures.walAtFinish = probed { db.sizeOf(WAL_SUFFIX) }
         commit()
         db.endTransactionQuietly()
 
@@ -424,6 +435,7 @@ class RoomCatalogWriter(
         putSortTitleIndexBack(db)
         db.restoreNormalPragmas()
         announceEnd()
+        if (measuring) noteFigures(db)
         release()
     }
 
@@ -475,8 +487,18 @@ class RoomCatalogWriter(
      * are found once it ends.
      */
     private fun SupportSQLiteDatabase.indexWrittenRows() {
+        val deletingAt = if (measuring) System.nanoTime() else 0L
         execSQL("DELETE FROM media_fts WHERE docid NOT IN (SELECT rowid FROM media)")
+        if (measuring) {
+            figures.ftsDeleteNanos = System.nanoTime() - deletingAt
+            figures.ftsDeleteRows = probed { changes() }
+        }
+        val insertingAt = if (measuring) System.nanoTime() else 0L
         execSQL(INDEX_WRITTEN, arrayOf(lastRowIdBefore))
+        if (measuring) {
+            figures.ftsInsertNanos = System.nanoTime() - insertingAt
+            figures.ftsInsertRows = probed { changes() }
+        }
     }
 
     /**
@@ -495,6 +517,109 @@ class RoomCatalogWriter(
         } finally {
             PerformanceLog.addDatabaseStep(step, System.nanoTime() - startedAt)
         }
+    }
+
+    /**
+     * What the end of a load cost beyond the three steps [timed] reports, counted for the run's notes.
+     *
+     * Development builds only: [measuring] is `DevDiagnostics.enabled`, and with it off nothing here is written
+     * or read. Measurement only -- no statement, order or transaction depends on a figure. Written by the
+     * writer's own thread.
+     */
+    private class Figures {
+        var opens = 0
+        var openNanos = 0L
+        var openMaxNanos = 0L
+        var commits = 0
+        var commitNanos = 0L
+        var commitMaxNanos = 0L
+        var lastCommitNanos = 0L
+        var closingBeginNanos = 0L
+        var closingEndNanos = 0L
+        var ftsDeleteNanos = 0L
+        var ftsDeleteRows = -1L
+        var ftsInsertNanos = 0L
+        var ftsInsertRows = -1L
+        var syncPragmaNanos = 0L
+        var journalPragmaNanos = 0L
+        var walAtFinish = -1L
+
+        /** The reads added to take these figures, and what they cost: see [noteFigures]. */
+        var probes = 0
+        var probeNanos = 0L
+
+        fun opened(nanos: Long) {
+            opens++
+            openNanos += nanos
+            if (nanos > openMaxNanos) openMaxNanos = nanos
+        }
+
+        fun committed(nanos: Long) {
+            commits++
+            commitNanos += nanos
+            lastCommitNanos = nanos
+            if (nanos > commitMaxNanos) commitMaxNanos = nanos
+        }
+    }
+
+    /**
+     * Says the end of a load in the run's notes, once, last in [finish] while the run is still going: where the
+     * writer waited for a transaction and how its commits ended (the automatic checkpoint is inside them), what
+     * the search index's two statements did, the pragmas, the files' sizes -- and what the reads added for this
+     * cost. The report prints its notes to logcat when the run settles; nothing is drawn on a screen.
+     */
+    private fun noteFigures(db: SupportSQLiteDatabase) {
+        val f = figures
+        val walAtEnd = probed { db.sizeOf(WAL_SUFFIX) }
+        val dbBytes = probed { db.sizeOf("") }
+        PerformanceLog.note(
+            NOTE_TX_BEGIN,
+            "${f.opens} opens, total ${tenthsOfMs(f.openNanos)}, max ${tenthsOfMs(f.openMaxNanos)}" +
+                " · closing transaction ${tenthsOfMs(f.closingBeginNanos)}",
+        )
+        PerformanceLog.note(
+            NOTE_TX_END,
+            "${f.commits} commits, total ${tenthsOfMs(f.commitNanos)}, max ${tenthsOfMs(f.commitMaxNanos)}" +
+                " · last ${tenthsOfMs(f.lastCommitNanos)} · closing transaction ${tenthsOfMs(f.closingEndNanos)}",
+        )
+        PerformanceLog.note(
+            NOTE_FTS,
+            "delete ${tenthsOfMs(f.ftsDeleteNanos)} (${f.ftsDeleteRows} rows)" +
+                " · insert ${tenthsOfMs(f.ftsInsertNanos)} (${f.ftsInsertRows} rows)",
+        )
+        PerformanceLog.note(
+            NOTE_PRAGMAS,
+            "synchronous ${tenthsOfMs(f.syncPragmaNanos)} · journal_mode ${tenthsOfMs(f.journalPragmaNanos)}",
+        )
+        PerformanceLog.note(
+            NOTE_DB_CONTEXT,
+            "${mode.name} · sort index ${if (deferSortTitle) "deferred" else "kept"} · last rowid before $lastRowIdBefore" +
+                " · db ${megabytesText(dbBytes)} · wal ${megabytesText(f.walAtFinish)} -> ${megabytesText(walAtEnd)}",
+        )
+        PerformanceLog.note(
+            NOTE_PROBES,
+            "${tenthsOfMs(f.probeNanos)} in ${f.probes} added reads (two changes() and the file sizes)",
+        )
+    }
+
+    /** [block], with its time counted as the cost of measuring: the reads this instrumentation adds. */
+    private inline fun <T> probed(block: () -> T): T {
+        val startedAt = System.nanoTime()
+        try {
+            return block()
+        } finally {
+            figures.probes++
+            figures.probeNanos += System.nanoTime() - startedAt
+        }
+    }
+
+    /** Rows the statement just run on this connection changed -- read inside the transaction it ran in. */
+    private fun SupportSQLiteDatabase.changes(): Long = longOf("SELECT changes()")
+
+    /** The size of the database file plus [suffix], or -1 when there is no such file. */
+    private fun SupportSQLiteDatabase.sizeOf(suffix: String): Long {
+        val file = File((path ?: return -1L) + suffix)
+        return if (file.exists()) file.length() else -1L
     }
 
     private fun release() {
@@ -528,7 +653,11 @@ class RoomCatalogWriter(
      * sat waiting for the network with an empty transaction open.
      */
     private fun openTransaction() {
-        if (!inTransaction) database.openHelper.writableDatabase.begin()
+        if (!inTransaction) {
+            val openingAt = if (measuring) System.nanoTime() else 0L
+            database.openHelper.writableDatabase.begin()
+            if (measuring) figures.opened(System.nanoTime() - openingAt)
+        }
     }
 
     private fun requireStarted(): String = sourceId ?: error("write before begin")
@@ -545,12 +674,16 @@ class RoomCatalogWriter(
     }
 
     private inline fun SupportSQLiteDatabase.transaction(body: SupportSQLiteDatabase.() -> Unit) {
+        val beginningAt = if (measuring) System.nanoTime() else 0L
         beginTransaction()
+        if (measuring) figures.closingBeginNanos = System.nanoTime() - beginningAt
         try {
             body()
             setTransactionSuccessful()
         } finally {
+            val endingAt = if (measuring) System.nanoTime() else 0L
             endTransaction()
+            if (measuring) figures.closingEndNanos = System.nanoTime() - endingAt
         }
     }
 
@@ -590,8 +723,14 @@ class RoomCatalogWriter(
      * costs one no-op statement per import.
      */
     private fun SupportSQLiteDatabase.restoreNormalPragmas() {
+        val syncAt = if (measuring) System.nanoTime() else 0L
         runCatching { execSQL("PRAGMA synchronous = NORMAL") }
+        val journalAt = if (measuring) System.nanoTime() else 0L
         runCatching { execSQL("PRAGMA journal_mode = WAL") }
+        if (measuring) {
+            figures.syncPragmaNanos = journalAt - syncAt
+            figures.journalPragmaNanos = System.nanoTime() - journalAt
+        }
     }
 
     private fun SupportSQLiteDatabase.longOf(sql: String, vararg args: Any): Long =
@@ -610,6 +749,30 @@ class RoomCatalogWriter(
     private companion object {
         /** The run's note on the sort-title index: whether a first load deferred it, and what building it cost. */
         const val NOTE_SORT_INDEX = "sort index"
+
+        /** The run's notes on the end of a load, development builds only: see [noteFigures]. */
+        const val NOTE_TX_BEGIN = "tx begin"
+        const val NOTE_TX_END = "tx end"
+        const val NOTE_FTS = "fts"
+        const val NOTE_PRAGMAS = "pragmas"
+        const val NOTE_DB_CONTEXT = "db context"
+        const val NOTE_PROBES = "probes"
+
+        /** Appended to the database file's path: SQLite's write-ahead log. */
+        const val WAL_SUFFIX = "-wal"
+
+        /** Nanoseconds as milliseconds to a tenth, with a point whatever the device's language. */
+        fun tenthsOfMs(nanos: Long): String {
+            val tenths = nanos / 100_000
+            return "${tenths / 10}.${tenths % 10} ms"
+        }
+
+        /** Bytes as megabytes to a tenth; `none` for a file that is not there. */
+        fun megabytesText(bytes: Long): String {
+            if (bytes < 0) return "none"
+            val tenths = bytes * 10 / 1_048_576
+            return "${tenths / 10}.${tenths % 10} MB"
+        }
 
         /** One thread for every writer's timer: a timer only calls [tell]. */
         val TIMER = Executors.newSingleThreadScheduledExecutor { task ->
