@@ -1,6 +1,7 @@
 package com.castivio.feature.player
 
 import com.castivio.playback.api.EngineId
+import com.castivio.playback.api.OpenAttempts
 import com.castivio.playback.api.OpeningMarks
 import com.castivio.playback.api.PlaybackDiagnosis
 import com.castivio.playback.api.PlaybackError
@@ -73,11 +74,43 @@ data class OpeningTiming(
         append(" frame ").append(ms(marks.firstFrameMs))
         append(" | prepare→frame ").append(ms(prepareToFrameMs))
         append(" press→frame ").append(ms(firstFrameMs))
+        // The tries at the address, from the engine's own clock like the marks above. Only a measuring build has any.
+        attemptsText(marks.attempts)
         handover?.let { left ->
             append(" | primary left ").append(left.reason)
             append(" after ").append(left.afterMs).append("ms")
             append(" server ").append(ms(left.serverAnsweredMs))
             append(" bytes ").append(ms(left.firstBytesMs))
+            // And the primary's, which are from the press as everything about the primary here is.
+            attemptsText(left.attempts)
+        }
+    }
+
+    /**
+     * The tries at the address as one more column of the log line: each try's start, answer, first bytes and end in
+     * milliseconds, how it ended and by what name, and the host's address families by count. Nothing when there are
+     * none. No address, no host and no exception message: the names of exceptions only.
+     */
+    private fun StringBuilder.attemptsText(attempts: OpenAttempts) {
+        if (attempts.isEmpty) return
+        append(" | attempts ").append(attempts.count)
+        attempts.tries.forEach { attempt ->
+            append(" #").append(attempt.number)
+            append("[start ").append(ms(attempt.startedMs))
+            append(" answer ").append(ms(attempt.answeredMs))
+            append(" bytes ").append(ms(attempt.firstBytesMs))
+            append(" end ").append(ms(attempt.endedMs))
+            append(' ').append(attempt.outcome)
+            attempt.failure?.let { append(' ').append(it) }
+            append(']')
+        }
+        attempts.lookup?.let { found ->
+            append(" dns ")
+            if (found.failure != null) {
+                append("failed ").append(found.failure)
+            } else {
+                append(found.ipv4).append(" v4 ").append(found.ipv6).append(" v6")
+            }
         }
     }
 
@@ -110,6 +143,11 @@ data class Handover(
      * without a report -- a budget that expired, or an engine with nothing to say.
      */
     val report: PlaybackDiagnosis? = null,
+    /**
+     * **Development builds only.** The tries the primary made at the address before it was let go, with every instant
+     * from the press: the account the two figures above are the last of. Empty where the primary kept none.
+     */
+    val attempts: OpenAttempts = OpenAttempts.NONE,
 ) {
 
     /** Whether any of the stream had reached the primary: the difference between a network that said nothing and a stream that was refused. */

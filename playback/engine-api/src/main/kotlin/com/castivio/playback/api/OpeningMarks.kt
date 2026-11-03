@@ -42,4 +42,10 @@ data class OpeningMarks(
      * glass). A figure that is not exact is printed as an approximation and is never presented as a measurement.
      */
     val firstFrameExact: Boolean = true,
+    /**
+     * **Development builds only.** The tries the engine made at the address, in order, with the lookup of the host's
+     * address families: what [serverAnsweredMs] and [firstBytesMs] are the last of. Empty for an engine that does not
+     * see its tries, and in any build that does not measure.
+     */
+    val attempts: OpenAttempts = OpenAttempts.NONE,
 )

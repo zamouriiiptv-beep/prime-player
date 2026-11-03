@@ -1534,6 +1534,8 @@ class PlayerViewModel @Inject constructor(
         serverAnsweredMs = left.marks.serverAnsweredMs?.let { left.prepareMs + it },
         firstBytesMs = left.marks.firstBytesMs?.let { left.prepareMs + it },
         report = report,
+        // The tries too, moved the same way: the primary's own account of how the server came to answer, or not.
+        attempts = left.marks.attempts.shifted(left.prepareMs),
     )
 
     /* ------------------------------------------------- the opening panel (temporary, for development) */

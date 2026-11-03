@@ -1,6 +1,10 @@
 package com.castivio.feature.player
 
+import com.castivio.playback.api.AttemptOutcome
 import com.castivio.playback.api.EngineId
+import com.castivio.playback.api.HostLookup
+import com.castivio.playback.api.OpenAttempt
+import com.castivio.playback.api.OpenAttempts
 import com.castivio.playback.api.PlaybackDiagnosis
 import com.castivio.playback.api.SourceRedaction
 import java.util.Locale
@@ -64,7 +68,12 @@ internal data class OpeningReading(
 
         // Why the primary let the source go, and whether anything had reached it: the second half of a fallback's
         // story, which the backup's own figures below cannot tell. Amber, because it is the line to read.
-        timing.handover?.let { lines += HudLine(handoverLine(it), HudTone.RUNNING) }
+        timing.handover?.let { left ->
+            lines += HudLine(handoverLine(left), HudTone.RUNNING)
+            // How the primary's server came to answer or not, try by try: the half of the story the line above has
+            // only the last try of.
+            lines += attemptLines("primary tries", left.attempts, ended = true)
+        }
 
         // **The primary's failure report takes the place of the timing lines**, so the panel keeps the room it has:
         // what failed is the question while a report is shown, and the figures it would otherwise draw are still in the
@@ -97,6 +106,10 @@ internal data class OpeningReading(
         // The engine's events, as instants from the press. They overlap and are not to be added.
         lines += HudLine("@ " + events().joinToString(" · "), HudTone.MUTED)
 
+        // And the tries at the address behind the first two of them, which are the last try's: a retry after a silent
+        // wait and a slow answer are the same figure above and two different lines here. Development builds only.
+        lines += attemptLines("tries", timing.marks.attempts.shifted(timing.prepareMs), ended = !running)
+
         // The two figures a reader asks for: how far the engine's readiness is from the picture, and the engine's
         // own share of the wait.
         val marks = timing.marks
@@ -119,6 +132,64 @@ internal data class OpeningReading(
         )
         return lines
     }
+
+    /**
+     * The engine's tries at the address, one line when there was one and a line each when there were more, every
+     * instant in seconds from the press -- `(+x)` is that try's own time to the instant before it, which is not the
+     * opening's: a retry's starts where the one before it ended.
+     *
+     * A try still going says how long it has waited so far, from this reading's own total; one that never answered says
+     * so in words. The host's address families close the first line, said by count: no address and no name.
+     * Nothing at all for an engine that kept none, which is every engine in a build that does not measure.
+     */
+    private fun attemptLines(label: String, attempts: OpenAttempts, ended: Boolean): List<HudLine> {
+        if (attempts.isEmpty) return emptyList()
+        val dns = lookupText(attempts.lookup, ended)
+        val retries = attempts.count - 1
+        if (retries == 0) {
+            return listOf(HudLine("$label (s): 1 · ${attemptText(attempts.tries.first(), ended)} · $dns", HudTone.MUTED))
+        }
+        val lines = ArrayList<HudLine>(attempts.tries.size + 2)
+        lines += HudLine("$label (s): ${attempts.count} · $retries ${if (retries == 1) "retry" else "retries"} · $dns", HudTone.RUNNING)
+        attempts.tries.forEach {
+            lines += HudLine("  ${attemptText(it, ended)}", if (it.outcome == AttemptOutcome.FAILED) HudTone.RUNNING else HudTone.MUTED)
+        }
+        if (attempts.more > 0) lines += HudLine("  +${attempts.more} more, not kept", HudTone.MUTED)
+        return lines
+    }
+
+    /** One try: `#2 start 8.01 · answered 9.50 (+1.49) · bytes 9.51`, or how it failed, or that it is still waiting. */
+    private fun attemptText(attempt: OpenAttempt, ended: Boolean): String = buildString {
+        append('#').append(attempt.number).append(" start ").append(sec(attempt.startedMs))
+        val answered = attempt.answeredMs
+        if (answered != null) {
+            append(" · answered ").append(sec(answered)).append(" (+").append(sec(attempt.answerTookMs ?: 0)).append(')')
+        }
+        val bytes = attempt.firstBytesMs
+        when {
+            bytes != null -> append(" · bytes ").append(sec(bytes))
+            answered != null && attempt.outcome == AttemptOutcome.ANSWERED -> append(if (ended) " · no bytes" else " · bytes …")
+        }
+        when (attempt.outcome) {
+            AttemptOutcome.WAITING ->
+                if (ended) append(" · never answered") else append(" · waiting ").append(sec((totalMs - attempt.startedMs).coerceAtLeast(0))).append(" so far")
+            AttemptOutcome.FAILED -> {
+                append(" · FAILED ").append(sec(attempt.endedMs ?: attempt.startedMs))
+                append(" (+").append(sec(attempt.lastedMs ?: 0)).append(") ").append(attempt.failure ?: DASH)
+            }
+            AttemptOutcome.CLOSED -> append(" · closed ").append(sec(attempt.endedMs ?: attempt.startedMs))
+            AttemptOutcome.ANSWERED -> Unit
+        }
+    }
+
+    /** What the host's lookup found, by count -- and that it is what the resolver offers, not what the connection used. */
+    private fun lookupText(lookup: HostLookup?, ended: Boolean): String = when {
+        lookup == null -> if (ended) "dns -" else "dns …"
+        lookup.failure != null -> "dns lookup FAILED ${lookup.failure}"
+        else -> "dns ${lookup.ipv4} v4 · ${lookup.ipv6} v6 available"
+    }
+
+    private fun sec(ms: Long): String = String.format(Locale.ROOT, "%.2f", ms / MS_PER_SECOND)
 
     /** What the primary reported when it gave this source up, when this opening is the backup's after a failure. */
     val failureReport: PlaybackDiagnosis? get() = timing.handover?.report

@@ -32,6 +32,8 @@ import androidx.media3.exoplayer.mediacodec.MediaCodecDecoderException
 import androidx.media3.exoplayer.mediacodec.MediaCodecRenderer
 import androidx.media3.exoplayer.mediacodec.MediaCodecUtil
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.source.LoadEventInfo
+import androidx.media3.exoplayer.source.MediaLoadData
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.extractor.ts.DefaultTsPayloadReaderFactory
@@ -43,6 +45,8 @@ import com.castivio.playback.api.FormatReport
 import com.castivio.playback.api.EngineId
 import com.castivio.playback.api.MediaKind
 import com.castivio.playback.api.MediaRequest
+import com.castivio.playback.api.OpenAttemptLog
+import com.castivio.playback.api.OpenAttempts
 import com.castivio.playback.api.OpeningMarks
 import com.castivio.playback.api.PlaybackDiagnosis
 import com.castivio.playback.api.PlaybackEngine
@@ -55,6 +59,7 @@ import com.castivio.playback.api.Track
 import com.castivio.playback.api.TrackSet
 import com.castivio.playback.api.TrackType
 import com.castivio.playback.api.VideoOutput
+import java.io.IOException
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -337,7 +342,12 @@ class Media3Engine(
         current = false
         val mine = ++generation
         openedAtMs = SystemClock.elapsedRealtime()
-        transferMarks = TransferMarks(media.url)
+        // The tries at the address are kept only by a measuring build: a release build has no log, and the listener below
+        // does what it did before.
+        transferMarks = TransferMarks(
+            url = media.url,
+            attempts = if (DevDiagnostics.enabled) OpenAttemptLog(openedAtMs, SystemClock::elapsedRealtime) else null,
+        )
         tracksKnownAt = 0
         readyAt = 0
         decoderReadyAt = 0
@@ -526,6 +536,7 @@ class Media3Engine(
             decoderKept = decoderKept,
             firstFrameMs = _firstFrameAtMs.value?.let { it - openedAtMs },
             readyMs = since(readyAt),
+            attempts = transfer?.attempts?.snapshot() ?: OpenAttempts.NONE,
         )
     }
 
@@ -798,13 +809,28 @@ class Media3Engine(
      * makes reading slower.
      */
     private val transfers = object : TransferListener {
-        override fun onTransferInitializing(source: DataSource, dataSpec: DataSpec, isNetwork: Boolean) = Unit
+        override fun onTransferInitializing(source: DataSource, dataSpec: DataSpec, isNetwork: Boolean) {
+            // A try at the address begins here: the connection, any redirect and the request come after. Development
+            // builds only -- a release build has no log, and nothing is read.
+            val marks = transferMarks ?: return
+            val attempts = marks.attempts ?: return
+            if (marks.isFor(dataSpec)) attempts.started()
+        }
 
         override fun onTransferStart(source: DataSource, dataSpec: DataSpec, isNetwork: Boolean) {
             val marks = transferMarks ?: return
-            if (marks.answeredAt.get() == 0L && marks.isFor(dataSpec)) {
-                marks.answeredAt.compareAndSet(0, SystemClock.elapsedRealtime())
+            val attempts = marks.attempts
+            if (attempts == null) {
+                if (marks.answeredAt.get() == 0L && marks.isFor(dataSpec)) {
+                    marks.answeredAt.compareAndSet(0, SystemClock.elapsedRealtime())
+                }
+                return
             }
+            // Every try that is answered is kept, not only the first: the mark above is the last try's.
+            if (!marks.isFor(dataSpec)) return
+            marks.answeredAt.compareAndSet(0, SystemClock.elapsedRealtime())
+            attempts.answered()
+            lookUpHostOnce(marks)
         }
 
         override fun onBytesTransferred(source: DataSource, dataSpec: DataSpec, isNetwork: Boolean, bytesTransferred: Int) {
@@ -812,9 +838,16 @@ class Media3Engine(
             if (marks.firstBytesAt.get() == 0L && bytesTransferred > 0 && marks.isFor(dataSpec)) {
                 marks.firstBytesAt.compareAndSet(0, SystemClock.elapsedRealtime())
             }
+            // The first bytes of each try. After them this is one read of one volatile field per read of the body.
+            val attempts = marks.attempts ?: return
+            if (bytesTransferred > 0 && attempts.awaitingBytes() && marks.isFor(dataSpec)) attempts.bytes()
         }
 
-        override fun onTransferEnd(source: DataSource, dataSpec: DataSpec, isNetwork: Boolean) = Unit
+        override fun onTransferEnd(source: DataSource, dataSpec: DataSpec, isNetwork: Boolean) {
+            val marks = transferMarks ?: return
+            val attempts = marks.attempts ?: return
+            if (marks.isFor(dataSpec)) attempts.closed()
+        }
     }
 
     /**
@@ -849,10 +882,47 @@ class Media3Engine(
             decoderReadyAt = eventTime.realtimeMs
             decoderKept = true
         }
+
+        /**
+         * A load of the address failed: the engine's account of a try that did not get through, for the record of
+         * the open's tries. The player retries by itself after this; nothing here changes that.
+         *
+         * Reported on this thread after the loader's has closed the connection. Development builds only -- without a
+         * log there is nothing to write -- and only for the source open now: the gate keeps the last one's out.
+         */
+        override fun onLoadError(
+            eventTime: AnalyticsListener.EventTime,
+            loadEventInfo: LoadEventInfo,
+            mediaLoadData: MediaLoadData,
+            error: IOException,
+            wasCanceled: Boolean,
+        ) {
+            // A cancelled load is a source that was let go, which is not a failure of the try.
+            if (!current || wasCanceled) return
+            val marks = transferMarks ?: return
+            val attempts = marks.attempts ?: return
+            if (!marks.isFor(loadEventInfo.dataSpec)) return
+            attempts.failed(loadEventInfo.elapsedRealtimeMs, OpenAttemptProbes.describeFailure(error))
+            lookUpHostOnce(marks)
+        }
     }
 
-    /** One open's server marks. Zero is "not yet", which `elapsedRealtime` never is on a running device. */
-    private class TransferMarks(private val url: String) {
+    /**
+     * One lookup of the host's address families for an open, made after the open has said something -- an answer, or
+     * a failure -- and on a thread of its own, so it is not on the path and cannot make the open's own lookup earlier.
+     */
+    private fun lookUpHostOnce(marks: TransferMarks) {
+        val attempts = marks.attempts ?: return
+        if (!attempts.claimLookup()) return
+        OpenAttemptProbes.lookUpHostLater(marks.url) { attempts.lookedUp(it) }
+    }
+
+    /**
+     * One open's server marks. Zero is "not yet", which `elapsedRealtime` never is on a running device.
+     *
+     * [attempts] is the record of the tries at the address, kept by a measuring build and null in any other.
+     */
+    private class TransferMarks(val url: String, val attempts: OpenAttemptLog? = null) {
         val answeredAt = AtomicLong(0)
         val firstBytesAt = AtomicLong(0)
 
