@@ -505,7 +505,58 @@ data class GuideDay(
     /** Midnight at the start of this day, in the device's zone. */
     val startOfDayMs: Long,
     val programmes: List<Programme>,
-)
+) {
+
+    /**
+     * What the page's list calls this day's heading, which is not what it calls anything else.
+     *
+     * A heading and a programme are both named by an instant, and a programme that begins at midnight -- the commonest
+     * start there is -- has the very number its day's heading has. Named by the bare instant, the two were one key in
+     * the one list, and the list refused the second: `Key "…" was already used`. So each kind of row has a name of its
+     * own, and a number is never a name by itself.
+     */
+    val key: String = "$GUIDE_DAY_KEY$startOfDayMs"
+
+    /**
+     * [programmes] with the name the list knows each by, in the same order, made once here and not while the list
+     * scrolls. See [guideRows].
+     */
+    val rows: List<GuideRow> = guideRows(programmes)
+}
+
+/** One programme as the page's list holds it: the programme, and the name the list knows it by. */
+data class GuideRow(val key: String, val programme: Programme)
+
+/**
+ * Names for a day's programmes that are unique among them, stable while the guide is refreshed, and never an index.
+ *
+ * A programme is its channel's start time -- that is the storage's own identity for it, `(channel_id, start_ms)` -- so
+ * its name is built from the start, and one that is replaced by a refresh keeps its name and its place. Storage cannot
+ * hold two programmes of a channel that start together, so the page never meets that; but a list that crashes when a
+ * source one day does is a list whose keys depend on a promise made somewhere else. So a second programme with a start
+ * already named gets its occurrence after it (`…#2`), and **nothing is dropped**: two different programmes that share a
+ * start are two rows, as they are two programmes.
+ *
+ * Only the days' own programmes are named here. The heading is [GuideDay.key], under a prefix that keeps the two kinds
+ * of row apart whatever the instants.
+ */
+internal fun guideRows(programmes: List<Programme>): List<GuideRow> {
+    val named = HashMap<Long, Int>(programmes.size * 2)
+    return programmes.map { programme ->
+        val before = named[programme.startMs] ?: 0
+        named[programme.startMs] = before + 1
+        val key = if (before == 0) {
+            "$GUIDE_PROGRAMME_KEY${programme.startMs}"
+        } else {
+            "$GUIDE_PROGRAMME_KEY${programme.startMs}#${before + 1}"
+        }
+        GuideRow(key = key, programme = programme)
+    }
+}
+
+/** The prefixes of the page's two kinds of row, so a day's heading and a programme can never be given the same key. */
+internal const val GUIDE_DAY_KEY = "day:"
+internal const val GUIDE_PROGRAMME_KEY = "programme:"
 
 /**
  * The guide page's whole state.

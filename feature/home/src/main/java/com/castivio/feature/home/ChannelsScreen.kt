@@ -3432,14 +3432,21 @@ private fun ChannelGuideOverlay(
                 // heading and a provider with seven draws seven. Nothing is padded out to
                 // a week: an empty day on screen would be a claim about the provider's
                 // schedule rather than about our request.
+                //
+                // **A heading and a programme are never named by the same number.** A programme at
+                // midnight starts at the very instant its day does, and both were keyed by that
+                // instant -- one list, one key, twice -- so the guide crashed on the first channel
+                // that had a programme at 00:00. Each row's key comes from the state holder, where
+                // the two kinds have names of their own and a programme's is unique among the
+                // others; see `GuideDay.key` and `guideRows`.
                 for (day in guide.days) {
-                    item(key = day.startOfDayMs) {
+                    item(key = day.key) {
                         DayHeading(startOfDayMs = day.startOfDayMs, m = m)
                     }
-                    items(day.programmes, key = { it.startMs }) { programme ->
+                    items(day.rows, key = { it.key }) { row ->
                         GuideEntry(
-                            programme = programme,
-                            now = programme.startMs == nowId,
+                            programme = row.programme,
+                            now = row.programme.startMs == nowId,
                             m = m,
                             modifier = Modifier.heightIn(min = m.rowMin),
                         )
