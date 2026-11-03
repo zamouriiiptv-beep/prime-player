@@ -27,6 +27,49 @@ import com.castivio.domain.PlayerPulse
 import kotlinx.coroutines.delay
 
 /**
+ * A way for the shell to open a channel on the player that is already on screen, from the press itself.
+ *
+ * ## Why it exists
+ *
+ * A channel pressed in the list is opened by [PlayerRoute]: the shell puts the new request in its state, the screen is
+ * composed again with it, and an effect keyed on the request asks the view model to open it. That is correct, and it
+ * is a full pass of composition between the press and the first request to the engine -- 110 ms in the opening panel's
+ * `press→open`, in a debug build, on every channel changed with the player showing. The press does not need to wait for
+ * the screen: the view model is the same object either way, and what the effect would ask it is what the press can ask
+ * it first.
+ *
+ * ## What it does not change
+ *
+ * Nothing about what an opening is. The view model's [PlayerViewModel.open] declines a request it already has, so the
+ * effect that still runs afterwards finds the channel open and does nothing; the lock, the password and the place Back
+ * lands are the shell's and are settled before this is called. A player that is not on screen has nothing attached,
+ * and [open] says so -- the first channel of a player still opens the way it always did.
+ */
+class PlayerOpener {
+
+    private var taker: ((PlayerRequest) -> Unit)? = null
+
+    /**
+     * Opens [request] on the player on screen now, and says whether there was one. Called on the main thread, where
+     * the player is; false means nothing was done, and the shell goes on to open it by the screen as before.
+     */
+    fun open(request: PlayerRequest): Boolean {
+        val take = taker ?: return false
+        take(request)
+        return true
+    }
+
+    internal fun attach(take: (PlayerRequest) -> Unit) {
+        taker = take
+    }
+
+    /** Only the taker that was attached: a player that replaced it on the same pass is not taken away. */
+    internal fun detach(take: (PlayerRequest) -> Unit) {
+        if (taker === take) taker = null
+    }
+}
+
+/**
  * The player, wired.
  *
  * Thin on purpose: it binds the view model, translates presses into calls, and owns the
@@ -127,10 +170,24 @@ fun PlayerRoute(
      * not pressed in one. Given by the shell, which knows what a channel is; see [ChannelListContent].
      */
     channelList: ChannelListContent? = null,
+    /**
+     * Where the shell opens a channel on this player straight from the press -- see [PlayerOpener]. Null for a
+     * player nobody opens that way, which is every one but the board's and the large player's.
+     */
+    opener: PlayerOpener? = null,
 ) {
     val compact = mode == PlayerMode.Compact
     val model: PlayerViewModel = hiltViewModel()
     val state by model.state.collectAsStateWithLifecycle()
+
+    // While this player is on screen, the shell may open a channel on it from the press itself. Taken back as the
+    // player leaves, so that a press with no player on screen is not handed to one that is gone.
+    DisposableEffect(model, opener) {
+        if (opener == null) return@DisposableEffect onDispose { }
+        val take: (PlayerRequest) -> Unit = { model.open(it) }
+        opener.attach(take)
+        onDispose { opener.detach(take) }
+    }
     val context = LocalContext.current
     val activity = context.findActivity()
 

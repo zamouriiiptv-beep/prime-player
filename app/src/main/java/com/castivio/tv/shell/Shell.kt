@@ -109,6 +109,7 @@ import com.castivio.feature.home.watchedChannel
 import com.castivio.feature.licence.R as LicenceStrings
 import com.castivio.feature.player.ChannelListContent
 import com.castivio.feature.player.PlayerMode
+import com.castivio.feature.player.PlayerOpener
 import com.castivio.feature.player.PlayerRequest
 import com.castivio.feature.player.PlayerRoute
 import com.castivio.feature.player.RadioAudioRoute
@@ -305,6 +306,10 @@ fun ShellScreen(
     // expanded player is up; two surfaces would both claim the engine's single output.
     var livePreview by remember { mutableStateOf<PlayerRequest?>(null) }
 
+    // How a channel pressed while a player is on screen reaches it: from the press, and not through the screen being
+    // composed again with the request -- see `PlayerOpener`. Whichever shape of the player is composed attaches itself.
+    val playerOpener = remember { PlayerOpener() }
+
     // **What the player is doing, as the player says it.**
     //
     // Reported by whichever shape of the player is composed -- see `PlayerRoute.onPulseChange`
@@ -397,6 +402,9 @@ fun ShellScreen(
     // for every channel they reject. Expanding is then one further press, on the picture.
     val playInPreview: (CatalogSelection) -> Unit = { selection ->
         val request = selection.asPlayerRequest()
+        // Asked of the plate's player now, from the press, when there is one: the screen composed again with the
+        // request is what used to be waited for. The first channel, with no player yet, opens as it always did.
+        playerOpener.open(request)
         livePreview = request
         zapping = selection.mediaId?.let { Zapping(request, it, selection.listed) }
     }
@@ -450,6 +458,9 @@ fun ShellScreen(
                 // that is playing and not on the one the viewer opened it from.
                 if (livePreview == from.request) livePreview = request
                 zapping = Zapping(request, channel.id, from.list, moved = stepped)
+                // The large player is on screen: it is asked for the channel from the press, and does not wait for the
+                // screen to be composed again with it -- see `PlayerOpener`.
+                playerOpener.open(request)
                 overlay = Overlay.Play(request)
             }
         }
@@ -520,6 +531,7 @@ fun ShellScreen(
                 PlayerRoute(
                     request = playing,
                     mode = PlayerMode.Compact,
+                    opener = playerOpener,
                     // The press that makes it the large player, carrying the same request
                     // -- which is what the view model recognises and declines to reopen.
                     // A locked channel's password first -- see `expandPreview`.
@@ -688,6 +700,7 @@ fun ShellScreen(
                 BoxWithConstraints(Modifier.fillMaxSize()) {
                     PlayerRoute(
                         request = o.request,
+                        opener = playerOpener,
                         onLeave = { overlay = o.back },
                         onCollapse = if (o.request == livePreview) collapse else null,
                         onPulseChange = { pulse = it },
