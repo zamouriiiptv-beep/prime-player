@@ -270,8 +270,20 @@ object LoadTrace {
             LoadState.FAILED -> "FAILED at ${session.failure?.stage ?: DASH}"
             LoadState.CANCELLED -> "replaced"
         }
-        val categories = if (session.categories > 0) " · categories ${session.categoriesDone ?: "?"}/${session.categories}" else ""
-        lines += StripLine("${session.section.name} · ${session.origin.name} · ${seconds(total)} · $stage$categories", tone)
+        val categoryFigures = if (session.categories > 0) "${session.categoriesDone ?: "?"}/${session.categories}" else null
+        val categories = categoryFigures?.let { " · categories $it" } ?: ""
+        val summary = StripSummary(
+            sessionId = session.id,
+            name = "${session.section.name} · ${session.origin.name}",
+            seconds = seconds(total),
+            status = stage,
+            categories = categoryFigures,
+            tone = tone,
+            running = session.running,
+            endedAtNanos = if (session.running) null else session.endedMs?.let { session.pressedAtNanos + it * NANOS_PER_MS },
+        )
+        // The line is what it always was; the summary beside it is the same facts for the card that shows them in a glance.
+        lines += StripLine("${session.section.name} · ${session.origin.name} · ${seconds(total)} · $stage$categories", tone, summary)
 
         // Stages: one after another, so they add up. The report's own, which closes with the full load.
         val spans = report?.spans().orEmpty()
@@ -566,7 +578,8 @@ sealed interface LoadAnswer {
     data object Skipped : LoadAnswer
 }
 
-/** One line of the strip, and what it is about, which the screen turns into a colour. */
-data class StripLine(val text: String, val tone: StripTone)
-
-enum class StripTone { RUNNING, DONE, FAILED, MUTED }
+/**
+ * One line of the strip, and what it is about, which the screen turns into a colour. The first line of a session also
+ * carries its [summary]; the others carry none.
+ */
+data class StripLine(val text: String, val tone: StripTone, val summary: StripSummary? = null)

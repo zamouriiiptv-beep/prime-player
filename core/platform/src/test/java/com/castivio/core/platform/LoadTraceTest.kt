@@ -256,6 +256,47 @@ class LoadTraceTest {
     }
 
     @Test
+    fun `the first line carries the facts the collapsed card shows, and no other line carries any`() {
+        val done = LoadSession(
+            id = 7, section = PerfSection.CHANNELS, origin = LoadOrigin.COLD, pressedAtNanos = 1_000_000_000L,
+            expectsLoad = true, expectsScreen = true, run = 1, state = LoadState.DONE, endedMs = 4_970,
+            loadDoneMs = 4_970, categories = 462, categoriesDone = 462,
+        )
+
+        val lines = LoadTrace.render(done, 0L, report = null, pulse = null)
+        val summary = lines.first().summary!!
+
+        assertEquals(7, summary.sessionId)
+        assertEquals("CHANNELS · COLD", summary.name)
+        assertEquals("4.97 s", summary.seconds)
+        assertEquals("done", summary.status)
+        assertEquals("462/462", summary.categories)
+        assertEquals(StripTone.DONE, summary.tone)
+        assertFalse(summary.running)
+        assertEquals(1_000_000_000L + 4_970L * 1_000_000L, summary.endedAtNanos)
+        assertEquals("4.97 s · done · categories 462/462", summary.detail)
+        // The full report says what it always said: the card is the same line told in pieces.
+        assertTrue(lines.first().text, lines.first().text.startsWith("CHANNELS · COLD · 4.97 s · done · categories 462/462"))
+        assertTrue("only the first line has a summary", lines.drop(1).all { it.summary == null })
+    }
+
+    @Test
+    fun `a measurement that is still running is a summary that is running and has not ended`() {
+        val running = LoadSession(
+            id = 3, section = PerfSection.MOVIES, origin = LoadOrigin.REFRESH, pressedAtNanos = 0,
+            expectsLoad = true, expectsScreen = false, run = 1,
+        )
+
+        val summary = LoadTrace.render(running, 2_000_000_000L, report = null, pulse = null).first().summary!!
+
+        assertTrue(summary.running)
+        assertNull(summary.endedAtNanos)
+        assertEquals(StripTone.RUNNING, summary.tone)
+        assertEquals("2.00 s", summary.seconds)
+        assertNull("no categories listed yet", summary.categories)
+    }
+
+    @Test
     fun `records read and records saved are two figures`() {
         val loading = LoadSession(
             id = 1, section = PerfSection.MOVIES, origin = LoadOrigin.COLD, pressedAtNanos = 0,
