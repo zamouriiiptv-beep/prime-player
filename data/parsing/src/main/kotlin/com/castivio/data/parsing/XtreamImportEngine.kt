@@ -75,6 +75,12 @@ class XtreamImportEngine(
      * again. A parameter so a test does not wait it out; nothing else reads it.
      */
     private val retryDelayMs: Long = RETRY_DELAY_MS,
+    /**
+     * The calling thread's own CPU time, in nanoseconds: what a reader's wall time is set beside to say how much of
+     * it was work and how much was waiting. Zero by default, which is every build but a measuring one; nothing the
+     * import does reads it.
+     */
+    private val cpuClock: () -> Long = { 0L },
 ) {
     init {
         require(batchSize in 1..CatalogImportEngine.MAX_BATCH) { "batchSize $batchSize out of range" }
@@ -249,6 +255,16 @@ class XtreamImportEngine(
         val categories: Map<MediaKind, Int>,
         /** Streams of another section's categories in the one reply: parsed, left to that section. */
         val elsewhere: Int = 0,
+        /** The reader's own CPU time over [readerNanos]: see `cpuClock`. Zero when it was not measured. */
+        val readerCpuNanos: Long = 0,
+        /**
+         * Moments of the pass, in nanoseconds after it began (when the groups were written), and -1 for one that did
+         * not come: the one reply being in hand, its first batch reaching the writer, and the writer having written
+         * it. A measurement only; nothing reads them.
+         */
+        val replyReadyNanos: Long = -1,
+        val firstHandedNanos: Long = -1,
+        val firstWrittenNanos: Long = -1,
     ) {
         /** The reader's time that was neither asking, receiving nor waiting: parsing. */
         val parseNanos: Long get() = (readerNanos - askNanos - readNanos - handOverNanos).coerceAtLeast(0)
@@ -431,6 +447,7 @@ class XtreamImportEngine(
         ) {
             val events = Channel<CategoryEvent>(capacity = concurrency)
             val passStarted = nanoClock()
+            meter.began = passStarted
             val commitsBefore = commitNanos
 
             fun progress(kind: MediaKind) = onProgress(
@@ -448,6 +465,7 @@ class XtreamImportEngine(
                 val writeStarted = nanoClock()
                 val written = flush(batch)
                 meter.writeNanos += nanoClock() - writeStarted
+                if (written > 0) meter.markWritten()
                 return written
             }
 
@@ -1160,10 +1178,13 @@ class XtreamImportEngine(
         open: () -> Reader?,
     ): WholeSectionRead {
         val readerStarted = nanoClock()
+        // The reader is this one thread from here to the end of the function, so its CPU clock is the reader's.
+        val cpuStarted = cpuClock()
         try {
             return readWholeSectionMeasured(sourceId, api, kind, plans, elsewhere, events, isCancelled, meter, open)
         } finally {
             meter.readerNanos.addAndGet(nanoClock() - readerStarted)
+            meter.readerCpuNanos.addAndGet(cpuClock() - cpuStarted)
         }
     }
 
@@ -1210,6 +1231,7 @@ class XtreamImportEngine(
         } catch (e: Exception) {
             return WholeSectionRead.Failed(e)
         }
+        meter.markReply()
 
         return try {
             reader.use {
@@ -1315,6 +1337,7 @@ class XtreamImportEngine(
         val sent = events.trySendBlocking(CategoryEvent.Items(kind, ArrayList(batch), completed.toList()))
         meter.handOverNanos.addAndGet(nanoClock() - handStarted)
         if (sent.isClosed) throw kotlinx.coroutines.CancellationException("the import stopped consuming")
+        meter.markHanded()
         batch.clear()
         completed.clear()
     }
@@ -1517,6 +1540,28 @@ class XtreamImportEngine(
         var idleNanos = 0L
         var filed = 0
 
+        // The reader's own CPU, added from the reader's thread when the one reply has been read.
+        val readerCpuNanos = AtomicLong()
+
+        // Three moments of the pass, from when it began: the reply in hand and its first batch handed over (the
+        // reader's thread), and the first batch written (the writer's). Volatile: two threads, one reading the other.
+        @Volatile var began = 0L
+        @Volatile private var replyAt = -1L
+        @Volatile private var handedAt = -1L
+        @Volatile private var writtenAt = -1L
+
+        fun markReply() {
+            if (replyAt < 0) replyAt = now() - began
+        }
+
+        fun markHanded() {
+            if (handedAt < 0) handedAt = now() - began
+        }
+
+        fun markWritten() {
+            if (writtenAt < 0) writtenAt = now() - began
+        }
+
         /** A request made and timed until its answer begins. */
         inline fun <T> ask(open: () -> T): T {
             requests.incrementAndGet()
@@ -1560,6 +1605,10 @@ class XtreamImportEngine(
                 orphanCategories = LinkedHashMap(orphanCategories),
                 categories = categories,
                 elsewhere = elsewhere,
+                readerCpuNanos = readerCpuNanos.get(),
+                replyReadyNanos = replyAt,
+                firstHandedNanos = handedAt,
+                firstWrittenNanos = writtenAt,
             )
     }
 

@@ -725,6 +725,20 @@ data class PassTimes(
     val commitMs: Long,
     /** Waiting for the next batch: the readers behind the writer. */
     val idleMs: Long,
+    /**
+     * The reader's own CPU time over the stretch [readerMs] covers, from its thread's clock -- set beside [readerMs]
+     * it says how much of that was work and how much waiting or being kept off the processor. Zero when it was not
+     * measured, which is every build but a measuring one.
+     */
+    val readerCpuMs: Long = 0,
+    /**
+     * Three moments of the pass, in milliseconds after it began -- which is when the groups were written -- and -1
+     * for one that did not come: the reply being in hand, its first batch reaching the writer, and the writer having
+     * written it. They split the wait for the first rows into what the provider took and what the application did.
+     */
+    val replyReadyMs: Long = -1,
+    val firstHandedMs: Long = -1,
+    val firstWrittenMs: Long = -1,
 ) {
     /**
      * The reader's remaining time: parsing. The remainder of the figures as they are shown,

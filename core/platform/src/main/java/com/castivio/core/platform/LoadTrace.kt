@@ -296,6 +296,9 @@ object LoadTrace {
 
         work(report)?.let { lines += StripLine(it, StripTone.MUTED) }
 
+        pipeline(report)?.let { lines += StripLine(it, StripTone.MUTED) }
+        probes(report).forEach { lines += StripLine(it, StripTone.MUTED) }
+
         session.failure?.let { f ->
             lines += StripLine(
                 "FAILED at ${f.stage} · ${f.exception ?: f.error} · HTTP ${f.http ?: DASH}" +
@@ -381,6 +384,57 @@ object LoadTrace {
             " · commit ${report.databaseMs.orDash()} · finish ${finish.takeIf { it > 0 }.orDash()}"
     }
 
+    /**
+     * Who waited on whom in the pass over the section's streams, from the readers' and the writer's own accounts of
+     * the same stretch.
+     *
+     * The reader's four parts -- the bytes arriving and being decoded, parsing, and being held back by a writer that
+     * was still busy -- and the writer's three: handing rows to the database, committing, and waiting for the next
+     * batch. A reader blocked on the writer and a writer that never waits is a load the writer sets the pace of; the
+     * reverse is one the reader does. Nothing here is added to anything: the two sides overlap.
+     */
+    private fun pipeline(report: SectionReport?): String? {
+        val passes = report?.passes?.takeIf { it.isNotEmpty() } ?: return null
+        fun total(of: (PassTimes) -> Long) = plain(passes.sumOf(of))
+        return "pipeline (s): reader — socket+decode ${total { it.readMs }} · parse ${total { it.parseMs }}" +
+            " · blocked on the writer ${total { it.handOverMs }}; writer — write() ${total { it.writeMs }}" +
+            " · commit ${total { it.commitMs }} · waiting for the reader ${total { it.idleMs }}"
+    }
+
+    /**
+     * What the processor did against what the clock says, and when the first rows moved.
+     *
+     * A thread's CPU time set beside its wall time says how much of the wall time it was running: a reader or a writer
+     * whose CPU time is near its wall time is slow because its work is, and one whose CPU time is far below it was
+     * waiting or kept off the processor. The process's CPU over the same import, and the collector's work, say whether
+     * the whole device was busy. The first-batch line splits the wait for the first rows into the provider's and the
+     * application's. Each part appears only when it was measured, which is a measuring build.
+     */
+    private fun probes(report: SectionReport?): List<String> = buildList {
+        if (report == null) return@buildList
+        val passes = report.passes
+        val cpu = buildList {
+            val reader = passes.sumOf { it.readerCpuMs }
+            if (reader > 0) add("reader ${plain(reader)} of ${plain(passes.sumOf { it.readerMs })}")
+            report.notes[NOTE_WRITER_CPU]?.let { add("writer $it") }
+            report.notes[NOTE_PROCESS_CPU]?.let { add(it) }
+        }
+        if (cpu.isNotEmpty()) add("cpu vs wall (s): " + cpu.joinToString(" · "))
+
+        val first = passes.firstOrNull { it.oneReply }
+        if (first != null) {
+            val groupsAt = report.phases.firstOrNull { it.phase == PerfPhase.GROUPS }?.atMs
+            val commitAt = report.phases.firstOrNull { it.phase == PerfPhase.FIRST_COMMIT }?.atMs
+            val marks = listOfNotNull(
+                first.replyReadyMs.takeIf { it >= 0 }?.let { "reply in hand +${plain(it)}" },
+                first.firstHandedMs.takeIf { it >= 0 }?.let { "first rows handed over +${plain(it)}" },
+                first.firstWrittenMs.takeIf { it >= 0 }?.let { "written +${plain(it)}" },
+                if (groupsAt != null && commitAt != null) "first commit +${plain((commitAt - groupsAt).coerceAtLeast(0))}" else null,
+            )
+            if (marks.isNotEmpty()) add("first batch (s after the groups): " + marks.joinToString(" · "))
+        }
+    }
+
     private fun Long?.orDash(): String = if (this == null) DASH else plain(this)
 
     private fun plain(ms: Long): String = hundredthsText(hundredths(ms))
@@ -392,6 +446,13 @@ object LoadTrace {
     private fun megabytes(bytes: Long): String = String.format(Locale.ROOT, "%.1f MB", bytes / BYTES_PER_MB)
 
     private const val DASH = "-"
+
+    /**
+     * The notes the writer and the importer leave for the strip, under the names they write them by: this module
+     * cannot see theirs, so the two names are said here as well.
+     */
+    private const val NOTE_WRITER_CPU = "writer cpu"
+    private const val NOTE_PROCESS_CPU = "process cpu"
 
     /** Said in place of a size that is not known yet. */
     private const val MEASURING = "جارٍ القياس"

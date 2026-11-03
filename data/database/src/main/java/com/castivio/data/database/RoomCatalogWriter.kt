@@ -1,5 +1,6 @@
 package com.castivio.data.database
 
+import android.os.Debug
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteStatement
 import androidx.tracing.trace
@@ -224,8 +225,16 @@ class RoomCatalogWriter(
         leaveSortTitleForAfter()
         wroteRows = true
         rowsSinceCommit = true
+        // Development builds only: the thread's own CPU time over the same stretch [timed] covers, to say how much
+        // of the rows' wall time the processor was working on them. Read twice per batch, never per row.
+        val cpuAt = if (measuring) Debug.threadCpuTimeNanos() else 0L
+        val wallAt = if (measuring) System.nanoTime() else 0L
         timed(DatabaseStep.ROWS) {
             for (item in items) insert(source, statement, item)
+        }
+        if (measuring) {
+            figures.rowsCpuNanos += Debug.threadCpuTimeNanos() - cpuAt
+            figures.rowsWallNanos += System.nanoTime() - wallAt
         }
     }
 
@@ -537,6 +546,10 @@ class RoomCatalogWriter(
      * writer's own thread.
      */
     private class Figures {
+        /** The rows' wall time and the writer thread's CPU time over the same stretches: see [writeItems]. */
+        var rowsWallNanos = 0L
+        var rowsCpuNanos = 0L
+
         var opens = 0
         var openNanos = 0L
         var openMaxNanos = 0L
@@ -609,6 +622,11 @@ class RoomCatalogWriter(
         PerformanceLog.note(
             NOTE_PROBES,
             "${tenthsOfMs(f.probeNanos)} in ${f.probes} added reads (two changes() and the file sizes)",
+        )
+        // The one the strip draws: how much of the rows' wall time the writer's thread was on the processor.
+        PerformanceLog.note(
+            NOTE_WRITER_CPU,
+            "rows cpu ${hundredthsOfSeconds(f.rowsCpuNanos)} of ${hundredthsOfSeconds(f.rowsWallNanos)}",
         )
     }
 
@@ -767,6 +785,15 @@ class RoomCatalogWriter(
         const val NOTE_PRAGMAS = "pragmas"
         const val NOTE_DB_CONTEXT = "db context"
         const val NOTE_PROBES = "probes"
+
+        /** The writer's CPU against its wall time over the rows; read by the load strip, which names it the same. */
+        const val NOTE_WRITER_CPU = "writer cpu"
+
+        /** Nanoseconds as seconds to a hundredth, with a point whatever the device's language. */
+        fun hundredthsOfSeconds(nanos: Long): String {
+            val hundredths = nanos / 10_000_000
+            return "${hundredths / 100}.${(hundredths % 100).toString().padStart(2, '0')}"
+        }
 
         /** Appended to the database file's path: SQLite's write-ahead log. */
         const val WAL_SUFFIX = "-wal"

@@ -365,11 +365,19 @@ object CallMetrics {
  */
 class CallMetricsListener : EventListener() {
 
-    private val started = ThreadLocal<Long>()
+    /**
+     * When this call began, kept on the listener -- there is one for each call -- and not in a thread-local.
+     *
+     * A call can end on another thread than the one that began it: the import asks for its one reply on a thread of
+     * its own and reads it, and so ends it, on another. A thread-local read on the wrong thread is empty, which made
+     * such a call last no time at all and wait for a negative one -- the strip's "waiting -18.10".
+     */
+    @Volatile
+    private var beganAt: Long = 0
 
     override fun callStart(call: Call) {
         val now = System.nanoTime()
-        started.set(now)
+        beganAt = now
         CallMetrics.markStart(now)
     }
 
@@ -379,8 +387,8 @@ class CallMetricsListener : EventListener() {
 
     private fun finish(call: Call, failed: Boolean) {
         val now = System.nanoTime()
-        val begin = started.get() ?: now
-        started.remove()
+        val begin = beganAt.takeIf { it > 0 } ?: now
+        beganAt = 0
         CallMetrics.markEnd(now)
         val action = CallMetrics.label(call.request().url)
         CallMetrics.record(
@@ -412,9 +420,8 @@ class CallMetricsListener : EventListener() {
     /**
      * When the response's headers arrived, on the same clock as [started].
      *
-     * Per listener instance, like [bytesRead]: one listener per call through [FACTORY].
-     * `callStart` is read from a thread local because it was written that way; the
-     * headers are reported on the thread that executes the call, which is the same one.
+     * Per listener instance, like [bytesRead] and [beganAt]: one listener per call through [FACTORY].
+     * The headers are reported on the thread that executes the call.
      */
     private var headersAt: Long = 0
 

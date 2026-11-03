@@ -1,9 +1,13 @@
 package com.castivio.data.playlist
 
+import android.os.Build
+import android.os.Debug
+import android.os.Process
 import android.util.Log
 import com.castivio.core.common.AppError
 import com.castivio.core.common.AppDispatchers
 import com.castivio.core.platform.CallTimes
+import com.castivio.core.platform.DevDiagnostics
 import com.castivio.core.platform.PassTimes
 import com.castivio.core.platform.PerfPhase
 import com.castivio.core.platform.PerfSection
@@ -728,6 +732,17 @@ class DefaultCatalogImporter(
         // The categories a viewer asks for while this section arrives. Not for the radio, which walks its own few
         // categories and has no long reply to be ahead of; the channel is closed when this load ends.
         val asks = if (kind == MediaKind.RADIO) null else early.open(kind)
+        // Development builds only: how much of the import's wall time the processor spent on it, in all, and what
+        // the runtime's collector did meanwhile. Read here and in the `finally` below, twice and never in between.
+        val probing = DevDiagnostics.enabled
+        val cpuStartedMs = if (probing) Process.getElapsedCpuTime() else 0L
+        val gcBefore = if (probing) GcCounters.read() else null
+        // The reader's own CPU time, from its thread's clock; nothing in the import reads it.
+        val readerCpuClock: () -> Long = if (probing) {
+            { Debug.threadCpuTimeNanos() }
+        } else {
+            { 0L }
+        }
         val startedAt = clock()
         var saved = 0
         val passes = ArrayList<XtreamImportEngine.PassReport>(2)
@@ -735,7 +750,7 @@ class DefaultCatalogImporter(
         // refused or broke, and the walk after it wrote every row again.
         var replyUsed = false
         return try {
-            val summary = XtreamImportEngine(writer, clock = clock).importCatalogue(
+            val summary = XtreamImportEngine(writer, clock = clock, cpuClock = readerCpuClock).importCatalogue(
                 sourceId = sourceId,
                 api = xtreamApiFactory(account),
                 kinds = setOf(kind),
@@ -801,6 +816,20 @@ class DefaultCatalogImporter(
         } finally {
             // The viewer's asks end with the load: one made after this finds no channel and is dropped.
             if (asks != null) early.close(kind, asks)
+            if (probing) {
+                val gcAfter = GcCounters.read()
+                val gcText = if (gcBefore != null && gcAfter != null) {
+                    " · gc ${gcAfter.runs - gcBefore.runs} runs, blocking ${secondsText(gcAfter.blockingMs - gcBefore.blockingMs)}" +
+                        ", in all ${secondsText(gcAfter.totalMs - gcBefore.totalMs)}"
+                } else {
+                    ""
+                }
+                PerformanceLog.note(
+                    NOTE_PROCESS_CPU,
+                    "process cpu ${secondsText(Process.getElapsedCpuTime() - cpuStartedMs)} over ${secondsText(clock() - startedAt)}" +
+                        " wall (${Runtime.getRuntime().availableProcessors()} cores)$gcText",
+                )
+            }
             // `finally`, so a cancelled or failed section still reports what it managed
             // to ask for -- which is the interesting case for a user whose first open
             // times out. Through [log], which is `Log.i` under the same tag on a device.
@@ -1034,9 +1063,44 @@ private fun XtreamImportEngine.PassReport.times(): PassTimes = PassTimes(
     writeMs = writeNanos.ms(),
     commitMs = commitNanos.ms(),
     idleMs = idleNanos.ms(),
+    readerCpuMs = readerCpuNanos.ms(),
+    // -1 stays -1: a moment that did not come is not a moment at no time.
+    replyReadyMs = replyReadyNanos.msOrNone(),
+    firstHandedMs = firstHandedNanos.msOrNone(),
+    firstWrittenMs = firstWrittenNanos.msOrNone(),
 )
 
 private fun Long.ms(): Long = this / 1_000_000
+
+private fun Long.msOrNone(): Long = if (this < 0) -1 else this / 1_000_000
+
+/** Milliseconds as seconds to a hundredth, with a point whatever the device's language. */
+private fun secondsText(ms: Long): String {
+    val hundredths = ms / 10
+    return "${hundredths / 100}.${(hundredths % 100).toString().padStart(2, '0')} s"
+}
+
+/**
+ * The runtime's collection counters: how many runs, how long they blocked the application, and how long they took in
+ * all. Null where the platform does not keep them (before API 23) or will not say. Read only by a measuring build.
+ */
+private class GcCounters(val runs: Long, val blockingMs: Long, val totalMs: Long) {
+    companion object {
+        fun read(): GcCounters? {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return null
+            return runCatching {
+                GcCounters(
+                    runs = Debug.getRuntimeStat("art.gc.gc-count").toLong(),
+                    blockingMs = Debug.getRuntimeStat("art.gc.blocking-gc-time").toLong(),
+                    totalMs = Debug.getRuntimeStat("art.gc.gc-time").toLong(),
+                )
+            }.getOrNull()
+        }
+    }
+}
+
+/** The process's CPU time and the collector's work over the import, read by the load strip under the same name. */
+private const val NOTE_PROCESS_CPU = "process cpu"
 
 /**
  * The writer, with a note of whether it was the one that threw.
