@@ -420,6 +420,8 @@ object LoadTrace {
             report.notes[NOTE_PROCESS_CPU]?.let { add(it) }
         }
         if (cpu.isNotEmpty()) add("cpu vs wall (s): " + cpu.joinToString(" · "))
+        // Who spent the process's CPU: a name that holds the reader and the writer holds their time above as well.
+        report.notes[NOTE_THREAD_CPU]?.let { add("cpu by thread name (s): $it") }
 
         val first = passes.firstOrNull { it.oneReply }
         if (first != null) {
@@ -453,6 +455,7 @@ object LoadTrace {
      */
     private const val NOTE_WRITER_CPU = "writer cpu"
     private const val NOTE_PROCESS_CPU = "process cpu"
+    private const val NOTE_THREAD_CPU = "thread cpu"
 
     /** Said in place of a size that is not known yet. */
     private const val MEASURING = "جارٍ القياس"

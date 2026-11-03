@@ -737,6 +737,8 @@ class DefaultCatalogImporter(
         val probing = DevDiagnostics.enabled
         val cpuStartedMs = if (probing) Process.getElapsedCpuTime() else 0L
         val gcBefore = if (probing) GcCounters.read() else null
+        // And who spent it: every thread's processor time by name, now and in the `finally` below.
+        val threadsBefore = if (probing) ThreadCpu.read() else null
         // The reader's own CPU time, from its thread's clock; nothing in the import reads it.
         val readerCpuClock: () -> Long = if (probing) {
             { Debug.threadCpuTimeNanos() }
@@ -817,6 +819,13 @@ class DefaultCatalogImporter(
             // The viewer's asks end with the load: one made after this finds no channel and is dropped.
             if (asks != null) early.close(kind, asks)
             if (probing) {
+                // The threads first and the process after, so the process's total is never the smaller of the two.
+                val threadsAfter = ThreadCpu.read()
+                val processCpuMs = Process.getElapsedCpuTime() - cpuStartedMs
+                if (threadsBefore != null && threadsAfter != null) {
+                    ThreadCpu.report(threadsBefore, threadsAfter, ThreadCpu.tickMs(), processCpuMs)
+                        ?.let { PerformanceLog.note(NOTE_THREAD_CPU, it) }
+                }
                 val gcAfter = GcCounters.read()
                 val gcText = if (gcBefore != null && gcAfter != null) {
                     " · gc ${gcAfter.runs - gcBefore.runs} runs, blocking ${secondsText(gcAfter.blockingMs - gcBefore.blockingMs)}" +
@@ -826,7 +835,7 @@ class DefaultCatalogImporter(
                 }
                 PerformanceLog.note(
                     NOTE_PROCESS_CPU,
-                    "process cpu ${secondsText(Process.getElapsedCpuTime() - cpuStartedMs)} over ${secondsText(clock() - startedAt)}" +
+                    "process cpu ${secondsText(processCpuMs)} over ${secondsText(clock() - startedAt)}" +
                         " wall (${Runtime.getRuntime().availableProcessors()} cores)$gcText",
                 )
             }
@@ -1101,6 +1110,9 @@ private class GcCounters(val runs: Long, val blockingMs: Long, val totalMs: Long
 
 /** The process's CPU time and the collector's work over the import, read by the load strip under the same name. */
 private const val NOTE_PROCESS_CPU = "process cpu"
+
+/** Each thread name's processor time over the import, read by the load strip under the same name. */
+private const val NOTE_THREAD_CPU = "thread cpu"
 
 /**
  * The writer, with a note of whether it was the one that threw.
