@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import com.castivio.core.design.components.StreamQualityIcon
 import com.castivio.core.design.components.rememberIsFocused
 import com.castivio.core.design.icons.CastivioIcons
 import com.castivio.core.design.theme.CastivioTheme
@@ -249,6 +250,13 @@ private fun ActionCluster(state: PlayerState, actions: PlayerActions) {
         horizontalArrangement = Arrangement.spacedBy(barGap()),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // **The stream-quality indicator: the head of the controls, in every player.** Channels, films and shows draw
+        // it here; the radio draws the same mark at the head of its plate's controls. It is not a control -- no focus, no
+        // press -- and its slot keeps its size when there is no rating, so what is beside it does not move when one
+        // arrives. Not drawn for a file on the device, which has no connection to rate.
+        if (!isDeviceFile(state.request.url)) {
+            StreamQualityIcon(quality = state.quality, modifier = Modifier.testTag(PlayerTags.QUALITY))
+        }
         val favorite = state.favorite
         val onFavorite = actions.onFavorite
         if (favorite != null && onFavorite != null) {

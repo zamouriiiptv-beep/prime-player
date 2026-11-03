@@ -15,6 +15,9 @@ package com.castivio.feature.player
  */
 internal object PlayerTags {
 
+    /** The stream-quality indicator at the head of the top bar's controls: the same mark in the same place in every player. */
+    const val QUALITY = "player.quality"
+
     /** The whole screen, and the surface the video is drawn on. */
     const val ROOT = "player.root"
     const val VIDEO = "player.video"

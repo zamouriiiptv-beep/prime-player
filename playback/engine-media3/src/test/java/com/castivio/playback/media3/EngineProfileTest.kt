@@ -159,6 +159,28 @@ class EngineProfileTest {
     }
 
     /**
+     * An engine that has been asked to open nothing has no stream arriving, so it has no reading to give.
+     *
+     * The quality monitor reads an engine only while a stream plays. A reading from one that never opened -- bytes
+     * that were never received, a buffer of something never loaded -- would be a figure for a stream that is not there,
+     * and the monitor takes a null as "unknown", never as "fine".
+     */
+    @Test
+    fun `an engine asked to open nothing has no quality reading`() {
+        val factory = Media3EngineFactory(
+            context = RuntimeEnvironment.getApplication(),
+            capabilities = ConservativeCapabilities,
+        )
+        val primary = factory.create(EngineId.PRIMARY, MediaKind.LIVE)
+        try {
+            assertNull(primary.qualityReading())
+        } finally {
+            primary.release()
+        }
+        assertNull(factory.create(EngineId.BACKUP, MediaKind.LIVE).qualityReading())
+    }
+
+    /**
      * Which engine may be kept from one channel to the next, asserted where they are built.
      *
      * The player keeps an engine only when it offers, and offering is a promise that nothing the

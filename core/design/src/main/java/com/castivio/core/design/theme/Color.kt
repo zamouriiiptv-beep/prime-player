@@ -291,6 +291,15 @@ object Palette {
     val Success = Color(0xFF3DD68C)
     val Warning = Amber
     val Danger = Color(0xFFFF5A5A)
+
+    // -- Stream quality -----------------------------------------------------
+    //
+    // The four words the stream indicator says, as four hues that are neither the status trio's nor each other's: a
+    // light green that is not the success green, and an orange that is not the amber that means "working". Excellent and
+    // bad are the status pair's own green and red, because they mean what those mean. Bright, because the indicator is
+    // drawn over a picture and over the dark grounds, and none of them is a ground.
+    val SignalGood = Color(0xFF9BE564)
+    val SignalPoor = Color(0xFFFF8A3D)
 }
 
 /**
@@ -456,6 +465,17 @@ class CastivioColors(
     val success: Color,
     val warning: Color,
     val danger: Color,
+
+    /**
+     * The stream-quality indicator's four hues, best to worst. One meaning each and no other: how well the stream that is
+     * playing is arriving. They are not the status trio -- orange is not the amber that means "working", and the light
+     * green is not the success that means "done" -- so a colour keeps the one thing it says. The glyph carries the same
+     * four steps in its shape, so none of them is told by colour alone.
+     */
+    val signalExcellent: Color,
+    val signalGood: Color,
+    val signalPoor: Color,
+    val signalBad: Color,
 
     /**
      * Deterministic tints for a logo or avatar placeholder when a provider ships
@@ -893,6 +913,11 @@ fun castivioDarkColors() = CastivioColors(
     warning = Palette.Warning,
     danger = Palette.Danger,
 
+    signalExcellent = Palette.Success,
+    signalGood = Palette.SignalGood,
+    signalPoor = Palette.SignalPoor,
+    signalBad = Palette.Danger,
+
     logoTints = listOf(
         Palette.Azure40,
         Palette.Violet40,
@@ -1007,6 +1032,11 @@ fun castivioSlateColors() = CastivioColors(
     success = Palette.Success,
     warning = Palette.Warning,
     danger = Palette.Danger,
+
+    signalExcellent = Palette.Success,
+    signalGood = Palette.SignalGood,
+    signalPoor = Palette.SignalPoor,
+    signalBad = Palette.Danger,
 
     logoTints = listOf(
         Palette.Azure40,

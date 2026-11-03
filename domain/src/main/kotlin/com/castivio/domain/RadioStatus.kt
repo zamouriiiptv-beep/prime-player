@@ -1,5 +1,7 @@
 package com.castivio.domain
 
+import com.castivio.core.common.StreamQuality
+
 /**
  * What the radio's sound is doing, in the words the radio's screen needs.
  *
@@ -12,6 +14,12 @@ data class RadioStatus(
     /** The stream the sound was asked for, or null while nothing is. */
     val url: String? = null,
     val phase: RadioPhase = RadioPhase.IDLE,
+    /**
+     * How the station's stream is arriving, or null while there is no rating to show: the station is opening, or has just
+     * been asked for. The radio's own plate draws the indicator from this, in the place the other players draw it, and
+     * still does not know the player exists.
+     */
+    val quality: StreamQuality? = null,
 ) {
     /** The stream that is sounding right now, or null: what marks a station's card as the one playing. */
     val soundingUrl: String? get() = url.takeIf { phase == RadioPhase.PLAYING }

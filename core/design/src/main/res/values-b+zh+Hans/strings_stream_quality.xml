@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The stream-quality indicator's accessible name: one sentence per state, so each language orders it as it reads. -->
+    <string name="stream_quality_excellent">串流质量：极佳</string>
+    <string name="stream_quality_good">串流质量：良好</string>
+    <string name="stream_quality_poor">串流质量：较差</string>
+    <string name="stream_quality_bad">串流质量：很差</string>
+</resources>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The stream-quality indicator's accessible name: one sentence per state, so each language orders it as it reads. -->
+    <string name="stream_quality_excellent">Якість потоку: Відмінна</string>
+    <string name="stream_quality_good">Якість потоку: Добра</string>
+    <string name="stream_quality_poor">Якість потоку: Слабка</string>
+    <string name="stream_quality_bad">Якість потоку: Погана</string>
+</resources>

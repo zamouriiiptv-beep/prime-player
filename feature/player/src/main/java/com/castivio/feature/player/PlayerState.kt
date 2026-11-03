@@ -1,6 +1,7 @@
 package com.castivio.feature.player
 
 import com.castivio.core.common.FrameSize
+import com.castivio.core.common.StreamQuality
 import com.castivio.domain.PlayerPulse
 import com.castivio.domain.PulsePhase
 import com.castivio.playback.api.AspectMode
@@ -75,6 +76,12 @@ data class PlayerState(
      * badge is measured from. See [PlaybackEngine.videoSize].
      */
     val videoSize: FrameSize? = null,
+    /**
+     * How the stream is arriving, or null while there is nothing to say: opening, paused before it was rated, or an engine
+     * that has stopped. The indicator is drawn only for a value, and in the same place in every player. Changes a few times
+     * in a viewing -- see [PlayerViewModel.watchQuality] -- and is the only thing that does about it.
+     */
+    val quality: StreamQuality? = null,
     /**
      * The caption lines on screen right now, and empty when there are none.
      *

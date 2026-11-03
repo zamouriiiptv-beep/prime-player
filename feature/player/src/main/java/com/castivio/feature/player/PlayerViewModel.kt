@@ -3,6 +3,7 @@ package com.castivio.feature.player
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.castivio.core.common.StreamQuality
 import com.castivio.domain.PlayerPulse
 import com.castivio.playback.api.AspectMode
 import com.castivio.playback.api.EngineId
@@ -15,6 +16,7 @@ import com.castivio.playback.api.PlaybackDiagnosis
 import com.castivio.playback.api.PlaybackError
 import com.castivio.playback.api.PlaybackState
 import com.castivio.playback.api.PrimaryVerdict
+import com.castivio.playback.api.StreamQualityMonitor
 import com.castivio.playback.api.Track
 import com.castivio.playback.api.VideoOutput
 import com.castivio.playback.api.EngineFactory
@@ -114,6 +116,17 @@ class PlayerViewModel @Inject constructor(
     private var collector: Job? = null
     private var ticker: Job? = null
     private var sampler: Job? = null
+
+    /**
+     * What the stream-quality indicator is made from: one monitor for whichever engine is playing, begun again with every
+     * source and every engine, and read once a second by [qualityJob] while a stream plays. See [StreamQualityMonitor].
+     */
+    private val qualityMonitor = StreamQualityMonitor(
+        // The second-by-second trace, for tuning the thresholds on a real provider. A debuggable build writes it to the log and a
+        // release build builds none: `BuildConfig.DEBUG` is a constant, so the sink is null there and is compiled away.
+        traceSink = if (BuildConfig.DEBUG) { line -> Log.d(QUALITY_TAG, line.format()) } else null,
+    )
+    private var qualityJob: Job? = null
     private var shapeJob: Job? = null
     private var sizeJob: Job? = null
     private var cueJob: Job? = null
@@ -347,6 +360,7 @@ class PlayerViewModel @Inject constructor(
         kept.open(request.media())
         opening = timing()
         deadline = deadlineFor(kept, engineId)
+        if (!isDeviceFile(request.url)) watchQuality(kept)
     }
 
     private fun start(request: PlayerRequest, id: EngineId) {
@@ -421,6 +435,8 @@ class PlayerViewModel @Inject constructor(
         opening = timing()
 
         deadline = deadlineFor(created, id)
+        // A file on the device is not a stream and has no connection to rate.
+        if (!isDeviceFile(request.url)) watchQuality(created)
     }
 
     /** What the engine is given: the address and how to ask for it, and nothing about the title. */
@@ -559,6 +575,8 @@ class PlayerViewModel @Inject constructor(
     }
 
     private fun onEngineState(playback: PlaybackState, hasFrame: Boolean) {
+        // Told as it happens, so a stall's start and end are exact and not as late as the next reading.
+        qualityMonitor.state(nowMs(), playback, hasFrame)
         val current = _state.value ?: return
 
         if (hasFrame && deadline != null) onFirstFrame(current)
@@ -876,6 +894,7 @@ class PlayerViewModel @Inject constructor(
         val running = engine ?: return
         Log.i(TAG, "replaying from the start")
         clearAim()
+        qualityMonitor.moved(nowMs())
         running.seekTo(0)
         running.play()
         _state.value = _state.value?.copy(positionMs = 0)
@@ -1041,6 +1060,9 @@ class PlayerViewModel @Inject constructor(
      * for the rest of the film.
      */
     private fun aimAt(target: Long, running: PlaybackEngine) {
+        // Told before the engine is asked, so a stall the engine reports for this very jump is already excused. Every jump
+        // the viewer can make arrives here or at the two below that go to the engine themselves.
+        qualityMonitor.moved(nowMs())
         seekTarget = target
         seekTicks = SEEK_SETTLE_TICKS
         // Jumping back out of the last frame is a request to watch that part, not to look
@@ -1410,9 +1432,54 @@ class PlayerViewModel @Inject constructor(
         // Past any aim a jump left outstanding: the live edge is wherever the stream has
         // got to, so an old target must not go on being displayed over it.
         clearAim()
+        qualityMonitor.moved(nowMs())
         engine?.seekTo(Long.MAX_VALUE)
         _state.value = current.copy(behindLiveMs = 0)
     }
+
+    /* ---------------------------------------------------------------- stream quality */
+
+    /**
+     * Reads the stream's quality once a second for as long as [running] is the engine, and says it only when it changes.
+     *
+     * **During a stream and no longer.** Opening, a pause and a stopped engine are not read: the engine is asked for a
+     * reading only while the monitor has something to do with one -- see [StreamQualityMonitor.wantsReading] -- and the
+     * job ends with the engine or the source, in [stopQuality]. Nothing here asks the network anything: the reading is
+     * what the engine already counts, and the tick is a coroutine on the player's own scope.
+     *
+     * The state carries a rating that changes at most a few times in a viewing, and [publishQuality] writes it only when it
+     * does: the screen recomposes on a change of colour and not on a tick.
+     */
+    private fun watchQuality(running: PlaybackEngine) {
+        qualityJob?.cancel()
+        qualityJob = viewModelScope.launch {
+            while (true) {
+                delay(QUALITY_TICK_MS)
+                val reading = if (qualityMonitor.wantsReading) running.qualityReading() else null
+                publishQuality(qualityMonitor.tick(nowMs(), reading))
+            }
+        }
+    }
+
+    /** The engine or the source is going: no more readings, nothing carried to the next, and no rating left on the screen. */
+    private fun stopQuality() {
+        qualityJob?.cancel(); qualityJob = null
+        qualityMonitor.reset()
+        publishQuality(null)
+    }
+
+    private fun publishQuality(rating: StreamQuality?) {
+        val current = _state.value ?: return
+        if (current.quality != rating) _state.value = current.copy(quality = rating)
+    }
+
+    /**
+     * The monitor's clock: monotonic, in milliseconds. The JVM's, and `internal` and replaceable so that a test sets it to
+     * the scheduler's own time and moves the stream's seconds with `advanceTimeBy`, as the opening's budget is.
+     */
+    internal var qualityClock: () -> Long = { System.nanoTime() / NANOS_PER_MS }
+
+    private fun nowMs(): Long = qualityClock()
 
     /**
      * Statistics, which begin to exist when they are asked for.
@@ -1692,6 +1759,7 @@ class PlayerViewModel @Inject constructor(
     }
 
     private fun stopEngine() {
+        stopQuality()
         deadline?.cancel(); deadline = null
         collector?.cancel(); collector = null
         // The shape and the captions listen to this engine too, and a fallback or a reopen
@@ -1710,6 +1778,7 @@ class PlayerViewModel @Inject constructor(
      * guide, its statistics and its subtitle. What a kept engine is cleared of between channels.
      */
     private fun releaseSource() {
+        stopQuality()
         endDiagnostic()
         deadline?.cancel(); deadline = null
         waitJob?.cancel(); waitJob = null
@@ -1759,6 +1828,9 @@ class PlayerViewModel @Inject constructor(
     internal companion object {
         const val TAG = "CastivioPlayer"
 
+        /** The tag of the debug trace of the stream-quality indicator: `adb logcat -s CastivioQuality`. */
+        const val QUALITY_TAG = "CastivioQuality"
+
         /** How often the opening panel's reading is taken while a channel opens: ten times a second. */
         const val DIAGNOSTIC_TICK_MS = 100L
 
@@ -1784,6 +1856,9 @@ class PlayerViewModel @Inject constructor(
         const val MOVING_MAX_MS = 1_500L
 
         const val NANOS_PER_MS = 1_000_000L
+
+        /** How often the stream's quality is read while it plays: once a second. */
+        const val QUALITY_TICK_MS = 1_000L
         const val STATS_INTERVAL_MS = 1_000L
 
         /**

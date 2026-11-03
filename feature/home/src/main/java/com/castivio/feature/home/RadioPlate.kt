@@ -57,11 +57,13 @@ import com.castivio.core.design.components.ProviderArtwork
 import com.castivio.core.design.components.castivioBodyStyle
 import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.castivioFocusScale
+import com.castivio.core.design.components.StreamQualityIcon
 import com.castivio.core.design.components.castivioTitleStyle
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Motion
 import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Sizing
+import com.castivio.core.common.StreamQuality
 import com.castivio.domain.Channel
 import com.castivio.domain.RadioPhase
 
@@ -94,6 +96,11 @@ internal data class RadioPlateState(
     val sleeping: Boolean,
     val canPrevious: Boolean,
     val canNext: Boolean,
+    /**
+     * How the station's stream is arriving, or null while there is no rating -- see [com.castivio.domain.RadioStatus.quality].
+     * Drawn as the same mark the other players draw, at the head of the plate's status and controls.
+     */
+    val quality: StreamQuality? = null,
 )
 
 /** What a press on each control of the plate does. [onOpen] is null where the plate is already as large as it gets. */
@@ -153,6 +160,7 @@ internal fun RadioBar(
                 overflow = TextOverflow.Ellipsis,
             )
         }
+        StreamQualityIcon(quality = plate.quality)
         if (plate.phase == RadioPhase.PLAYING) Equaliser()
         RadioControls(plate, actions, button = button)
         FavoriteButton(plate, actions)
@@ -464,6 +472,8 @@ private fun RadioNowPlayingBody(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+        // The stream-quality mark, with what the sound is doing: the same mark and the same slot as the bar's.
+        StreamQualityIcon(quality = plate.quality)
     }
     RadioControls(plate, actions, button = Sizing.minTarget(CastivioTheme.device.isTv) + m.nameGap * 2)
     // Side by side where the plate is wide, and one above the other where it is the panel's narrow column: two

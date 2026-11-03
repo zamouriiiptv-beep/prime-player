@@ -2,6 +2,7 @@ package com.castivio.feature.player
 
 import com.castivio.playback.api.MediaKind
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -20,6 +21,14 @@ import org.junit.Test
  * reaches a diagnostic report — a report the user is invited to copy and paste to somebody.
  */
 class PlayerShareTest {
+
+    @Test
+    fun `a file on the device is told from a stream, in either case`() {
+        assertTrue(isDeviceFile("content://media/external/video/media/7"))
+        assertTrue(isDeviceFile("FILE:///sdcard/Movies/a.mp4"))
+        assertFalse(isDeviceFile("http://192.168.1.2/video.mp4"))
+        assertFalse(isDeviceFile("rtsp://provider.tv/live/1"))
+    }
 
     @Test
     fun `a file on the device is shared as the file`() {

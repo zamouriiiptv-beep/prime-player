@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The stream-quality indicator's accessible name: one sentence per state, so each language orders it as it reads. -->
+    <string name="stream_quality_excellent">Qualidade da transmissão: Excelente</string>
+    <string name="stream_quality_good">Qualidade da transmissão: Boa</string>
+    <string name="stream_quality_poor">Qualidade da transmissão: Fraca</string>
+    <string name="stream_quality_bad">Qualidade da transmissão: Ruim</string>
+</resources>

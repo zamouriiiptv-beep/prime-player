@@ -128,5 +128,5 @@ internal fun radioStatusOf(state: PlayerState?): RadioStatus {
         is Picture.Paused -> RadioPhase.PAUSED
         is Picture.Failed, is Picture.Ended -> RadioPhase.FAILED
     }
-    return RadioStatus(url = state.request.url, phase = phase)
+    return RadioStatus(url = state.request.url, phase = phase, quality = state.quality)
 }

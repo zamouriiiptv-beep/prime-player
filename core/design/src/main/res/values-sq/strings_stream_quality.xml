@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The stream-quality indicator's accessible name: one sentence per state, so each language orders it as it reads. -->
+    <string name="stream_quality_excellent">Cilësia e transmetimit: Shkëlqyer</string>
+    <string name="stream_quality_good">Cilësia e transmetimit: E mirë</string>
+    <string name="stream_quality_poor">Cilësia e transmetimit: E dobët</string>
+    <string name="stream_quality_bad">Cilësia e transmetimit: E keqe</string>
+</resources>

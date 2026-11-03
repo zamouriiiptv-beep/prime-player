@@ -54,6 +54,7 @@ import com.castivio.playback.api.PlaybackError
 import com.castivio.playback.api.PlaybackSample
 import com.castivio.playback.api.PlaybackState
 import com.castivio.playback.api.PlaybackTuning
+import com.castivio.playback.api.QualityReading
 import com.castivio.playback.api.SourceRedaction
 import com.castivio.playback.api.Track
 import com.castivio.playback.api.TrackSet
@@ -85,8 +86,13 @@ import kotlinx.coroutines.flow.asStateFlow
  * **No track enumeration before the first frame.** The track lists are built from
  * `onTracksChanged`, which the player raises when it already knows — nothing here asks.
  *
- * **No statistics until [sample] is called.** There is no timer, no counter and no
- * listener maintaining a bitrate. `sample` reads what the player is already holding.
+ * **No statistics until [sample] is called.** There is no timer and no listener maintaining
+ * a bitrate. `sample` reads what the player is already holding. **One counter is kept, and
+ * it is the exception that is written down:** the bytes received off the network and the
+ * loads that failed, which the stream-quality monitor reads once a second through
+ * [qualityReading]. It is one `AtomicLong` add per read of the body, in the transfer listener
+ * that is already there, and nothing else: no clock is read, nothing is allocated, and it is
+ * not on the way to the first frame.
  *
  * ## Two profiles, one class
  *
@@ -540,6 +546,24 @@ class Media3Engine(
         )
     }
 
+    /**
+     * How the stream is arriving, from what the player and its HTTP source already hold.
+     *
+     * The bytes are the count the transfer listener keeps, the buffer is the player's own, and the faults are the loads that
+     * failed and were tried again. Three field reads, called once a second or so by the monitor while a stream plays: it
+     * starts nothing, asks the server nothing and changes nothing about how the stream is buffered. Read on the playback
+     * thread, the way [sample] is, because the buffered position is the player's and is only read there.
+     */
+    override fun qualityReading(): QualityReading? {
+        if (_state.value is PlaybackState.Idle) return null
+        val marks = transferMarks ?: return null
+        return QualityReading(
+            bytesReceived = marks.received.get(),
+            bufferedAheadMs = (player.bufferedPosition - player.currentPosition).coerceAtLeast(0),
+            dataFaults = marks.loadErrors.get(),
+        )
+    }
+
     override fun release() {
         player.removeListener(listener)
         player.removeAnalyticsListener(analytics)
@@ -835,6 +859,9 @@ class Media3Engine(
 
         override fun onBytesTransferred(source: DataSource, dataSpec: DataSpec, isNetwork: Boolean, bytesTransferred: Int) {
             val marks = transferMarks ?: return
+            // The stream's byte count, for the quality reading: one add to one atomic per read of the body, and nothing
+            // else -- no clock is read and nothing is allocated. Only what came off the network.
+            if (isNetwork) marks.received.addAndGet(bytesTransferred.toLong())
             if (marks.firstBytesAt.get() == 0L && bytesTransferred > 0 && marks.isFor(dataSpec)) {
                 marks.firstBytesAt.compareAndSet(0, SystemClock.elapsedRealtime())
             }
@@ -900,6 +927,9 @@ class Media3Engine(
             // A cancelled load is a source that was let go, which is not a failure of the try.
             if (!current || wasCanceled) return
             val marks = transferMarks ?: return
+            // Counted in every build, for the quality reading: a load that failed and was tried again is data that did not
+            // arrive, and is rare, so this is not on any path that is hot.
+            marks.loadErrors.incrementAndGet()
             val attempts = marks.attempts ?: return
             if (!marks.isFor(loadEventInfo.dataSpec)) return
             attempts.failed(loadEventInfo.elapsedRealtimeMs, OpenAttemptProbes.describeFailure(error))
@@ -925,6 +955,10 @@ class Media3Engine(
     private class TransferMarks(val url: String, val attempts: OpenAttemptLog? = null) {
         val answeredAt = AtomicLong(0)
         val firstBytesAt = AtomicLong(0)
+
+        /** Bytes received off the network since this open, and loads that failed without being cancelled: the quality reading's. */
+        val received = AtomicLong(0)
+        val loadErrors = AtomicLong(0)
 
         fun isFor(dataSpec: DataSpec): Boolean = dataSpec.uri.toString() == url
     }

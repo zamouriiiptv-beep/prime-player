@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The stream-quality indicator's accessible name: one sentence per state, so each language orders it as it reads. -->
+    <string name="stream_quality_excellent">স্ট্রিমের মান: চমৎকার</string>
+    <string name="stream_quality_good">স্ট্রিমের মান: ভালো</string>
+    <string name="stream_quality_poor">স্ট্রিমের মান: দুর্বল</string>
+    <string name="stream_quality_bad">স্ট্রিমের মান: খারাপ</string>
+</resources>

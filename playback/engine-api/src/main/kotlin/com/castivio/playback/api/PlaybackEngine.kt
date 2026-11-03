@@ -212,6 +212,17 @@ interface PlaybackEngine {
      */
     fun openingMarks(): OpeningMarks = OpeningMarks()
 
+    /**
+     * How the stream is arriving, as far as the engine can say: bytes received, media held ahead, and data lost on
+     * the way. See [QualityReading].
+     *
+     * A pull, like [sample] and [openingMarks], asked for once a second or so by the player's quality monitor while a
+     * stream plays, and never otherwise. It reads what the engine already holds or counts as it plays: **nothing here
+     * makes a request, probes the server or changes how the stream is buffered**, and an engine that can say nothing
+     * answers null, which the monitor reads as "unknown" and never as "fine".
+     */
+    fun qualityReading(): QualityReading? = null
+
     fun release()
 }
 

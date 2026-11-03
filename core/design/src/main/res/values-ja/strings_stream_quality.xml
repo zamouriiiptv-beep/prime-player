@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The stream-quality indicator's accessible name: one sentence per state, so each language orders it as it reads. -->
+    <string name="stream_quality_excellent">ストリーミング品質：非常に良い</string>
+    <string name="stream_quality_good">ストリーミング品質：良い</string>
+    <string name="stream_quality_poor">ストリーミング品質：低い</string>
+    <string name="stream_quality_bad">ストリーミング品質：悪い</string>
+</resources>

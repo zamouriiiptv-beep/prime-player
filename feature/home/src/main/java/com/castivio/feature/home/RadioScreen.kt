@@ -177,6 +177,8 @@ fun RadioScreen(
                 sleeping = sleepAt != null,
                 canPrevious = neighbours?.first == true,
                 canNext = neighbours?.second == true,
+                // Only the station that is the one playing: a rating belongs to the stream it was made from.
+                quality = session.status.takeIf { it.url == current.streamUrl }?.quality,
             )
         }
         val actions = RadioPlateActions(

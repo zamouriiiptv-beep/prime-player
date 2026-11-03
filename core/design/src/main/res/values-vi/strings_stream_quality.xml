@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The stream-quality indicator's accessible name: one sentence per state, so each language orders it as it reads. -->
+    <string name="stream_quality_excellent">Chất lượng luồng: Xuất sắc</string>
+    <string name="stream_quality_good">Chất lượng luồng: Tốt</string>
+    <string name="stream_quality_poor">Chất lượng luồng: Yếu</string>
+    <string name="stream_quality_bad">Chất lượng luồng: Kém</string>
+</resources>

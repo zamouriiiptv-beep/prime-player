@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The stream-quality indicator's accessible name: one sentence per state, so each language orders it as it reads. -->
+    <string name="stream_quality_excellent">Streamkvalitet: Fremragende</string>
+    <string name="stream_quality_good">Streamkvalitet: God</string>
+    <string name="stream_quality_poor">Streamkvalitet: Svag</string>
+    <string name="stream_quality_bad">Streamkvalitet: Dårlig</string>
+</resources>

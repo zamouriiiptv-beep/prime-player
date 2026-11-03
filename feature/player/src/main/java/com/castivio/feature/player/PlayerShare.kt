@@ -40,8 +40,7 @@ internal sealed interface ShareOffer {
  */
 internal fun shareOffer(request: PlayerRequest): ShareOffer {
     val url = request.url
-    val local = LOCAL_SCHEMES.any { url.startsWith(it, ignoreCase = true) }
-    return if (local) {
+    return if (isDeviceFile(url)) {
         ShareOffer.File(uri = url, title = request.title)
     } else {
         ShareOffer.Words(title = request.title)
@@ -49,3 +48,9 @@ internal fun shareOffer(request: PlayerRequest): ShareOffer {
 }
 
 private val LOCAL_SCHEMES = listOf("content://", "file://")
+
+/**
+ * Whether [url] is a file on this device, and so no stream arrives from anywhere: the share offer sends the file and the
+ * stream-quality indicator is not drawn, because a connection that is not used has no quality to report.
+ */
+internal fun isDeviceFile(url: String): Boolean = LOCAL_SCHEMES.any { url.startsWith(it, ignoreCase = true) }

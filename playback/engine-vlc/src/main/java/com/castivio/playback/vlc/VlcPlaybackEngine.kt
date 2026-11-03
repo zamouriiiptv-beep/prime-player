@@ -19,6 +19,7 @@ import com.castivio.playback.api.PlaybackError
 import com.castivio.playback.api.PlaybackSample
 import com.castivio.playback.api.PlaybackState
 import com.castivio.playback.api.PlaybackTuning
+import com.castivio.playback.api.QualityReading
 import com.castivio.playback.api.SourceRedaction
 import com.castivio.playback.api.Track
 import com.castivio.playback.api.TrackSet
@@ -107,6 +108,15 @@ class VlcPlaybackEngine(
     }
 
     private var currentMedia: Media? = null
+
+    /**
+     * LibVLC's byte counter as it was at the last reading, and the bytes counted from it since this source opened.
+     *
+     * `Media.Stats.readBytes` is an `Int` and wraps at two gigabytes, which a long session on a high bitrate reaches: the
+     * reading is a running total that adds the difference between two counters, with the wrap taken as the step it is.
+     */
+    private var lastStatsBytes = 0
+    private var statsBytesTotal = 0L
 
     /**
      * Held open for as long as LibVLC is reading from it. Only ever set for `content://`
@@ -288,6 +298,9 @@ class VlcPlaybackEngine(
 
     private fun openInternal(media: MediaRequest) {
         openedAtMs = SystemClock.elapsedRealtime()
+        // A new media counts from nothing: the quality reading starts its own total again with it.
+        lastStatsBytes = 0
+        statsBytesTotal = 0L
         filledAtMs = 0
         tracksAtMs = 0
         clockAtMs = 0
@@ -571,6 +584,34 @@ class VlcPlaybackEngine(
     }
 
     /**
+     * How the stream is arriving, from LibVLC's own statistics for the media that is playing.
+     *
+     * `Media.getStats()` -- `libvlc_media_get_stats` -- is a read of counters LibVLC keeps as it plays: bytes read by the
+     * input, and the transport stream's corrupt and discontinuous units. It asks nothing of the server and changes nothing
+     * about how the stream is cached, and it is called once a second or so by the monitor while a stream plays. It answers
+     * null before the media has played, and the reading then is null as well: unknown, never "fine". LibVLC does not report
+     * how full its input cache is as a duration, so the buffer is left unsaid and the monitor reads this engine by its
+     * stalls and its bytes.
+     *
+     * (In libvlc 3.6.5 the class is `IMedia.Stats`, with `readBytes`, `demuxCorrupted` and `demuxDiscontinuity` as `Int`s.)
+     */
+    override fun qualityReading(): QualityReading? {
+        if (isReleased || _state.value is PlaybackState.Idle) return null
+        val media = currentMedia ?: return null
+        if (media.isReleased) return null
+        val stats = runCatching { media.stats }.getOrNull() ?: return null
+        var step = stats.readBytes.toLong() - lastStatsBytes.toLong()
+        if (step < 0) step += WRAP_STEP
+        statsBytesTotal += step
+        lastStatsBytes = stats.readBytes
+        return QualityReading(
+            bytesReceived = statsBytesTotal,
+            bufferedAheadMs = null,
+            dataFaults = stats.demuxCorrupted.toLong() + stats.demuxDiscontinuity.toLong(),
+        )
+    }
+
+    /**
      * LibVLC's account of the open, which is coarser than ExoPlayer's.
      *
      * It reports no server answer and no decoder of its own. The first report of a buffer with
@@ -645,6 +686,9 @@ class VlcPlaybackEngine(
 
         /** What LibVLC reports for a full input buffer: the end of buffering, not a stall. */
         const val FULL_BUFFER = 100f
+
+        /** One turn of an `Int` counter: what a wrapped reading is short of its true step. */
+        const val WRAP_STEP = 1L shl 32
 
         /** The sub-picture track LibVLC is given to show none: its own word for "no subtitle". */
         const val NO_SPU = -1

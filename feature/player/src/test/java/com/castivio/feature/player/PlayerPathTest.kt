@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import com.castivio.core.common.FrameSize
+import com.castivio.core.common.StreamQuality
 import com.castivio.domain.PlayerPulse
 import com.castivio.domain.PulsePhase
 import com.castivio.playback.api.AspectMode
@@ -20,6 +21,7 @@ import com.castivio.playback.api.PlaybackEngine
 import com.castivio.playback.api.PlaybackError
 import com.castivio.playback.api.PlaybackSample
 import com.castivio.playback.api.PlaybackState
+import com.castivio.playback.api.QualityReading
 import com.castivio.playback.api.Track
 import com.castivio.playback.api.TrackSet
 import com.castivio.playback.api.VideoOutput
@@ -2389,6 +2391,165 @@ class PlayerPathTest {
         assertEquals("a jump was read as playback", Picture.Buffering, model.state.value?.picture)
     }
 
+    /* ------------------------------------------------------------- the stream-quality indicator */
+
+    /** One second of a stream playing: the scheduler moves, the engine's counters move with it, and the player reads. */
+    private suspend fun TestScope.streamSecond(bytes: Long, buffered: Long = 3_000, faults: Long = 0) {
+        engines.last.reading = QualityReading(bytesReceived = bytes, bufferedAheadMs = buffered, dataFaults = faults)
+        advanceTimeBy(PlayerViewModel.QUALITY_TICK_MS)
+        runCurrent()
+    }
+
+    /** A player whose quality clock is the scheduler's, so its seconds are the test's. */
+    private fun TestScope.timedModel(): PlayerViewModel =
+        model().also { it.qualityClock = { testScheduler.currentTime } }
+
+    /**
+     * **A stream that plays is rated once its first seconds are over, and not before.**
+     *
+     * The first seconds of a stream are a provider's burst and an engine settling; a rating taken from them would be
+     * a guess shown as a verdict.
+     */
+    @Test
+    fun `a stream is rated after its first seconds and not before`() = playerTest {
+        val model = timedModel()
+        model.open(liveRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        var bytes = 0L
+        repeat(7) { bytes += 500_000; streamSecond(bytes) }
+        assertNull("rated while it was still warming up", model.state.value?.quality)
+
+        repeat(2) { bytes += 500_000; streamSecond(bytes) }
+        assertEquals(StreamQuality.EXCELLENT, model.state.value?.quality)
+    }
+
+    /** A stall the engine reports is shown at once and not after a minute of averaging. */
+    @Test
+    fun `a stall is shown as poor within a second of lasting a second`() = playerTest {
+        val model = timedModel()
+        model.open(liveRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        var bytes = 0L
+        repeat(9) { bytes += 500_000; streamSecond(bytes) }
+        assertEquals(StreamQuality.EXCELLENT, model.state.value?.quality)
+
+        engines.last.stall()
+        runCurrent()
+        streamSecond(bytes, buffered = 0)
+
+        assertEquals(StreamQuality.POOR, model.state.value?.quality)
+    }
+
+    /**
+     * **Buffering that the viewer's own jump causes is not the connection's fault.**
+     *
+     * The ten-second jump goes through `seekBy` and not `seekTo`, which is where the monitor used to be told, so it was the
+     * one that read the refilling as a stall. A film is the case it matters in: it is jumped about all the time.
+     */
+    @Test
+    fun `buffering after a ten second jump is not a stall`() = playerTest {
+        val model = timedModel()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        var bytes = 0L
+        repeat(9) { bytes += 500_000; streamSecond(bytes) }
+        assertEquals(StreamQuality.EXCELLENT, model.state.value?.quality)
+
+        engines.last.positionMs = 40_000
+        model.seekBy(10_000)
+        engines.last.stall()
+        runCurrent()
+        repeat(3) { streamSecond(bytes, buffered = 0) }
+
+        assertEquals("a jump was rated as a stall", StreamQuality.EXCELLENT, model.state.value?.quality)
+    }
+
+    /** The jump back to the live edge refills the buffer in the same way, and is excused in the same way. */
+    @Test
+    fun `buffering after a return to the live edge is not a stall`() = playerTest {
+        val model = timedModel()
+        model.open(liveRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        var bytes = 0L
+        repeat(9) { bytes += 500_000; streamSecond(bytes) }
+        assertEquals(StreamQuality.EXCELLENT, model.state.value?.quality)
+
+        model.returnToLive()
+        engines.last.stall()
+        runCurrent()
+        repeat(3) { streamSecond(bytes, buffered = 0) }
+
+        assertEquals("a return to live was rated as a stall", StreamQuality.EXCELLENT, model.state.value?.quality)
+    }
+
+    /** What was said about the last channel is not said about the next. */
+    @Test
+    fun `a channel change starts the rating again`() = playerTest {
+        val model = timedModel()
+        model.open(liveRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        var bytes = 0L
+        repeat(9) { bytes += 500_000; streamSecond(bytes) }
+        assertEquals(StreamQuality.EXCELLENT, model.state.value?.quality)
+
+        model.open(liveRequest(url = "http://provider.tv/live/2.ts?token=abc", title = "2M"))
+        runCurrent()
+
+        assertNull(model.state.value?.quality)
+    }
+
+    /** Nothing is asked of the engine until there is a stream to read, and nothing after it is gone. */
+    @Test
+    fun `the engine is not asked for a reading while it opens or after the player is left`() = playerTest {
+        val model = timedModel()
+        model.open(liveRequest())
+        runCurrent()
+        val first = engines.last
+
+        repeat(3) { advanceTimeBy(PlayerViewModel.QUALITY_TICK_MS); runCurrent() }
+        assertEquals("a reading was taken while the channel was still opening", 0, first.readings)
+
+        first.renderFirstFrame()
+        runCurrent()
+        var bytes = 0L
+        repeat(2) { bytes += 500_000; streamSecond(bytes) }
+        assertTrue("no reading was taken while the stream played", first.readings > 0)
+
+        model.leave()
+        val taken = first.readings
+        repeat(3) { advanceTimeBy(PlayerViewModel.QUALITY_TICK_MS); runCurrent() }
+        assertEquals("readings went on after the player was left", taken, first.readings)
+    }
+
+    /** A file on the device has no connection, so it has no quality. */
+    @Test
+    fun `a file on the device is never rated and never read`() = playerTest {
+        val model = timedModel()
+        model.open(
+            PlayerRequest(url = "content://media/external/video/1", title = "Holiday", kind = MediaKind.VOD),
+        )
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        var bytes = 0L
+        repeat(10) { bytes += 500_000; streamSecond(bytes) }
+
+        assertNull(model.state.value?.quality)
+        assertEquals(0, engines.last.readings)
+    }
+
     /* --------------------------------------------------------------- the chrome clock */
 
     /**
@@ -4150,6 +4311,15 @@ class PlayerPathTest {
         var marks = OpeningMarks()
 
         override fun openingMarks(): OpeningMarks = marks
+
+        /** How the stream is arriving, which a test sets by hand, and how many times it was asked. */
+        var reading: QualityReading? = null
+        var readings = 0
+
+        override fun qualityReading(): QualityReading? {
+            readings++
+            return reading
+        }
 
         /** How long letting go takes, in real time, so the release figure has something to measure. */
         var releaseTakesMs = 0L

@@ -1,5 +1,6 @@
 package com.castivio.feature.player
 
+import com.castivio.core.common.StreamQuality
 import com.castivio.domain.RadioPhase
 import com.castivio.domain.RadioStatus
 import com.castivio.playback.api.MediaKind
@@ -14,6 +15,15 @@ class RadioStatusTest {
 
     private fun status(picture: Picture, playRequested: Boolean? = null) =
         radioStatusOf(PlayerState(request = request, picture = picture, playRequested = playRequested))
+
+    @Test
+    fun `the quality of the stream goes with the status and a station with none has none`() {
+        val rated = radioStatusOf(PlayerState(request = request, picture = Picture.Playing, quality = StreamQuality.GOOD))
+
+        assertEquals(StreamQuality.GOOD, rated.quality)
+        assertEquals(RadioPhase.PLAYING, rated.phase)
+        assertEquals(null, status(Picture.Playing).quality)
+    }
 
     @Test
     fun `no player is no radio`() {
