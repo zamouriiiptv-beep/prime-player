@@ -341,6 +341,16 @@ class RoomCatalogWriter(
         }
     }
 
+    /**
+     * Tells the observers now. Asked for the one commit a viewer is waiting on -- the category they opened while its
+     * section was still arriving -- and for nothing else: every other commit is told at the pace [UpdatePacer] keeps,
+     * which is what stops a load from making the screens re-read seven times a second. The extra telling is one
+     * notification, made at the viewer's request.
+     */
+    override fun tellNow() {
+        runCatching { tell() }
+    }
+
     private fun commitNow() {
         if (!inTransaction) return
         val db = database.openHelper.writableDatabase

@@ -46,6 +46,13 @@ class JsonScanner(private val source: Reader) {
     private val text = StringBuilder(64)
 
     /**
+     * The member names this scanner has already made into strings, so an array of fifty thousand objects with the
+     * same fourteen keys makes fourteen strings and not seven hundred thousand. Small, open and forgetful: a name
+     * that finds its place taken replaces what was there, and the cost of that is one string made again.
+     */
+    private val names = arrayOfNulls<String>(NAME_SLOTS)
+
+    /**
      * Reads an object, invoking [onField] once per member with its name. The
      * scanner is positioned at the member's value; consume it with [string],
      * [long], [int], [boolean], [readObject] or [readArray], or ignore it and it
@@ -77,7 +84,7 @@ class JsonScanner(private val source: Reader) {
         }
         while (true) {
             skipWhitespace()
-            val name = readQuoted()
+            val name = readName()
             skipWhitespace()
             expect(':')
             valuePending = true
@@ -142,17 +149,31 @@ class JsonScanner(private val source: Reader) {
         }
     }
 
-    fun long(): Long = string()?.let { raw ->
-        raw.toLongOrNull() ?: raw.toDoubleOrNull()?.toLong()
-    } ?: 0L
+    fun long(): Long {
+        valuePending = false
+        skipWhitespace()
+        val digits = digitsInBuffer()
+        if (digits != NOT_DIGITS) return digits
+        return string()?.let { raw ->
+            raw.toLongOrNull() ?: raw.toDoubleOrNull()?.toLong()
+        } ?: 0L
+    }
 
     fun int(): Int = long().toInt()
 
     /** `true`, `1` and `"1"` are all true, which is what providers actually send. */
-    fun boolean(): Boolean = when (val raw = string()?.lowercase()) {
-        null -> false
-        "true", "1", "yes" -> true
-        else -> raw.toDoubleOrNull()?.let { it != 0.0 } ?: false
+    fun boolean(): Boolean {
+        valuePending = false
+        skipWhitespace()
+        // A whole number, written either way, is true unless it is zero -- which is what the lines below say of
+        // "1" and of any other number, without making a string of it first.
+        val digits = digitsInBuffer()
+        if (digits != NOT_DIGITS) return digits != 0L
+        return when (val raw = string()?.lowercase()) {
+            null -> false
+            "true", "1", "yes" -> true
+            else -> raw.toDoubleOrNull()?.let { it != 0.0 } ?: false
+        }
     }
 
     /** Skips the current value, however deeply nested. */
@@ -162,7 +183,7 @@ class JsonScanner(private val source: Reader) {
         when (peek()) {
             '{' -> skipContainer('{', '}')
             '[' -> skipContainer('[', ']')
-            '"' -> readQuoted()
+            '"' -> skipQuoted()
             else -> skipLiteral()
         }
     }
@@ -175,34 +196,121 @@ class JsonScanner(private val source: Reader) {
 
     // ------------------------------------------------------------------ internals
 
+    /**
+     * Moves past a container, counting only its own kind of bracket and passing over strings whole.
+     *
+     * The run of characters that are none of the four that matter -- a quote, the two brackets, the end -- is
+     * taken in one loop over the buffer instead of one call per character: this is where a field the caller does
+     * not read, an array of ids or a nested object, is stepped over.
+     */
     private fun skipContainer(open: Char, close: Char) {
         expect(open)
         var depth = 1
         while (depth > 0) {
-            when (val c = read()) {
-                '"' -> {
-                    // Rewind one so the string reader sees its opening quote.
-                    position--
-                    readQuoted()
+            var i = position
+            val end = length
+            val buf = buffer
+            while (i < end) {
+                val c = buf[i]
+                if (c == '"' || c == open || c == close || c == END) break
+                i++
+            }
+            position = i
+            if (i >= end) {
+                if (!refill()) error("unterminated $open")
+                continue
+            }
+            when (buffer[position]) {
+                // Left at the quote, so the string skipper sees its opening one.
+                '"' -> skipQuoted()
+                open -> {
+                    position++
+                    depth++
                 }
-                open -> depth++
-                close -> depth--
-                else -> if (c == END) error("unterminated $open")
+                close -> {
+                    position++
+                    depth--
+                }
+                else -> error("unterminated $open")
             }
         }
     }
 
     private fun skipLiteral() {
-        while (isLiteralChar(peek())) advance()
+        while (true) {
+            var i = position
+            val end = length
+            while (i < end && isLiteralChar(buffer[i])) i++
+            position = i
+            // Stopped on a character that is not part of a literal: done. Stopped at the end of the buffer: the
+            // literal may go on after the next read, and if there is none, it ended.
+            if (i < end || !refill()) return
+        }
     }
 
+    /**
+     * The literal at the position as a string -- or the empty string when there is none.
+     *
+     * A literal wholly inside the buffer is taken from it at once. One that reaches the end of the buffer may go
+     * on in the next, and is built a character at a time as it always was.
+     */
     private fun readRawToken(): String {
+        var i = position
+        val end = length
+        while (i < end && isLiteralChar(buffer[i])) i++
+        if (i < end) {
+            if (i == position) return ""
+            val token = buffer.concatToString(position, i)
+            position = i
+            return token
+        }
         text.setLength(0)
         while (isLiteralChar(peek())) {
             text.append(peek())
             advance()
         }
         return text.toString()
+    }
+
+    /**
+     * A whole number written in the buffer -- `123`, `-5`, `"1600000000"` -- as its value, without making a string of
+     * it; [NOT_DIGITS] for anything else, which the caller reads the way it always did.
+     *
+     * "Anything else" is every doubt: a token that reaches the end of the buffer, a quote that is not closed
+     * straight after the digits, a sign or a point or a letter after them, no digit at all, or more digits than a
+     * `Long` is sure to hold. Only what `toLongOrNull` would read as exactly this number is answered here, and the
+     * position is moved only when it is.
+     */
+    private fun digitsInBuffer(): Long {
+        val end = length
+        var i = position
+        if (i >= end) return NOT_DIGITS
+        val quoted = buffer[i] == '"'
+        if (quoted) i++
+        var negative = false
+        if (i < end && buffer[i] == '-') {
+            negative = true
+            i++
+        }
+        var value = 0L
+        var count = 0
+        while (i < end) {
+            val c = buffer[i]
+            if (c < '0' || c > '9') break
+            if (count == MAX_DIGITS) return NOT_DIGITS
+            value = value * DECIMAL + (c - '0')
+            count++
+            i++
+        }
+        if (count == 0 || i >= end) return NOT_DIGITS
+        if (quoted) {
+            if (buffer[i] != '"') return NOT_DIGITS
+            i++
+        } else if (isLiteralChar(buffer[i])) {
+            return NOT_DIGITS
+        }
+        position = i
+        return if (negative) -value else value
     }
 
     /**
@@ -218,8 +326,103 @@ class JsonScanner(private val source: Reader) {
     private fun isLiteralChar(c: Char): Boolean =
         c in '0'..'9' || c in 'a'..'z' || c in 'A'..'Z' || c == '+' || c == '-' || c == '.'
 
+    /**
+     * A quoted string, unescaped.
+     *
+     * A string that closes inside the buffer with no escape in it -- nearly all of them -- is cut out of the buffer
+     * in one piece. One with an escape, or one that runs past the end of the buffer, is read a character at a time
+     * from where it began, as every string once was.
+     */
     private fun readQuoted(): String {
         expect('"')
+        val start = position
+        var i = start
+        val end = length
+        while (i < end) {
+            val c = buffer[i]
+            if (c == '"') {
+                position = i + 1
+                return if (i == start) "" else buffer.concatToString(start, i)
+            }
+            if (c == '\\' || c == END) break
+            i++
+        }
+        return readQuotedSlowly()
+    }
+
+    /** A member's name. The same as [readQuoted], except that a name seen before is not made again: see [names]. */
+    private fun readName(): String {
+        expect('"')
+        val start = position
+        var i = start
+        val end = length
+        var hash = 0
+        while (i < end) {
+            val c = buffer[i]
+            if (c == '"') {
+                val name = nameAt(start, i - start, hash)
+                position = i + 1
+                return name
+            }
+            if (c == '\\' || c == END) break
+            hash = hash * HASH_PRIME + c.code
+            i++
+        }
+        return readQuotedSlowly()
+    }
+
+    /** The name written at [start] in the buffer, from [names] when it is there and made and put there when it is not. */
+    private fun nameAt(start: Int, size: Int, hash: Int): String {
+        val first = (hash xor (hash ushr NAME_SHIFT)) and (NAME_SLOTS - 1)
+        for (probe in 0 until NAME_PROBES) {
+            val slot = (first + probe) and (NAME_SLOTS - 1)
+            val known = names[slot] ?: break
+            if (known.length == size && sameChars(known, start)) return known
+        }
+        val made = if (size == 0) "" else buffer.concatToString(start, start + size)
+        // The first free slot of the probe, or the first slot of it when all are taken.
+        var place = first
+        for (probe in 0 until NAME_PROBES) {
+            val slot = (first + probe) and (NAME_SLOTS - 1)
+            if (names[slot] == null) {
+                place = slot
+                break
+            }
+        }
+        names[place] = made
+        return made
+    }
+
+    private fun sameChars(known: String, start: Int): Boolean {
+        for (k in known.indices) if (known[k] != buffer[start + k]) return false
+        return true
+    }
+
+    /**
+     * Moves past a quoted string without making it.
+     *
+     * Where [readQuoted] cuts the string out of the buffer, this only finds where it ends. One with an escape, or one
+     * that is not closed inside the buffer, is passed over by the character-at-a-time reader, which is also what says
+     * so when the string is never closed or an escape is not one.
+     */
+    private fun skipQuoted() {
+        expect('"')
+        var i = position
+        val end = length
+        while (i < end) {
+            val c = buffer[i]
+            if (c == '"') {
+                position = i + 1
+                return
+            }
+            if (c == '\\' || c == END) break
+            i++
+        }
+        readQuotedSlowly()
+    }
+
+    /** The rest of a quoted string whose opening quote has been read, a character at a time. */
+    private fun readQuotedSlowly(): String {
         text.setLength(0)
         while (true) {
             val c = read()
@@ -264,9 +467,13 @@ class JsonScanner(private val source: Reader) {
 
     private fun skipWhitespace() {
         while (true) {
-            val c = peek()
+            if (position >= length && !refill()) return
+            val c = buffer[position]
+            // A printable ASCII character is not white space: the answer for nearly every character this is asked
+            // about, without asking the general question of it.
+            if (c > ' ' && c < DEL_END) return
             if (c == END || !c.isWhitespace()) return
-            advance()
+            position++
         }
     }
 
@@ -302,6 +509,22 @@ class JsonScanner(private val source: Reader) {
     private companion object {
         const val BUFFER = 1 shl 13
         const val END = '\u0000'
+
+        /** The first character past ASCII: everything below it, above the space, is a plain printable one. */
+        const val DEL_END = '\u0080'
+
+        /** A `Long` is sure to hold eighteen decimal digits. */
+        const val MAX_DIGITS = 18
+        const val DECIMAL = 10L
+
+        /** What [digitsInBuffer] answers for a value it will not read; no number of eighteen digits is it. */
+        const val NOT_DIGITS = Long.MIN_VALUE
+
+        /** The member-name table: a power of two, and how many neighbouring slots a name may take. */
+        const val NAME_SLOTS = 256
+        const val NAME_PROBES = 4
+        const val NAME_SHIFT = 16
+        const val HASH_PRIME = 31
     }
 }
 

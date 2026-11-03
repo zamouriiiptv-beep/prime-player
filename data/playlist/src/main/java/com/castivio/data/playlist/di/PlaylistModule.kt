@@ -26,11 +26,13 @@ import com.castivio.data.networking.XtreamHttpApi
 import com.castivio.data.parsing.XtreamImportEngine
 import com.castivio.data.playlist.AndroidLocalPlaylistReader
 import com.castivio.data.playlist.DefaultCatalogImporter
+import com.castivio.data.playlist.EarlyCategoryHub
 import com.castivio.data.playlist.LocalPlaylistReader
 import com.castivio.data.playlist.PlaylistCopyStore
 import com.castivio.domain.CatalogImporter
 import com.castivio.domain.CatalogPager
 import com.castivio.domain.CatalogWriter
+import com.castivio.domain.EarlyCategories
 import com.castivio.domain.LoadSection
 import com.castivio.domain.PlaylistCopies
 import com.castivio.domain.SectionLoad
@@ -125,6 +127,14 @@ object PlaylistModule {
         dispatcher = Dispatchers.IO,
     )
 
+    /**
+     * Where a viewer's ask for a category of a section that is still arriving meets the load: one object for the
+     * process, because the screen that asks and the importer that answers are built apart and share only this.
+     */
+    @Provides
+    @Singleton
+    fun earlyCategories(): EarlyCategories = EarlyCategoryHub()
+
     @Provides
     @Singleton
     fun catalogImporter(
@@ -138,6 +148,7 @@ object PlaylistModule {
         dispatchers: AppDispatchers,
         identity: DeviceIdentity,
         copies: PlaylistCopyStore,
+        early: EarlyCategories,
     ): CatalogImporter = DefaultCatalogImporter(
         http = http,
         writerFactory = { writers.get() },
@@ -150,6 +161,7 @@ object PlaylistModule {
         // shows, which is what they gave their provider. See `StalkerHttpApi`.
         portalApiFactory = { source -> source.toApi(client, identity.current().macAddress.value) },
         dispatchers = dispatchers,
+        early = early,
     )
 
     /**

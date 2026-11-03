@@ -23,6 +23,7 @@ import com.castivio.data.parsing.XtreamImportEngine
 import com.castivio.domain.CatalogImporter
 import com.castivio.domain.CatalogItem
 import com.castivio.domain.CatalogWriter
+import com.castivio.domain.EarlyCategories
 import com.castivio.domain.FetchDiagnosis
 import com.castivio.domain.FetchRoute
 import com.castivio.domain.FetchStage
@@ -96,6 +97,11 @@ class DefaultCatalogImporter(
      * clock, which a unit test of this class does not have.
      */
     private val importStarted: (PerfSection) -> Unit = PerformanceLog::importStarted,
+    /**
+     * The categories a viewer asks for while a section is still arriving: a load takes its asks from here for as
+     * long as it runs. Nobody asks by default, which is every test of this class.
+     */
+    private val early: EarlyCategories = EarlyCategories.None,
 ) : CatalogImporter {
 
     override fun import(source: PlaylistSource): Flow<ImportProgress> = channelFlow {
@@ -719,6 +725,9 @@ class DefaultCatalogImporter(
         // panel cannot claim a concurrency the import is not using.
         PerformanceLog.importConcurrency(XtreamImportEngine.DEFAULT_CONCURRENCY)
         PerformanceLog.phase(PerfPhase.IMPORT)
+        // The categories a viewer asks for while this section arrives. Not for the radio, which walks its own few
+        // categories and has no long reply to be ahead of; the channel is closed when this load ends.
+        val asks = if (kind == MediaKind.RADIO) null else early.open(kind)
         val startedAt = clock()
         var saved = 0
         val passes = ArrayList<XtreamImportEngine.PassReport>(2)
@@ -770,6 +779,7 @@ class DefaultCatalogImporter(
                 },
                 isCancelled = cancelled,
                 mode = mode,
+                earlyAsks = asks,
             )
             val counts = countsOf(passes.filter { replyUsed || !it.oneReply }, summary)
             PerformanceLog.recordCounts(counts)
@@ -789,6 +799,8 @@ class DefaultCatalogImporter(
         } catch (e: Exception) {
             xtreamFailure(e, writer, saved, clock() - startedAt)
         } finally {
+            // The viewer's asks end with the load: one made after this finds no channel and is dropped.
+            if (asks != null) early.close(kind, asks)
             // `finally`, so a cancelled or failed section still reports what it managed
             // to ask for -- which is the interesting case for a user whose first open
             // times out. Through [log], which is `Log.i` under the same tag on a device.

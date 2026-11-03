@@ -70,6 +70,15 @@ interface CatalogWriter {
     fun commit()
 
     /**
+     * Tells the readers now what the last [commit] made visible, without waiting for the pace they are told at.
+     *
+     * For the one commit somebody is waiting on: the category a viewer asked for while its section was still
+     * arriving. Everything else is told on the writer's own schedule. Does nothing by default: a writer that
+     * keeps no observers has nobody to tell.
+     */
+    fun tellNow() {}
+
+    /**
      * Import completed. Implementations restore normal pragmas, build indices
      * and prune rows that belong to an older generation of the same source.
      */

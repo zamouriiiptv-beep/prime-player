@@ -66,18 +66,34 @@ object XtreamUrls {
         kind: MediaKind,
         streamId: String,
         extension: String? = null,
-    ): String {
+    ): String = stream(streamPrefix(base, username, password, kind), kind, streamId, extension)
+
+    /**
+     * What every stream URL of one kind has in common: `http://host:8080/live/user/pass/`.
+     *
+     * The base is normalised and both credentials percent-encoded to make it, and none of that depends on the
+     * stream. An import that builds one URL per channel -- fifty thousand of them -- made it again for each, so it
+     * is made once per import by whoever builds the URLs, and [stream] with a prefix adds the stream's own part.
+     * The two forms give the same URL character for character: the first is defined as the second.
+     */
+    fun streamPrefix(base: String, username: String, password: String, kind: MediaKind): String {
         val segment = when (kind) {
             MediaKind.MOVIE -> "movie"
             MediaKind.SERIES -> "series"
             MediaKind.LIVE, MediaKind.RADIO -> "live"
         }
-        val suffix = extension?.trim()?.trimStart('.')?.takeIf { it.isNotEmpty() }
-            ?: if (kind == MediaKind.MOVIE || kind == MediaKind.SERIES) "mp4" else "ts"
         return buildString {
             append(normaliseBase(base)).append('/').append(segment).append('/')
             append(encode(username)).append('/').append(encode(password)).append('/')
-            append(streamId).append('.').append(suffix)
+        }
+    }
+
+    /** A stream's URL from the [prefix] [streamPrefix] made for its [kind]: the stream's id and container only. */
+    fun stream(prefix: String, kind: MediaKind, streamId: String, extension: String? = null): String {
+        val suffix = extension?.trim()?.trimStart('.')?.takeIf { it.isNotEmpty() }
+            ?: if (kind == MediaKind.MOVIE || kind == MediaKind.SERIES) "mp4" else "ts"
+        return buildString(prefix.length + streamId.length + suffix.length + 1) {
+            append(prefix).append(streamId).append('.').append(suffix)
         }
     }
 

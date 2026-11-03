@@ -87,8 +87,23 @@ class XtreamHttpApi(
         ),
     )
 
+    /**
+     * A stream's URL, from a prefix made once per kind for this object -- one import's -- and not rebuilt for
+     * every channel: the base and both credentials are normalised and encoded the same way for all of them.
+     * `lazy` is synchronised, and the readers of a category walk build URLs from several threads.
+     */
     override fun streamUrl(kind: MediaKind, streamId: String, extension: String?): String =
-        XtreamUrls.stream(base, username, password, kind, streamId, extension)
+        XtreamUrls.stream(prefixOf(kind), kind, streamId, extension)
+
+    private val livePrefix by lazy { XtreamUrls.streamPrefix(base, username, password, MediaKind.LIVE) }
+    private val moviePrefix by lazy { XtreamUrls.streamPrefix(base, username, password, MediaKind.MOVIE) }
+    private val seriesPrefix by lazy { XtreamUrls.streamPrefix(base, username, password, MediaKind.SERIES) }
+
+    private fun prefixOf(kind: MediaKind): String = when (kind) {
+        MediaKind.MOVIE -> moviePrefix
+        MediaKind.SERIES -> seriesPrefix
+        MediaKind.LIVE, MediaKind.RADIO -> livePrefix
+    }
 
     /**
      * Validates the credentials.
@@ -295,7 +310,7 @@ class XtreamHttpApi(
                 openNow(url)
             } catch (e: HttpStatusException) {
                 PerformanceLog.requestFailed(action, reasonOf(e))
-                throw WholeSectionUnsupported("HTTP ${e.statusCode}", e)
+                throw WholeSectionUnsupported("HTTP ${e.statusCode}", e, e.statusCode)
             } catch (e: IOException) {
                 PerformanceLog.requestFailed(action, reasonOf(e))
                 throw e

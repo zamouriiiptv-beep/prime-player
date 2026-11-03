@@ -1540,7 +1540,12 @@ internal fun CategoryRail(
                     // the rail had nowhere to read it from -- so the value was written
                     // for nobody and the reference's "Total: N" could not be drawn. It
                     // is one field on a list of hundreds, not a query per row.
-                    count = group.itemCount,
+                    //
+                    // A category with no count is one that has not arrived: the first load of the channels lists
+                    // them all, and a press on one brings it ahead of the rest. It is drawn as tall as the
+                    // others, so the rail does not move under the remote as each one arrives and takes its count.
+                    count = group.itemCount.takeIf { it > 0 },
+                    pending = group.itemCount == 0,
                     // In reorder mode no bouquet is "selected": the fill is for the one held, and the
                     // bouquet whose channels are on the right is outlined -- see `RailEntry`.
                     selected = !modal && group.id == state.selectedGroup,
@@ -1595,6 +1600,8 @@ private fun RailEntry(
      * colours, as a picked channel row does, and a tick in the shape of the row's own marks.
      */
     pick: RowPick? = null,
+    /** The category has not arrived: its count is not known yet, and its second line says so. */
+    pending: Boolean = false,
 ) {
     val colors = CastivioTheme.colors
     val (focused, focusModifier) = rememberFocusFlag()
@@ -1621,7 +1628,7 @@ private fun RailEntry(
     Row(
         Modifier
             .fillMaxWidth()
-            .heightIn(min = if (count != null) m.railMin else m.railMin * SINGLE_OF_RAIL)
+            .heightIn(min = if (count != null || pending) m.railMin else m.railMin * SINGLE_OF_RAIL)
             .clip(shape)
             .background(
                 when {
@@ -1667,9 +1674,11 @@ private fun RailEntry(
             // that are not categories -- "Favourites: 0" before anything has been
             // favourited is a true sentence nobody needs, and the count for those
             // comes from a different store anyway.
-            if (count != null) {
+            if (count != null || pending) {
                 Text(
-                    text = stringResource(R.string.channels_rail_total, formatCount(count)),
+                    // A category still on its way has no count to say: the same line, with an ellipsis where the
+                    // number will be, in the viewer's language.
+                    text = stringResource(R.string.channels_rail_total, count?.let { formatCount(it) } ?: PENDING_COUNT),
                     style = castivioBodyStyle(m.frame.fsBody),
                     color = if (selected || held) ink else colors.onBackgroundMuted,
                     maxLines = 1,
@@ -1811,7 +1820,9 @@ private fun ChannelList(
         if (rows.itemCount == 0) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 ChannelListEmpty(
-                    loading = rows.loadState.refresh is LoadState.Loading,
+                    // Or the category is one still on its way, which a press asked the load to bring first: the
+                    // list is waiting for it, and it is not empty.
+                    loading = rows.loadState.refresh is LoadState.Loading || state.arriving,
                     search = state.search,
                     onClearSearch = onClearSearch,
                     onRefresh = rows::refresh,
@@ -3722,6 +3733,9 @@ internal const val PLATE_GROUND_TAG = "castivio.channels.plate.ground"
  * recent -- are one line each, and all take this.
  */
 private const val SINGLE_OF_RAIL = 0.72f
+
+/** Where a category's count will be, until it arrives: an ellipsis is the same in every language. */
+private const val PENDING_COUNT = "…"
 
 /**
  * The playing mark's side as a share of the row's minimum height, and its triangle's as a share

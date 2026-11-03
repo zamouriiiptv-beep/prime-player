@@ -10,6 +10,7 @@ import com.castivio.domain.CatalogPager
 import com.castivio.domain.CatalogQuery
 import com.castivio.domain.CatalogRepository
 import com.castivio.domain.Channel
+import com.castivio.domain.EarlyCategories
 import com.castivio.domain.HiddenItems
 import com.castivio.domain.HiddenNow
 import com.castivio.domain.MediaGroup
@@ -99,6 +100,10 @@ data class BrowseState(
      * also what lets the rail grow while the section arrives: a category is counted when it
      * is complete, and appears then, in its place.
      *
+     * **Except during the channels' first load**, which lists every category the provider named, the ones
+     * that have not arrived with a count of zero: a viewer can open one of them and have it brought ahead of the
+     * rest -- see [BrowseViewModel.choose] and [arriving].
+     *
      * [groups] stays whole, because the channel rows look a category's name up by id and
      * a filtered map would leave them blank.
      */
@@ -142,6 +147,11 @@ data class BrowseState(
      * drawn for it. A failure is still said.
      */
     val firstLoad: Boolean = false,
+    /**
+     * The category that is open has not arrived yet: it is on the rail, a viewer pressed it, and the load that is
+     * bringing the section is bringing it first. The list shows it is waiting, and not that the category is empty.
+     */
+    val arriving: Boolean = false,
     val providerLabel: String? = null,
     /** True only until the first answer arrives; a category change is not a reload. */
     val loading: Boolean = true,
@@ -185,6 +195,11 @@ class BrowseViewModel @Inject constructor(
     private val customOrder: CatalogOrder,
     /** What was hidden while the board is open, left out at once -- see [HiddenItems.recent]. */
     private val hidden: HiddenItems = HiddenItems.None,
+    /**
+     * Where a category the viewer opens before it has arrived is asked for -- see [askEarly]. Nobody is asked by
+     * default, which is every board that is not given the real one.
+     */
+    private val early: EarlyCategories = EarlyCategories.None,
 ) : ViewModel() {
 
     private val section = MutableStateFlow(CatalogSection.Live)
@@ -342,6 +357,11 @@ class BrowseViewModel @Inject constructor(
         val filter = around.filter
         val arranged = around.arranging
         val listed = listedOf(available)
+        // **The channels' first load lists every category from the moment the provider has named them**, the ones
+        // that have not arrived among them, so that a viewer can open one of those and have it brought ahead of
+        // the rest -- see [askEarly]. Not for the sections that load whole, not for a refresh, which has every
+        // category listed already, and not in reorder mode, which moves only what is listed.
+        val withPending = current == CatalogSection.Live && run.isFirstLoad() && arranged == null
         BrowseState(
             section = current,
             groups = available,
@@ -353,7 +373,12 @@ class BrowseViewModel @Inject constructor(
             groupFilter = filter,
             // Reorder mode lists every bouquet in the order being set; the rail's own filter
             // is set aside, because a list with bouquets filtered out is not one to move in.
-            shownGroups = arranged?.let { listed.arrangedAs(it.bouquets) } ?: listed.filtered(filter),
+            shownGroups = arranged?.let { listed.arrangedAs(it.bouquets) }
+                ?: (if (withPending) available else listed).filtered(filter),
+            // The open category is one of those still on its way: its rows are being brought, and the list says so
+            // rather than saying it is empty.
+            arriving = withPending && asked.groupId != null &&
+                available.any { it.id == asked.groupId && it.itemCount == 0 },
             search = asked.search,
             favorites = asked.favorites,
             recent = asked.recent,
@@ -474,6 +499,24 @@ class BrowseViewModel @Inject constructor(
         favoritesOpen.value = false
         recentOpen.value = false
         typed.value = ""
+        askEarly(groupId)
+    }
+
+    /**
+     * A category pressed before it has arrived is asked of the load that is bringing the section, so it comes ahead
+     * of the rest and not in the provider's order.
+     *
+     * Only while the channels' first load runs, and only for a category the rail lists as waiting -- one that is
+     * counted is already here. The load fetches it beside its long reply and writes it as it arrives, and the rows
+     * appear through the same query that was already watching the category: nothing here waits for an answer, and
+     * a load that cannot serve the ask simply brings the category in its turn.
+     */
+    private fun askEarly(groupId: String?) {
+        if (groupId == null) return
+        val now = state.value
+        if (now.section != CatalogSection.Live || !now.firstLoad) return
+        if (now.groups.none { it.id == groupId && it.itemCount == 0 }) return
+        early.ask(now.section.kind, groupId)
     }
 
     /**

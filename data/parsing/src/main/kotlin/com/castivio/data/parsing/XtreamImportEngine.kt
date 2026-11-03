@@ -9,10 +9,12 @@ import com.castivio.domain.MediaGroup
 import com.castivio.domain.MediaKind
 import com.castivio.domain.RequestTimes
 import java.io.Reader
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -312,6 +314,14 @@ class XtreamImportEngine(
         onPhase: (Phase) -> Unit = {},
         /** Told what each pass over a section's streams cost. See [PassReport]. */
         onPass: (PassReport) -> Unit = {},
+        /**
+         * The ids of categories a viewer asked for while the section was still arriving, in the order they asked.
+         *
+         * Each is fetched on its own, beside the one reply, and written ahead of the rest -- see [serveEarly]. Only
+         * the pass that reads a section in one reply serves them: a walk of the categories is already a request
+         * for each, and a viewer's category would only be a fifth request over the limit. Null serves none.
+         */
+        earlyAsks: ReceiveChannel<String>? = null,
     ): ImportSummary {
         val started = clock()
         val batch = ArrayList<CatalogItem>(batchSize)
@@ -495,6 +505,30 @@ class XtreamImportEngine(
                             progress(event.kind)
                         }
 
+                        // ------------------------------------- a category asked for early
+                        //
+                        // Written and committed like any other rows, and counted -- so the rail lists it and the
+                        // screen the viewer is waiting on has its rows -- but **never added to what the import
+                        // read, saved or filed**: the one reply brings the same category again, under the same
+                        // ids, and counting both would count its channels twice. A category that the reply never
+                        // brings is asked for by the walk of the gaps, which counts it once.
+                        is CategoryEvent.Early -> {
+                            for (item in event.items) {
+                                batch.add(item)
+                                if (batch.size >= batchSize) pending += write()
+                            }
+                            pending += write()
+                            if (event.last) {
+                                complete(event.groupId, rows = event.rows > 0)
+                                // Committed and told at once: somebody is looking at an empty list.
+                                commitIfDue(force = true)
+                                writer.tellNow()
+                            } else {
+                                commitIfDue()
+                            }
+                            progress(event.kind)
+                        }
+
                         // ----------------------------------------- partial failure
                         //
                         // One category that would not load no longer takes the
@@ -555,6 +589,9 @@ class XtreamImportEngine(
             meter.commitNanos = commitNanos - commitsBefore
         }
 
+        // The one replies asked for before their categories were back, kept so that whichever way the import ends
+        // none is left holding a connection: see [EarlyReply].
+        val askedEarly = ArrayList<EarlyReply>(1)
         writer.begin(sourceId, mode)
         try {
             for (requested in kinds) {
@@ -563,6 +600,19 @@ class XtreamImportEngine(
                 // categories, so they are found by category name below.
                 val endpointKind = if (requested == MediaKind.RADIO) MediaKind.LIVE else requested
                 if (requested == MediaKind.RADIO && MediaKind.LIVE in kinds) continue
+
+                // The one reply only for a pass whose own endpoint it is: radio asked for on its
+                // own would download every channel in the panel to keep a few hundred stations,
+                // so it walks its own categories instead -- a handful of small requests.
+                val oneReply = endpointKind in wholeSection && requested == endpointKind
+
+                // **Asked for now, beside the categories, and not after them.** The reply does not depend on the
+                // categories to be asked for -- only to be filed, which happens as it is read -- and the panel
+                // takes about a second to begin answering it. Asked after the categories and their groups, that
+                // second was waited out in a row with theirs: the viewer's first channel came two seconds in
+                // where the slower of the two would have brought it. Only the asking moves; the body is read
+                // after the groups are written, exactly as before. See [EarlyReply] for what a failure of it does.
+                val early = if (oneReply && !isCancelled()) EarlyReply(api, endpointKind).also { askedEarly += it } else null
 
                 val categories = api.categories(endpointKind).use { reader ->
                     val list = ArrayList<XtreamCategory>(64)
@@ -611,18 +661,30 @@ class XtreamImportEngine(
                 // The whole section in one reply first, where the caller asked for it, and
                 // category by category for whatever that leaves: everything when the reply
                 // was refused or failed, the categories it left empty when it was not.
-                // The one reply only for a pass whose own endpoint it is: radio asked for on its
-                // own would download every channel in the panel to keep a few hundred stations,
-                // so it walks its own categories instead -- a handful of small requests.
-                val oneReply = endpointKind in wholeSection && requested == endpointKind
                 val perCategory: List<CategoryPlan> = if (oneReply && !isCancelled()) {
                     val importedBefore = imported
                     val perKindBefore = perKind.copyOf()
                     var read: WholeSectionRead = WholeSectionRead.NotOffered
                     val meter = PassMeter(nanoClock)
+                    // The reply as asked for before, or asked for now when it was not.
+                    val open: () -> Reader? = if (early != null) {
+                        { early.take { api.allStreams(endpointKind) } }
+                    } else {
+                        { api.allStreams(endpointKind) }
+                    }
                     pass(countCategories = false, meter = meter) { events ->
-                        read = withContext(Dispatchers.IO) {
-                            readWholeSection(sourceId, api, endpointKind, ordered, elsewhere, events, isCancelled, meter)
+                        coroutineScope {
+                            // A viewer's category, fetched beside the reply while it is read: see [serveEarly].
+                            val serving = earlyAsks?.let { asks ->
+                                launch(Dispatchers.IO) { serveEarly(sourceId, api, ordered, asks, events, isCancelled) }
+                            }
+                            read = withContext(Dispatchers.IO) {
+                                readWholeSection(sourceId, api, endpointKind, ordered, elsewhere, events, isCancelled, meter, open)
+                            }
+                            // The reply has been read to its end, and every category is in it or is asked for by the
+                            // walk of the gaps below: what is still being fetched for a viewer is let finish, and
+                            // nothing more is taken.
+                            serving?.cancel()
                         }
                     }
                     val outcome = read
@@ -677,6 +739,8 @@ class XtreamImportEngine(
                         }
                     }
                 } else {
+                    // Asked for and then not wanted -- the import was stopped meanwhile -- and let go at once.
+                    early?.discard()
                     onStreams(StreamsReport(kind = endpointKind, strategy = StreamStrategy.PER_CATEGORY))
                     ordered
                 }
@@ -799,6 +863,10 @@ class XtreamImportEngine(
         } catch (t: Throwable) {
             writer.abort(t)
             throw t
+        } finally {
+            // However the import ended, a reply asked for early and not read is closed: an answer that is never
+            // taken would hold a connection to the provider until the process went.
+            for (reply in askedEarly) reply.discard()
         }
     }
 
@@ -1089,16 +1157,22 @@ class XtreamImportEngine(
         events: SendChannel<CategoryEvent>,
         isCancelled: () -> Boolean,
         meter: PassMeter,
+        open: () -> Reader?,
     ): WholeSectionRead {
         val readerStarted = nanoClock()
         try {
-            return readWholeSectionMeasured(sourceId, api, kind, plans, elsewhere, events, isCancelled, meter)
+            return readWholeSectionMeasured(sourceId, api, kind, plans, elsewhere, events, isCancelled, meter, open)
         } finally {
             meter.readerNanos.addAndGet(nanoClock() - readerStarted)
         }
     }
 
-    /** [readWholeSection]'s work, with the asking, the reading and the handing over timed. */
+    /**
+     * [readWholeSection]'s work, with the asking, the reading and the handing over timed.
+     *
+     * [open] is how the reply is had: asked for now, or taken from the request made earlier -- see [EarlyReply]. Its
+     * time is the asking's either way, so a reply that was already on its way is the wait it still had to make.
+     */
     private fun readWholeSectionMeasured(
         sourceId: String,
         api: Api,
@@ -1108,6 +1182,7 @@ class XtreamImportEngine(
         events: SendChannel<CategoryEvent>,
         isCancelled: () -> Boolean,
         meter: PassMeter,
+        open: () -> Reader?,
     ): WholeSectionRead {
         val byId = HashMap<String, CategoryPlan>(plans.size * 2)
         for (plan in plans) byId[plan.category.id] = plan
@@ -1124,7 +1199,7 @@ class XtreamImportEngine(
 
         val reader = try {
             // Null is an API that cannot ask, which made no request: not counted as one.
-            meter.ask { api.allStreams(kind) } ?: run {
+            meter.ask { open() } ?: run {
                 meter.requests.decrementAndGet()
                 return WholeSectionRead.NotOffered
             }
@@ -1242,6 +1317,179 @@ class XtreamImportEngine(
         if (sent.isClosed) throw kotlinx.coroutines.CancellationException("the import stopped consuming")
         batch.clear()
         completed.clear()
+    }
+
+    /**
+     * The categories a viewer asks for while the one reply is being read, fetched one at a time and written ahead of
+     * the rest.
+     *
+     * ## Why it exists
+     *
+     * The reply brings a section in the provider's order, so a category far down it arrives last, and the rail lists a
+     * category only once it is complete. A viewer who presses one that has not arrived is asking for it now; this asks
+     * the provider for that one category by itself -- the walk's request, a few hundred rows and a fraction of a
+     * second -- so it is on the screen long before the reply reaches it.
+     *
+     * ## What keeps it safe
+     *
+     *  - **One at a time**, so beside the reply there is never more than one more request in flight: two, where the
+     *    walk of the categories has always had four.
+     *  - **Rows are the reply's rows again.** Ids are the provider's own and positions are the category's, as the
+     *    walk and the reply give them, so the reply's copy replaces this one in place: nothing is lost and nothing is
+     *    doubled. None of it is counted as read or saved -- see the case in the writer's loop.
+     *  - **A failure is the reply's to make good**, not the viewer's to be told: the category arrives with the reply
+     *    all the same, and a failed fetch is only the earlier arrival not happening.
+     *  - **A category asked for twice is fetched once**, and one the section does not list -- another section's, or a
+     *    stale id -- is ignored.
+     *
+     * Ends when [asks] is closed or the pass cancels it; a fetch in progress is let finish.
+     */
+    private suspend fun serveEarly(
+        sourceId: String,
+        api: Api,
+        plans: List<CategoryPlan>,
+        asks: ReceiveChannel<String>,
+        events: SendChannel<CategoryEvent>,
+        isCancelled: () -> Boolean,
+    ) {
+        val byGroup = HashMap<String, CategoryPlan>(plans.size * 2)
+        for (plan in plans) byGroup[plan.groupId] = plan
+        val served = HashSet<String>()
+        for (groupId in asks) {
+            if (isCancelled()) return
+            val plan = byGroup[groupId] ?: continue
+            if (!served.add(groupId)) continue
+            fetchEarly(sourceId, api, plan, events, isCancelled)
+        }
+    }
+
+    /** One category asked for early, parsed on this thread and handed to the writer's in batches. */
+    private fun fetchEarly(
+        sourceId: String,
+        api: Api,
+        plan: CategoryPlan,
+        events: SendChannel<CategoryEvent>,
+        isCancelled: () -> Boolean,
+    ) {
+        val kind = plan.kind
+        val groupId = plan.groupId
+        val category = plan.category
+        // The same positions the walk gives the category's rows, which are the ones the reply gives them.
+        val first = plan.index * CATEGORY_STRIDE
+        var position = first
+        val batch = ArrayList<CatalogItem>(batchSize)
+
+        fun hand(last: Boolean) {
+            val sent = events.trySendBlocking(CategoryEvent.Early(kind, groupId, ArrayList(batch), position - first, last))
+            batch.clear()
+            if (sent.isClosed || isCancelled()) throw kotlinx.coroutines.CancellationException("the import stopped consuming")
+        }
+
+        try {
+            when (kind) {
+                MediaKind.SERIES -> api.series(category.id).use { raw ->
+                    XtreamParser.parseSeries(raw) { series ->
+                        batch.add(seriesShell(sourceId, series, groupId, position++))
+                        if (batch.size >= batchSize) hand(last = false)
+                    }
+                }
+
+                else -> api.streams(kind, category.id).use { raw ->
+                    XtreamParser.parseStreams(raw) { stream ->
+                        batch.add(item(sourceId, api, kind, stream, groupId, position++))
+                        if (batch.size >= batchSize) hand(last = false)
+                    }
+                }
+            }
+            hand(last = true)
+        } catch (t: Throwable) {
+            if (t is kotlinx.coroutines.CancellationException) throw t
+            // Not told to anyone: the one reply brings this category too, and what was handed over stays written.
+        }
+    }
+
+    /**
+     * A section's one reply, asked for on a thread of its own as the import begins, to be read once the groups are
+     * written.
+     *
+     * Asking is the panel's second to think; reading is what the import does with the answer. Only the asking is
+     * moved earlier, and the answer is a connection with its body unread until [take] hands it over -- so nothing
+     * is parsed or written before the groups are, and the import is exactly what it was with a second less in it.
+     *
+     * ## When it does not go as asked
+     *
+     * A reply that failed *because* it was asked beside another request -- a panel that answers one call at a time
+     * with a busy status, or a connection reset -- would turn the one-reply import into the walk of every category,
+     * which is minutes. So a failure that is not a refusal is asked once more, by [take]'s caller, when the
+     * categories are back and nothing else is in flight: the import it was before, and never worse than it. A
+     * refusal in so many words -- the panel does not answer the question -- is not asked again, as it never was.
+     *
+     * ## No connection is left open
+     *
+     * [discard] closes an answer nobody took and makes the request close the one still on its way. It is safe to call
+     * at any time and any number of times, and after [take] it does nothing.
+     */
+    private class EarlyReply(private val api: Api, private val kind: MediaKind) {
+        private val lock = Any()
+        private val answered = CountDownLatch(1)
+
+        // Guarded by [lock].
+        private var reader: Reader? = null
+        private var failure: Exception? = null
+        private var completed = false
+        private var abandoned = false
+
+        init {
+            val thread = Thread({ ask() }, "xtream-one-reply")
+            thread.isDaemon = true
+            thread.start()
+        }
+
+        private fun ask() {
+            try {
+                val opened = api.allStreams(kind)
+                synchronized(lock) {
+                    if (abandoned) runCatching { opened?.close() } else reader = opened
+                    completed = true
+                }
+            } catch (e: Exception) {
+                synchronized(lock) { failure = e }
+            } finally {
+                answered.countDown()
+            }
+        }
+
+        /**
+         * The reply -- null for an API that does not offer one -- or [again] when asking beside the categories failed
+         * for a reason another asking could cure, or the failure itself when it is the panel's answer.
+         */
+        fun take(again: () -> Reader?): Reader? {
+            answered.await()
+            val (opened, error) = synchronized(lock) {
+                val held = reader
+                reader = null
+                held to failure
+            }
+            if (error == null) {
+                check(completed) { "the request for the one reply ended with neither an answer nor a failure" }
+                return opened
+            }
+            if (error is WholeSectionUnsupported && error.status !in RETRY_STATUSES) throw error
+            return again()
+        }
+
+        fun discard() {
+            synchronized(lock) {
+                abandoned = true
+                reader?.let { runCatching { it.close() } }
+                reader = null
+            }
+        }
+
+        private companion object {
+            /** The statuses of a panel that is busy, not one that refuses the question: asked again, not given up on. */
+            val RETRY_STATUSES = setOf(408, 429, 502, 503, 504, 509)
+        }
     }
 
     /**
@@ -1408,6 +1656,22 @@ class XtreamImportEngine(
          * and listed -- see `CatalogWriter.countGroups` -- unless it turned out empty.
          */
         data class Finished(val kind: MediaKind, val groupId: String, val rows: Int) : CategoryEvent
+
+        /**
+         * Rows of a category a viewer asked for, fetched on its own beside the one reply; [last] on the final
+         * batch, which carries how many rows the category had in all.
+         *
+         * Its own case, and not [Items] with a [Finished], because the writer's loop counts those into what the
+         * import read and saved and into the bar's numerator, and these rows are a second copy of rows the reply
+         * brings: see the case in the loop.
+         */
+        data class Early(
+            val kind: MediaKind,
+            val groupId: String,
+            val items: List<CatalogItem>,
+            val rows: Int,
+            val last: Boolean,
+        ) : CategoryEvent
     }
 
     /**
@@ -1542,7 +1806,15 @@ class XtreamImportEngine(
  * Its message is printed in that report, on the debug panel and in the log, so it says
  * what the panel answered — `HTTP 404` — and never where the question was sent.
  */
-class WholeSectionUnsupported(message: String, cause: Throwable? = null) : Exception(message, cause)
+class WholeSectionUnsupported(
+    message: String,
+    cause: Throwable? = null,
+    /**
+     * The status the panel answered with, when it answered with one. A busy panel -- 429, 503, 509 -- is a reason
+     * to ask again when nothing else is in flight; any other status, or none, is the panel declining the question.
+     */
+    val status: Int? = null,
+) : Exception(message, cause)
 
 /** Nanoseconds as the milliseconds a [RequestTimes] is told in. */
 private fun Long.ms(): Long = this / 1_000_000
