@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,8 +17,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.itemsIndexed as gridItemsIndexed
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -192,30 +196,44 @@ internal fun CatchUpOverlay(
 
                     val day = state.days.getOrNull(state.dayIndex)
                     if (day != null) {
-                        LazyRow(
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(m.guideGap),
-                        ) {
-                            itemsIndexed(day.cards, key = { _, card -> card.programme.locator }) { index, card ->
-                                ProgrammeCard(
-                                    card = card,
-                                    logo = channel.artworkUrl,
-                                    m = m,
-                                    modifier = if (index == 0) Modifier.focusRequester(first) else Modifier,
-                                    onClick = {
-                                        model.choose(card) { address, channelTitle ->
-                                            onPlay(
-                                                CatalogSelection(
-                                                    url = address,
-                                                    title = card.title,
-                                                    live = false,
-                                                    subtitle = "$channelTitle · ${card.timeText}",
-                                                ),
-                                            )
-                                            onClose()
-                                        }
-                                    },
-                                )
+                        // The programmes fill what is left of the panel, two rows at a time, and scroll up and down for the rest:
+                        // the cards are sized from the room there is, not from a width, so that two rows are always whole.
+                        BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
+                            val cardHeight = ((maxHeight - m.guideGap * (VISIBLE_ROWS - 1)) / VISIBLE_ROWS)
+                                .coerceAtLeast(CARD_MIN_HEIGHT)
+                            // Another day begins at the top, not at wherever the last one was scrolled to.
+                            val grid = remember(state.dayIndex) { LazyGridState() }
+                            LazyVerticalGrid(
+                                columns = GridCells.Adaptive(CARD_MIN_WIDTH),
+                                state = grid,
+                                modifier = Modifier.fillMaxSize(),
+                                horizontalArrangement = Arrangement.spacedBy(m.guideGap),
+                                verticalArrangement = Arrangement.spacedBy(m.guideGap),
+                            ) {
+                                gridItemsIndexed(day.cards, key = { _, card -> card.programme.locator }) { index, card ->
+                                    ProgrammeCard(
+                                        card = card,
+                                        logo = channel.artworkUrl,
+                                        m = m,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(cardHeight)
+                                            .then(if (index == 0) Modifier.focusRequester(first) else Modifier),
+                                        onClick = {
+                                            model.choose(card) { address, channelTitle ->
+                                                onPlay(
+                                                    CatalogSelection(
+                                                        url = address,
+                                                        title = card.title,
+                                                        live = false,
+                                                        subtitle = "$channelTitle · ${card.timeText}",
+                                                    ),
+                                                )
+                                                onClose()
+                                            }
+                                        },
+                                    )
+                                }
                             }
                         }
                     }
@@ -238,7 +256,13 @@ internal fun CatchUpOverlay(
     }
 }
 
-/** One programme: the channel's logo where a picture would be, its title, and when it was on. */
+/**
+ * One programme, small enough for two rows of them to share the panel: when it was on, with the channel's logo beside
+ * the time where a picture would be, and its title under both, which takes whatever height is left.
+ *
+ * The card's size is the caller's. The title is the one part that can be long, so it is the part that gives: it holds two
+ * lines and then ends in an ellipsis, and the card never grows to make room for it.
+ */
 @Composable
 private fun ProgrammeCard(
     card: CatchUpCard,
@@ -250,28 +274,35 @@ private fun ProgrammeCard(
     val colors = CastivioTheme.colors
     InteractiveGlassCard(
         onClick = onClick,
-        modifier = modifier.width(CARD_WIDTH),
+        modifier = modifier,
         shape = RoundedCornerShape(m.panelRadius),
         fill = SolidColor(colors.glassFill),
     ) {
-        Column(Modifier.padding(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            ProviderArtwork(
-                url = logo,
-                description = null,
-                modifier = Modifier.fillMaxWidth().height(CARD_ART_HEIGHT),
-            )
+        Column(
+            Modifier.fillMaxSize().padding(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                ProviderArtwork(
+                    url = logo,
+                    description = null,
+                    modifier = Modifier.size(m.frame.fsLabel * LOGO_IN_CARD),
+                )
+                Text(
+                    text = card.timeText,
+                    style = castivioBodyStyle(m.frame.fsBody),
+                    color = colors.onBackgroundMuted,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f),
+                )
+            }
             Text(
                 text = card.title,
                 style = castivioChipStyle(m.frame.fsLabel),
                 color = colors.onBackgroundStrong,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = card.timeText,
-                style = castivioBodyStyle(m.frame.fsBody),
-                color = colors.onBackgroundMuted,
-                maxLines = 1,
+                modifier = Modifier.weight(1f),
             )
         }
     }
@@ -302,11 +333,17 @@ private fun dayName(label: DayLabel): String = when (label) {
     DayLabel.DATE -> ""
 }
 
-/** A card is this wide: three fit beside each other in the panel on a television, and the row scrolls for the rest. */
-private val CARD_WIDTH = 190.dp
+/** A card is at least this wide: the grid fits as many columns as the panel holds, three on a television, fewer on a phone. */
+private val CARD_MIN_WIDTH = 150.dp
 
-/** Where a programme picture would be: the channel's logo, in a band as tall as it is wide enough to read. */
-private val CARD_ART_HEIGHT = 84.dp
+/** Rows of programmes shown whole at a time; the rest are a scroll away. */
+private const val VISIBLE_ROWS = 2
+
+/** The floor under a card's height, so a very short panel still draws a card that can be read and scrolls instead. */
+private val CARD_MIN_HEIGHT = 76.dp
 
 /** The channel's logo in the header, a little taller than the label beside it. */
 private const val LOGO_IN_LABELS = 1.6f
+
+/** The logo on a programme card, beside its time: about as tall as two lines of the label's own size. */
+private const val LOGO_IN_CARD = 1.8f
