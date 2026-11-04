@@ -132,13 +132,10 @@ fun CatchUpHubScreen(
             ) {
                 BoardBand(
                     section = stringResource(R.string.catchup_title),
-                    // Short, because the cell it stands in is a fixed 90dp or so: the sentence that says what this page is
-                    // is the panel's header's, and said twice it was cut off here.
-                    list = when (val at = stage) {
-                        HubStage.Groups -> stringResource(R.string.catchup_band)
-                        is HubStage.Channels -> at.group?.name ?: stringResource(R.string.catchup_all)
-                        is HubStage.Programmes -> at.channel.title
-                    },
+                    // Short, because the cell it stands in is a fixed 90dp or so, and the same at every place: what this
+                    // page is and which category is open are the panel's header's to say, and said twice they were repeated
+                    // here (and the sentence cut off).
+                    list = stringResource(R.string.catchup_band),
                     m = m,
                     searchText = "",
                     onSearch = {},
@@ -154,15 +151,18 @@ fun CatchUpHubScreen(
                     searchText = searchText,
                     onSearch = hub::search,
                     onSearchFocus = { searchFocused = it },
-                    title = when (val at = stage) {
+                    // A category's channels read "choose a channel", then the category -- the action first, as a title, and what
+                    // it is chosen from after it, in the brighter of the two lines because it is the data.
+                    title = when (stage) {
                         HubStage.Groups -> stringResource(R.string.catchup_title)
+                        else -> stringResource(R.string.catchup_pick_channel)
+                    },
+                    hint = when (val at = stage) {
+                        HubStage.Groups -> stringResource(R.string.catchup_hub_subtitle)
                         is HubStage.Channels -> at.group?.name ?: stringResource(R.string.catchup_all)
                         is HubStage.Programmes -> at.group?.name ?: stringResource(R.string.catchup_all)
                     },
-                    hint = when (stage) {
-                        HubStage.Groups -> stringResource(R.string.catchup_hub_subtitle)
-                        else -> stringResource(R.string.catchup_pick_channel)
-                    },
+                    hintIsName = stage != HubStage.Groups,
                     onBack = { if (!hub.back()) onBack() },
                 ) {
                     val found = matches
@@ -216,6 +216,8 @@ private fun ColumnScope.HubPanel(
     direction: LayoutDirection,
     title: String,
     hint: String,
+    /** The line under the title is a name from the catalogue and not a sentence: it is drawn as one, in the brighter ink. */
+    hintIsName: Boolean,
     searchText: String,
     onSearch: (String) -> Unit,
     onSearchFocus: (Boolean) -> Unit,
@@ -267,8 +269,9 @@ private fun ColumnScope.HubPanel(
                         )
                         Text(
                             text = hint,
-                            style = castivioBodyStyle(m.frame.fsBody * HINT_SCALE),
-                            color = colors.onBackgroundMuted,
+                            style = if (hintIsName) castivioChipStyle(m.frame.fsBody * HINT_SCALE)
+                            else castivioBodyStyle(m.frame.fsBody * HINT_SCALE),
+                            color = if (hintIsName) colors.onBackground else colors.onBackgroundMuted,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f, fill = false),
@@ -340,12 +343,17 @@ private fun GroupCard(
     val pill = RoundedCornerShape(m.panelRadius)
     InteractiveGlassCard(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth().heightIn(min = Sizing.minTarget(tv)),
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(m.panelRadius),
         fill = if (lead) colors.primaryBrush else SolidColor(colors.glassFill),
     ) {
+        // The floor under the card's height is the row's, not the card's: a card holds its content at the top, so a floor
+        // set on the card left the content above its middle and a bare strip under it.
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = m.controlPadH, vertical = Spacing.sm),
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = Sizing.minTarget(tv))
+                .padding(horizontal = m.controlPadH, vertical = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
@@ -425,25 +433,32 @@ private fun ChannelEntry(channel: Channel, m: ChannelsMetrics, onClick: () -> Un
     val days = CatchUpPolicy.daysOf(channel.catchUpHours)
     InteractiveGlassCard(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth().heightIn(min = Sizing.minTarget(tv)),
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(m.panelRadius),
         fill = SolidColor(colors.glassFill),
     ) {
+        // The floor is the row's, so what is in it is centred: see [GroupCard].
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = m.controlPadH, vertical = Spacing.xs),
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = Sizing.minTarget(tv))
+                .padding(horizontal = m.controlPadH, vertical = Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(m.controlPadH),
         ) {
-            Text(
-                text = channel.number?.toString().orEmpty(),
-                style = castivioChipStyle(m.frame.fsChip),
-                color = colors.onBackground,
-                maxLines = 1,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(m.panelRadius))
-                    .background(colors.onBackground.copy(alpha = NUMBER_PLATE_ALPHA))
-                    .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-            )
+            // A plate only for a channel that has a number: a provider that numbers none would otherwise show an empty one.
+            channel.number?.let { number ->
+                Text(
+                    text = number.toString(),
+                    style = castivioChipStyle(m.frame.fsChip),
+                    color = colors.onBackground,
+                    maxLines = 1,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(m.panelRadius))
+                        .background(colors.onBackground.copy(alpha = NUMBER_PLATE_ALPHA))
+                        .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
+                )
+            }
             ProviderArtwork(
                 url = channel.artworkUrl,
                 description = null,
