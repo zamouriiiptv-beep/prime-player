@@ -200,6 +200,7 @@ fun CatchUpHubScreen(
                     onPlay = onPlay,
                     onClose = { hub.back() },
                     reserveEnd = 0.dp,
+                    direction = direction,
                 )
             }
         }

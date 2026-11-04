@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
@@ -26,6 +27,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,9 +38,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.castivio.core.design.components.CastivioChip
@@ -86,6 +91,11 @@ internal fun CatchUpOverlay(
      * default is that column; Catch-up's own page has no picture and passes nothing.
      */
     reserveEnd: Dp = m.player + m.playerGap,
+    /**
+     * The language's own direction, for the header: the page is drawn left to right like the board it covers, and a caller
+     * that has made it so passes the direction it was made from. The default is the one in force here.
+     */
+    direction: LayoutDirection = LocalLayoutDirection.current,
 ) {
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(m.panelRadius)
@@ -125,37 +135,42 @@ internal fun CatchUpOverlay(
                 .border(1.dp, colors.glassBorder, shape)
                 .padding(m.wellPad),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(m.controlPadH)) {
-                CastivioIconButton(
-                    icon = CastivioIcons.ArrowBack,
-                    contentDescription = stringResource(R.string.catchup_back),
-                    onClick = onClose,
-                )
-                Text(
-                    text = stringResource(R.string.catchup_title),
-                    style = castivioTitleStyle(m.frame.fsLabel),
-                    color = colors.onBackgroundStrong,
-                    maxLines = 1,
-                )
-                ProviderArtwork(
-                    url = channel.artworkUrl,
-                    description = null,
-                    modifier = Modifier.size(m.frame.fsLabel * LOGO_IN_LABELS),
-                )
-                Text(
-                    text = channel.title,
-                    style = castivioChipStyle(m.frame.fsLabel),
-                    color = colors.onBackgroundStrong,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    text = stringResource(R.string.catchup_subtitle),
-                    style = castivioBodyStyle(m.frame.fsBody),
-                    color = colors.onBackgroundMuted,
-                    maxLines = 1,
-                )
+            // The header follows the language -- Back at the start, which is the right in Arabic and points right there --
+            // while the days and the programmes under it keep the board's left-to-right order.
+            CompositionLocalProvider(LocalLayoutDirection provides direction) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(m.controlPadH)) {
+                    CastivioIconButton(
+                        icon = CastivioIcons.ArrowBack,
+                        contentDescription = stringResource(R.string.catchup_back),
+                        onClick = onClose,
+                        modifier = if (direction == LayoutDirection.Rtl) Modifier.graphicsLayer(scaleX = -1f) else Modifier,
+                    )
+                    Text(
+                        text = stringResource(R.string.catchup_title),
+                        style = castivioTitleStyle(m.frame.fsLabel),
+                        color = colors.onBackgroundStrong,
+                        maxLines = 1,
+                    )
+                    ProviderArtwork(
+                        url = channel.artworkUrl,
+                        description = null,
+                        modifier = Modifier.size(m.frame.fsLabel * LOGO_IN_LABELS),
+                    )
+                    Text(
+                        text = channel.title,
+                        style = castivioChipStyle(m.frame.fsLabel),
+                        color = colors.onBackgroundStrong,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        text = stringResource(R.string.catchup_subtitle),
+                        style = castivioBodyStyle(m.frame.fsBody),
+                        color = colors.onBackgroundMuted,
+                        maxLines = 1,
+                    )
+                }
             }
 
             Spacer(Modifier.height(m.guideGap))
@@ -266,11 +281,12 @@ internal fun CatchUpOverlay(
 }
 
 /**
- * One programme, small enough for two rows of them to share the panel: when it was on, with the channel's logo beside
- * the time where a picture would be, and its title under both, which takes whatever height is left.
+ * One programme, small enough for two rows of them to share the panel, in three bands so none of it is bare: when it was on
+ * at the top, the channel's logo in the middle where a picture would be, and its title at the bottom.
  *
  * The card's size is the caller's. The title is the one part that can be long, so it is the part that gives: it holds two
- * lines and then ends in an ellipsis, and the card never grows to make room for it.
+ * lines and then ends in an ellipsis, and the card never grows to make room for it. Its band is two lines high whatever
+ * the title, with the text at the bottom, so the names stand on one line across a row and the logos on another.
  */
 @Composable
 private fun ProgrammeCard(
@@ -287,32 +303,36 @@ private fun ProgrammeCard(
         shape = RoundedCornerShape(m.panelRadius),
         fill = SolidColor(colors.glassFill),
     ) {
-        Column(
-            Modifier.fillMaxSize().padding(Spacing.sm),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Column(Modifier.fillMaxSize().padding(Spacing.sm)) {
+            Text(
+                text = card.timeText,
+                style = castivioBodyStyle(m.frame.fsBody),
+                color = colors.onBackgroundMuted,
+                maxLines = 1,
+            )
+            // Whatever the time and the title leave: the logo is fitted into it, never cropped, and it is the one thing there.
+            Box(
+                Modifier.weight(1f).fillMaxWidth().padding(vertical = Spacing.xs),
+                contentAlignment = Alignment.Center,
+            ) {
                 ProviderArtwork(
                     url = logo,
                     description = null,
-                    modifier = Modifier.size(m.frame.fsLabel * LOGO_IN_CARD),
-                )
-                Text(
-                    text = card.timeText,
-                    style = castivioBodyStyle(m.frame.fsBody),
-                    color = colors.onBackgroundMuted,
-                    maxLines = 1,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxSize(LOGO_OF_MIDDLE),
                 )
             }
-            Text(
-                text = card.title,
-                style = castivioChipStyle(m.frame.fsLabel),
-                color = colors.onBackgroundStrong,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
+            Box(
+                Modifier.fillMaxWidth().heightIn(min = m.frame.fsLabel * TITLE_TWO_LINES),
+                contentAlignment = Alignment.BottomStart,
+            ) {
+                Text(
+                    text = card.title,
+                    style = castivioChipStyle(m.frame.fsLabel),
+                    color = colors.onBackgroundStrong,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }
@@ -354,5 +374,8 @@ private val CARD_MIN_HEIGHT = 76.dp
 /** The channel's logo in the header, a little taller than the label beside it. */
 private const val LOGO_IN_LABELS = 1.6f
 
-/** The logo on a programme card, beside its time: about as tall as two lines of the label's own size. */
-private const val LOGO_IN_CARD = 1.8f
+/** How much of the card's middle band the logo is fitted into, in both directions: it breathes, and never touches a band. */
+private const val LOGO_OF_MIDDLE = 0.72f
+
+/** The title band's floor, in the label's own size: two lines, so a one-line title stands on the same line as a longer one. */
+private const val TITLE_TWO_LINES = 2.6f
