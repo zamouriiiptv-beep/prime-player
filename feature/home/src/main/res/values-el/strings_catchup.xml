@@ -16,4 +16,9 @@
     <string name="catchup_retry">Δοκιμάστε ξανά</string>
     <string name="catchup_open_failed">Δεν ήταν δυνατό να ανοίξει αυτή η εκπομπή</string>
     <string name="catchup_yesterday">Χθες</string>
+    <!-- Catch-up's search box: one for the categories and the channels. -->
+    <string name="catchup_search_hint">Αναζήτηση κατηγοριών και καναλιών</string>
+    <string name="catchup_section_groups">Κατηγορίες</string>
+    <string name="catchup_section_channels">Κανάλια</string>
+    <string name="catchup_search_none">Δεν βρέθηκε τίποτα για την αναζήτησή σας</string>
 </resources>

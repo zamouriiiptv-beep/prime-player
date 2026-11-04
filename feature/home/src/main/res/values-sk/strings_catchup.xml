@@ -16,4 +16,9 @@
     <string name="catchup_retry">Skúsiť znova</string>
     <string name="catchup_open_failed">Túto reláciu sa nepodarilo otvoriť</string>
     <string name="catchup_yesterday">Včera</string>
+    <!-- Catch-up's search box: one for the categories and the channels. -->
+    <string name="catchup_search_hint">Hľadať kategórie a kanály</string>
+    <string name="catchup_section_groups">Kategórie</string>
+    <string name="catchup_section_channels">Kanály</string>
+    <string name="catchup_search_none">Hľadanie nič nenašlo</string>
 </resources>

@@ -16,4 +16,9 @@
     <string name="catchup_retry">Повторити</string>
     <string name="catchup_open_failed">Не вдалося відкрити цю передачу</string>
     <string name="catchup_yesterday">Учора</string>
+    <!-- Catch-up's search box: one for the categories and the channels. -->
+    <string name="catchup_search_hint">Пошук категорій і каналів</string>
+    <string name="catchup_section_groups">Категорії</string>
+    <string name="catchup_section_channels">Канали</string>
+    <string name="catchup_search_none">Нічого не знайдено</string>
 </resources>

@@ -96,6 +96,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
@@ -911,9 +912,15 @@ internal fun HeaderSearchField(
     enabled: Boolean = true,
     /** What the field says it searches. The channels' by default; the films' screen passes its own. */
     hint: String = stringResource(R.string.channels_search_hint),
+    /**
+     * Draw the mark as a button -- a round plate in the primary azure that puts the cursor in the field -- and not as a
+     * plain glyph. For a field that stands alone in a header, where the viewer should see what to press.
+     */
+    markAsButton: Boolean = false,
 ) {
     val colors = CastivioTheme.colors
     val (focused, focusModifier) = rememberFocusFlag()
+    val fieldFocus = remember { FocusRequester() }
     val shape = RoundedCornerShape(Radius.pill)
     // The board is drawn left to right in every language, so the field's direction is the language's, read from
     // the configuration and not from the layout: the mark stays at the left, and the words start at the end of
@@ -927,16 +934,36 @@ internal fun HeaderSearchField(
             .clip(shape)
             .background(colors.glassFill)
             .border(1.dp, if (focused) colors.focusRing else colors.glassBorderSoft, shape)
-            .padding(horizontal = m.controlPadH),
+            .padding(start = if (markAsButton) MARK_PLATE_INSET else m.controlPadH, end = m.controlPadH),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(m.factGap),
     ) {
-        Icon(
-            Icons.Rounded.Search,
-            contentDescription = null,
-            tint = colors.onBackgroundMuted,
-            modifier = Modifier.size(Sizing.iconSm),
-        )
+        if (markAsButton) {
+            val plate = m.header * FIELD_OF_HEADER * MARK_OF_FIELD
+            Box(
+                Modifier
+                    .size(plate)
+                    .clip(CircleShape)
+                    .background(colors.primary.copy(alpha = MARK_PLATE_ALPHA))
+                    .border(1.dp, colors.primary.copy(alpha = MARK_EDGE_ALPHA), CircleShape)
+                    .clickable(role = Role.Button) { runCatching { fieldFocus.requestFocus() } },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Rounded.Search,
+                    contentDescription = hint,
+                    tint = colors.primary,
+                    modifier = Modifier.size(Sizing.iconMd),
+                )
+            }
+        } else {
+            Icon(
+                Icons.Rounded.Search,
+                contentDescription = null,
+                tint = colors.onBackgroundMuted,
+                modifier = Modifier.size(Sizing.iconSm),
+            )
+        }
         BasicTextField(
             value = text,
             onValueChange = onType,
@@ -957,6 +984,7 @@ internal fun HeaderSearchField(
             ),
             modifier = Modifier
                 .weight(1f)
+                .focusRequester(fieldFocus)
                 .then(focusModifier)
                 .onFocusChanged { onFocusChange(it.isFocused) },
             decorationBox = { field ->
@@ -3859,6 +3887,16 @@ private val HEADING_TRACKING = 0.06.em
 
 /** The field's height inside the band. */
 private const val FIELD_OF_HEADER = 0.62f
+
+/** A mark drawn as a button, against the field it stands in: nearly its whole height, so the box wraps it closely. */
+private const val MARK_OF_FIELD = 0.84f
+
+/** What a round mark is filled with, and edged with, of the primary azure. */
+private const val MARK_PLATE_ALPHA = 0.16f
+private const val MARK_EDGE_ALPHA = 0.45f
+
+/** The room a round mark has between the field's edge and itself: less than a glyph's, because the plate is its own edge. */
+private val MARK_PLATE_INSET = 3.dp
 
 /**
  * The rail's field, against a rail entry's floor.

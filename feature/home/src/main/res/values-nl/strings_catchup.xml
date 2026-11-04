@@ -16,4 +16,9 @@
     <string name="catchup_retry">Opnieuw proberen</string>
     <string name="catchup_open_failed">Dit programma kon niet worden geopend</string>
     <string name="catchup_yesterday">Gisteren</string>
+    <!-- Catch-up's search box: one for the categories and the channels. -->
+    <string name="catchup_search_hint">Categorieën en zenders zoeken</string>
+    <string name="catchup_section_groups">Categorieën</string>
+    <string name="catchup_section_channels">Zenders</string>
+    <string name="catchup_search_none">Niets komt overeen met je zoekopdracht</string>
 </resources>

@@ -16,4 +16,9 @@
     <string name="catchup_retry">Yritä uudelleen</string>
     <string name="catchup_open_failed">Ohjelmaa ei voitu avata</string>
     <string name="catchup_yesterday">Eilen</string>
+    <!-- Catch-up's search box: one for the categories and the channels. -->
+    <string name="catchup_search_hint">Hae luokkia ja kanavia</string>
+    <string name="catchup_section_groups">Luokat</string>
+    <string name="catchup_section_channels">Kanavat</string>
+    <string name="catchup_search_none">Haulla ei löytynyt mitään</string>
 </resources>

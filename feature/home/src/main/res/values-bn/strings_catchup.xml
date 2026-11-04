@@ -16,4 +16,9 @@
     <string name="catchup_retry">আবার চেষ্টা করুন</string>
     <string name="catchup_open_failed">এই অনুষ্ঠানটি খোলা যায়নি</string>
     <string name="catchup_yesterday">গতকাল</string>
+    <!-- Catch-up's search box: one for the categories and the channels. -->
+    <string name="catchup_search_hint">বিভাগ ও চ্যানেল খুঁজুন</string>
+    <string name="catchup_section_groups">বিভাগ</string>
+    <string name="catchup_section_channels">চ্যানেল</string>
+    <string name="catchup_search_none">আপনার অনুসন্ধানের সাথে কিছু মেলেনি</string>
 </resources>

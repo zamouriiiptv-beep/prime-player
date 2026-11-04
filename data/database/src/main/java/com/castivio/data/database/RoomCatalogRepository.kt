@@ -273,11 +273,13 @@ class RoomCatalogRepository(
                 ) { offset, limit -> rowsOf(query, null, offset, limit) }
             }.map { data -> data.map { it.toDomain() } }
         }
-        // The channels that keep an archive, of a category or of all: the provider's windows, narrowed by the hours.
+        // The channels that keep an archive, of a category or of all: the provider's windows, narrowed by the hours --
+        // and by the name, when Catch-up's own search box holds one.
         if (query.archive) {
+            val archiveMatch = FtsQuery.build(query.search)
             return pager {
                 WindowPagingSource(database.invalidationTracker, database.queryExecutor) { offset, limit ->
-                    rowsOf(query, null, offset, limit)
+                    rowsOf(query, archiveMatch, offset, limit)
                 }
             }.map { data -> data.map { it.toDomain() } }
         }
@@ -342,6 +344,10 @@ class RoomCatalogRepository(
         if (query.favorites) return mediaDao.windowFavorites(kind, offset, limit)
         if (query.recent) return mediaDao.windowRecent(kind, offset, limit)
         if (query.archive) {
+            if (match != null) {
+                return if (group == null) mediaDao.windowArchiveMatching(match, kind, offset, limit)
+                else mediaDao.windowArchiveMatchingInGroup(match, kind, group, offset, limit)
+            }
             return if (group == null) mediaDao.windowArchive(kind, offset, limit)
             else mediaDao.windowArchiveInGroup(kind, group, offset, limit)
         }

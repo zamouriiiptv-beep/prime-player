@@ -16,4 +16,9 @@
     <string name="catchup_retry">Cuba lagi</string>
     <string name="catchup_open_failed">Program ini tidak dapat dibuka</string>
     <string name="catchup_yesterday">Semalam</string>
+    <!-- Catch-up's search box: one for the categories and the channels. -->
+    <string name="catchup_search_hint">Cari kategori dan saluran</string>
+    <string name="catchup_section_groups">Kategori</string>
+    <string name="catchup_section_channels">Saluran</string>
+    <string name="catchup_search_none">Tiada yang sepadan dengan carian anda</string>
 </resources>

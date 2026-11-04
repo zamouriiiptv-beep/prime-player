@@ -16,4 +16,9 @@
     <string name="catchup_retry">حاول مرة أخرى</string>
     <string name="catchup_open_failed">تعذّر فتح هذا البرنامج</string>
     <string name="catchup_yesterday">أمس</string>
+    <!-- Catch-up's search box: one for the categories and the channels. -->
+    <string name="catchup_search_hint">ابحث في الباقات والقنوات</string>
+    <string name="catchup_section_groups">الباقات</string>
+    <string name="catchup_section_channels">القنوات</string>
+    <string name="catchup_search_none">لا شيء يطابق بحثك</string>
 </resources>

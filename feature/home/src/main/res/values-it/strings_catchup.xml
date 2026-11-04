@@ -16,4 +16,9 @@
     <string name="catchup_retry">Riprova</string>
     <string name="catchup_open_failed">Impossibile aprire questo programma</string>
     <string name="catchup_yesterday">Ieri</string>
+    <!-- Catch-up's search box: one for the categories and the channels. -->
+    <string name="catchup_search_hint">Cerca categorie e canali</string>
+    <string name="catchup_section_groups">Categorie</string>
+    <string name="catchup_section_channels">Canali</string>
+    <string name="catchup_search_none">Nessun risultato per la ricerca</string>
 </resources>

@@ -16,4 +16,9 @@
     <string name="catchup_retry">Pokušaj ponovno</string>
     <string name="catchup_open_failed">Ova se emisija nije mogla otvoriti</string>
     <string name="catchup_yesterday">Jučer</string>
+    <!-- Catch-up's search box: one for the categories and the channels. -->
+    <string name="catchup_search_hint">Pretraži kategorije i kanale</string>
+    <string name="catchup_section_groups">Kategorije</string>
+    <string name="catchup_section_channels">Kanali</string>
+    <string name="catchup_search_none">Ništa ne odgovara pretrazi</string>
 </resources>

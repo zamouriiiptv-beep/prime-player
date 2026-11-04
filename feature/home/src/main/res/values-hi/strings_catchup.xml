@@ -16,4 +16,9 @@
     <string name="catchup_retry">फिर कोशिश करें</string>
     <string name="catchup_open_failed">यह कार्यक्रम खोला नहीं जा सका</string>
     <string name="catchup_yesterday">कल</string>
+    <!-- Catch-up's search box: one for the categories and the channels. -->
+    <string name="catchup_search_hint">श्रेणियाँ और चैनल खोजें</string>
+    <string name="catchup_section_groups">श्रेणियाँ</string>
+    <string name="catchup_section_channels">चैनल</string>
+    <string name="catchup_search_none">आपकी खोज से कुछ नहीं मिला</string>
 </resources>

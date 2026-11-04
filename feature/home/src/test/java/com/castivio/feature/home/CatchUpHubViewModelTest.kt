@@ -136,6 +136,63 @@ class CatchUpHubViewModelTest {
         assertEquals(HubStage.Groups, hub.stage.value)
     }
 
+    // ------------------------------------------------------------------------------------ the search
+
+    @Test
+    fun `what is typed is what the box holds, as typed`() {
+        val hub = hub()
+        hub.search("  SPort ")
+        assertEquals("  SPort ", hub.searchText.value)
+    }
+
+    @Test
+    fun `back closes a search before it leaves the page, on the categories and inside one`() {
+        val hub = hub()
+        hub.search("sport")
+        assertTrue(hub.back())
+        assertEquals("", hub.searchText.value)
+        assertEquals(HubStage.Groups, hub.stage.value)
+        assertFalse(hub.back())
+
+        hub.openGroup(france)
+        hub.search("tf")
+        assertTrue(hub.back())
+        assertEquals("", hub.searchText.value)
+        assertEquals(HubStage.Channels(france), hub.stage.value)
+        assertTrue(hub.back())
+        assertEquals(HubStage.Groups, hub.stage.value)
+    }
+
+    @Test
+    fun `a category opened from the results starts with nothing typed`() {
+        val hub = hub()
+        hub.search("sport")
+        hub.openGroup(france)
+        assertEquals("", hub.searchText.value)
+        assertEquals(HubStage.Channels(france), hub.stage.value)
+    }
+
+    @Test
+    fun `a channel found on the first page goes back to the first page and its search`() {
+        val hub = hub()
+        hub.search("sport")
+        hub.openChannel(channel)
+        assertEquals(HubStage.Programmes(null, channel, fromGroups = true), hub.stage.value)
+        assertEquals("sport", hub.searchText.value)
+
+        assertTrue(hub.back())
+        assertEquals(HubStage.Groups, hub.stage.value)
+        assertEquals("sport", hub.searchText.value)
+    }
+
+    @Test
+    fun `leaving Catch-up clears the search as it clears the place`() {
+        val hub = hub()
+        hub.search("sport")
+        hub.reset()
+        assertEquals("", hub.searchText.value)
+    }
+
     // -------------------------------------------------------------------- a channel with no recording
 
     @Test

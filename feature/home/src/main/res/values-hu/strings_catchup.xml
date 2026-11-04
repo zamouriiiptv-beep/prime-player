@@ -16,4 +16,9 @@
     <string name="catchup_retry">Újra</string>
     <string name="catchup_open_failed">Ez a műsor nem nyitható meg</string>
     <string name="catchup_yesterday">Tegnap</string>
+    <!-- Catch-up's search box: one for the categories and the channels. -->
+    <string name="catchup_search_hint">Kategóriák és csatornák keresése</string>
+    <string name="catchup_section_groups">Kategóriák</string>
+    <string name="catchup_section_channels">Csatornák</string>
+    <string name="catchup_search_none">Nincs találat a keresésre</string>
 </resources>

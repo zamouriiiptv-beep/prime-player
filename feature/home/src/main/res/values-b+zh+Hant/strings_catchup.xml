@@ -16,4 +16,9 @@
     <string name="catchup_retry">重試</string>
     <string name="catchup_open_failed">無法開啟此節目</string>
     <string name="catchup_yesterday">昨天</string>
+    <!-- Catch-up's search box: one for the categories and the channels. -->
+    <string name="catchup_search_hint">搜尋分類和頻道</string>
+    <string name="catchup_section_groups">分類</string>
+    <string name="catchup_section_channels">頻道</string>
+    <string name="catchup_search_none">沒有符合搜尋的結果</string>
 </resources>

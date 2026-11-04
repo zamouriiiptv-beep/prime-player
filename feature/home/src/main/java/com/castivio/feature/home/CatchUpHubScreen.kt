@@ -1,9 +1,11 @@
 package com.castivio.feature.home
 
 import androidx.activity.compose.BackHandler
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -21,6 +23,7 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,13 +34,16 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -74,7 +80,14 @@ import com.castivio.domain.Channel
  * ## Back, one place at a time
  *
  * Programmes, then the channels, then the categories, and from the categories out of Catch-up -- [CatchUpHubViewModel.back]
- * says which, and a false from it is the caller's [onBack].
+ * says which, and a false from it is the caller's [onBack]. A search that holds something is closed first.
+ *
+ * ## One search, one box
+ *
+ * At the end of the panel's header, the same box at every place a list is. On the first page it finds categories and
+ * channels together, in two sections; inside a category, that category's channels. The header follows the language --
+ * Back at the right in Arabic, pointing right -- while the lists under it keep the board's left-to-right order, because
+ * what they hold are the provider's names.
  *
  * ## What it asks of the network
  *
@@ -90,9 +103,15 @@ fun CatchUpHubScreen(
     programmes: CatchUpViewModel = hiltViewModel(),
 ) {
     val tv = CastivioTheme.device.isTv
+    // The language's own direction, read before the board is made left to right: the panel's header follows it.
+    val direction = LocalLayoutDirection.current
     val stage by hub.stage.collectAsStateWithLifecycle()
     val groups by hub.groups.collectAsStateWithLifecycle()
+    val matches by hub.matches.collectAsStateWithLifecycle()
+    val searchText by hub.searchText.collectAsStateWithLifecycle()
     val channels = hub.channels.collectAsLazyPagingItems()
+    // Whether the cursor is in the search box: a list that arrives while the viewer types must not take it away.
+    var searchFocused by remember { mutableStateOf(false) }
 
     // Leaving Catch-up for Home ends this visit: the next one begins at the categories.
     DisposableEffect(Unit) { onDispose { hub.reset() } }
@@ -129,6 +148,10 @@ fun CatchUpHubScreen(
 
                 HubPanel(
                     m = m,
+                    direction = direction,
+                    searchText = searchText,
+                    onSearch = hub::search,
+                    onSearchFocus = { searchFocused = it },
                     title = when (val at = stage) {
                         HubStage.Groups -> stringResource(R.string.catchup_title)
                         is HubStage.Channels -> at.group?.name ?: stringResource(R.string.catchup_all)
@@ -140,9 +163,31 @@ fun CatchUpHubScreen(
                     },
                     onBack = { if (!hub.back()) onBack() },
                 ) {
-                    when (stage) {
-                        HubStage.Groups -> GroupsPage(groups = groups, m = m, onOpen = hub::openGroup)
-                        else -> ChannelsPage(channels = channels, m = m, onOpen = hub::openChannel)
+                    val found = matches
+                    val onFirstPage = stage == HubStage.Groups || (stage as? HubStage.Programmes)?.fromGroups == true
+                    when {
+                        // The categories, or -- while something is searched -- what matched among them and the channels.
+                        onFirstPage && found == null -> GroupsPage(
+                            groups = groups,
+                            m = m,
+                            autoFocus = !searchFocused,
+                            onOpen = hub::openGroup,
+                        )
+                        onFirstPage && found != null -> SearchResults(
+                            found = found,
+                            channels = channels,
+                            m = m,
+                            direction = direction,
+                            onOpenGroup = hub::openGroup,
+                            onOpenChannel = hub::openChannel,
+                        )
+                        else -> ChannelsPage(
+                            channels = channels,
+                            m = m,
+                            searching = searchText.isNotBlank(),
+                            autoFocus = !searchFocused,
+                            onOpen = hub::openChannel,
+                        )
                     }
                 }
             }
@@ -165,8 +210,12 @@ fun CatchUpHubScreen(
 @Composable
 private fun ColumnScope.HubPanel(
     m: ChannelsMetrics,
+    direction: LayoutDirection,
     title: String,
     hint: String,
+    searchText: String,
+    onSearch: (String) -> Unit,
+    onSearchFocus: (Boolean) -> Unit,
     onBack: () -> Unit,
     content: @Composable () -> Unit,
 ) {
@@ -181,27 +230,48 @@ private fun ColumnScope.HubPanel(
             .border(1.dp, colors.glassBorder, shape)
             .padding(m.wellPad),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(m.controlPadH)) {
-            CastivioIconButton(
-                icon = CastivioIcons.ArrowBack,
-                contentDescription = stringResource(R.string.catchup_back),
-                onClick = onBack,
-            )
-            Text(
-                text = title,
-                style = castivioTitleStyle(m.frame.fsLabel),
-                color = colors.onBackgroundStrong,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = hint,
-                style = castivioBodyStyle(m.frame.fsBody),
-                color = colors.onBackgroundMuted,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
+        // The header follows the language, as a page of this kind does: Back at the start -- the right in Arabic, and
+        // pointing the way Back goes there -- then what this is, and at the end the one search box, which looks for
+        // categories and channels together. The pages under it are the board's, drawn left to right in every language,
+        // so the box keeps its own mark at its left.
+        CompositionLocalProvider(LocalLayoutDirection provides direction) {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(m.controlPadH),
+            ) {
+                CastivioIconButton(
+                    icon = CastivioIcons.ArrowBack,
+                    contentDescription = stringResource(R.string.catchup_back),
+                    onClick = onBack,
+                    modifier = if (direction == LayoutDirection.Rtl) Modifier.graphicsLayer(scaleX = -1f) else Modifier,
+                )
+                Text(
+                    text = title,
+                    style = castivioTitleStyle(m.frame.fsLabel),
+                    color = colors.onBackgroundStrong,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = hint,
+                    style = castivioBodyStyle(m.frame.fsBody),
+                    color = colors.onBackgroundMuted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                    HeaderSearchField(
+                        text = searchText,
+                        m = m,
+                        onType = onSearch,
+                        onFocusChange = onSearchFocus,
+                        hint = stringResource(R.string.catchup_search_hint),
+                        markAsButton = true,
+                    )
+                }
+            }
         }
         Spacer(Modifier.height(m.guideGap))
         content()
@@ -210,10 +280,10 @@ private fun ColumnScope.HubPanel(
 
 /** The categories that keep an archive, and "all" first, in the azure of the one thing a first press does. */
 @Composable
-private fun GroupsPage(groups: HubGroups?, m: ChannelsMetrics, onOpen: (ArchiveGroup?) -> Unit) {
+private fun GroupsPage(groups: HubGroups?, m: ChannelsMetrics, autoFocus: Boolean, onOpen: (ArchiveGroup?) -> Unit) {
     val first = remember { FocusRequester() }
-    LaunchedEffect(groups?.groups?.isNotEmpty()) {
-        if (groups?.groups?.isNotEmpty() == true) runCatching { first.requestFocus() }
+    LaunchedEffect(groups?.groups?.isNotEmpty(), autoFocus) {
+        if (autoFocus && groups?.groups?.isNotEmpty() == true) runCatching { first.requestFocus() }
     }
     when {
         groups == null -> Waiting(m)
@@ -272,14 +342,15 @@ private fun GroupCard(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
+            // White, as a channel's number is on the channels' board -- the plate behind it is only a quiet step up from the card.
             Text(
                 text = count.toString(),
                 style = castivioChipStyle(m.frame.fsChip),
-                color = if (lead) colors.onBackgroundStrong else colors.secondary,
+                color = if (lead) colors.onBackgroundStrong else colors.onBackground,
                 maxLines = 1,
                 modifier = Modifier
                     .clip(pill)
-                    .background(if (lead) colors.onBackgroundStrong.copy(alpha = BADGE_ON_LEAD) else colors.secondary.copy(alpha = BADGE_ALPHA))
+                    .background((if (lead) colors.onBackgroundStrong else colors.onBackground).copy(alpha = if (lead) BADGE_ON_LEAD else PLATE_ALPHA))
                     .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
             )
             Icon(
@@ -294,14 +365,23 @@ private fun GroupCard(
 
 /** A category's channels that keep an archive, a window at a time. */
 @Composable
-private fun ChannelsPage(channels: LazyPagingItems<Channel>, m: ChannelsMetrics, onOpen: (Channel) -> Unit) {
+private fun ChannelsPage(
+    channels: LazyPagingItems<Channel>,
+    m: ChannelsMetrics,
+    searching: Boolean,
+    autoFocus: Boolean,
+    onOpen: (Channel) -> Unit,
+) {
     val first = remember { FocusRequester() }
-    LaunchedEffect(channels.itemCount > 0) {
-        if (channels.itemCount > 0) runCatching { first.requestFocus() }
+    LaunchedEffect(channels.itemCount > 0, autoFocus) {
+        if (autoFocus && channels.itemCount > 0) runCatching { first.requestFocus() }
     }
     when {
-        channels.itemCount == 0 && channels.loadState.refresh is LoadState.Loading -> Waiting(m)
-        channels.itemCount == 0 -> Empty(m)
+        // A search is read again at every pause in the typing: a spinner at each would be a flicker, so there is none.
+        channels.itemCount == 0 && channels.loadState.refresh is LoadState.Loading ->
+            if (searching) Spacer(Modifier.fillMaxSize()) else Waiting(m)
+        channels.itemCount == 0 ->
+            Empty(m, if (searching) R.string.catchup_search_none else R.string.catchup_hub_empty)
         else -> LazyVerticalGrid(
             columns = GridCells.Adaptive(CHANNEL_MIN_WIDTH),
             modifier = Modifier.fillMaxSize(),
@@ -342,8 +422,12 @@ private fun ChannelEntry(channel: Channel, m: ChannelsMetrics, onClick: () -> Un
             Text(
                 text = channel.number?.toString().orEmpty(),
                 style = castivioChipStyle(m.frame.fsChip),
-                color = colors.onBackgroundMuted,
+                color = colors.onBackground,
                 maxLines = 1,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(m.panelRadius))
+                    .background(colors.onBackground.copy(alpha = NUMBER_PLATE_ALPHA))
+                    .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
             )
             ProviderArtwork(
                 url = channel.artworkUrl,
@@ -374,6 +458,90 @@ private fun ChannelEntry(channel: Channel, m: ChannelsMetrics, onClick: () -> Un
     }
 }
 
+/**
+ * What a search on the first page found: the categories whose names match, then the channels that match -- in two
+ * sections of one grid, so a long list of channels scrolls under its heading and the categories above it go with it.
+ *
+ * A section with nothing in it is not drawn, and nothing at all says so in words. The channels' count is told only when
+ * every one has been read: a window of them is not their number.
+ */
+@Composable
+private fun SearchResults(
+    found: List<ArchiveGroup>,
+    channels: LazyPagingItems<Channel>,
+    m: ChannelsMetrics,
+    direction: LayoutDirection,
+    onOpenGroup: (ArchiveGroup) -> Unit,
+    onOpenChannel: (Channel) -> Unit,
+) {
+    val reading = channels.itemCount == 0 && channels.loadState.refresh is LoadState.Loading
+    if (found.isEmpty() && channels.itemCount == 0) {
+        // Reading is not finding nothing: the sentence waits for the channels' answer, and nothing stands in for it.
+        if (reading) Spacer(Modifier.fillMaxSize()) else Empty(m, R.string.catchup_search_none)
+        return
+    }
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val columns = searchColumns(maxWidth.value, m.guideGap.value, GROUP_MIN_WIDTH.value, CHANNEL_MIN_WIDTH.value)
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(columns.total),
+            modifier = Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.spacedBy(m.guideGap),
+            verticalArrangement = Arrangement.spacedBy(m.guideGap),
+        ) {
+            if (found.isNotEmpty()) {
+                item(key = SECTION_GROUPS, span = { GridItemSpan(maxLineSpan) }) {
+                    SearchHeading(stringResource(R.string.catchup_section_groups), found.size, direction, m)
+                }
+                items(found, key = { "group.${it.id}" }, span = { GridItemSpan(columns.groupSpan) }) { group ->
+                    GroupCard(name = group.name, count = group.channels, lead = false, m = m, onClick = { onOpenGroup(group) })
+                }
+            }
+            if (channels.itemCount > 0) {
+                item(key = SECTION_CHANNELS, span = { GridItemSpan(maxLineSpan) }) {
+                    val total = channels.itemCount.takeIf { channels.loadState.append.endOfPaginationReached }
+                    SearchHeading(stringResource(R.string.catchup_section_channels), total, direction, m)
+                }
+                items(
+                    count = channels.itemCount,
+                    key = channels.itemKey { "channel.${it.id}" },
+                    span = { GridItemSpan(columns.channelSpan) },
+                ) { index ->
+                    channels[index]?.let { channel -> ChannelEntry(channel = channel, m = m, onClick = { onOpenChannel(channel) }) }
+                }
+            }
+        }
+    }
+}
+
+/** A section's name, how many it holds when that is known, and a hairline to the far edge -- in the language's direction. */
+@Composable
+private fun SearchHeading(label: String, count: Int?, direction: LayoutDirection, m: ChannelsMetrics) {
+    val colors = CastivioTheme.colors
+    CompositionLocalProvider(LocalLayoutDirection provides direction) {
+        Row(
+            Modifier.fillMaxWidth().padding(top = Spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            Text(
+                text = label,
+                style = castivioChipStyle(m.frame.fsChip),
+                color = colors.onBackgroundMuted,
+                maxLines = 1,
+            )
+            if (count != null) {
+                Text(
+                    text = count.toString(),
+                    style = castivioChipStyle(m.frame.fsChip),
+                    color = colors.onBackground,
+                    maxLines = 1,
+                )
+            }
+            Box(Modifier.weight(1f).height(1.dp).background(colors.glassBorderSoft))
+        }
+    }
+}
+
 @Composable
 private fun Waiting(m: ChannelsMetrics) {
     Column(
@@ -391,14 +559,14 @@ private fun Waiting(m: ChannelsMetrics) {
 }
 
 @Composable
-private fun Empty(m: ChannelsMetrics) {
+private fun Empty(m: ChannelsMetrics, @StringRes message: Int = R.string.catchup_hub_empty) {
     Column(
         Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
-            text = stringResource(R.string.catchup_hub_empty),
+            text = stringResource(message),
             style = castivioBodyStyle(m.frame.fsBody),
             color = CastivioTheme.colors.onBackgroundMuted,
         )
@@ -414,9 +582,17 @@ private val CHANNEL_MIN_WIDTH = 220.dp
 /** The channel's logo in an entry, about two lines of the label's own size. */
 private const val LOGO_IN_ENTRY = 1.8f
 
-/** How much of its colour a count's or a day's pill is filled with, and how much of white on the azure card. */
+/** How much of its colour a day's pill is filled with, and how much of white on the azure card. */
 private const val BADGE_ALPHA = 0.16f
 private const val BADGE_ON_LEAD = 0.22f
 
+/** The plates behind white figures: a category's count and a channel's number. Quiet, because the figure is the thing. */
+private const val PLATE_ALPHA = 0.13f
+private const val NUMBER_PLATE_ALPHA = 0.10f
+
 /** The first card's key: "all", which is no category's id. */
 private const val ALL_KEY = "catchup.all"
+
+/** The keys of a search's two headings: neither is a category's or a channel's id. */
+private const val SECTION_GROUPS = "catchup.section.groups"
+private const val SECTION_CHANNELS = "catchup.section.channels"

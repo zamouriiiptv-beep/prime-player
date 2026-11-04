@@ -136,6 +136,39 @@ interface MediaDao {
     suspend fun windowArchiveInGroup(kind: String, groupId: String, offset: Int, limit: Int): List<MediaEntity>
 
     /**
+     * The same windows, narrowed by name: the channels with an archive whose name matches, in the provider's order. Read
+     * through the index like [windowMatching] -- which is why this is a join and not a filter over [windowArchive] -- and
+     * kept to the rows with hours, so a search of Catch-up never finds a channel it could not open.
+     */
+    @Query(
+        """
+        SELECT m.* FROM media_fts f
+        INNER JOIN media m ON m.id = f.media_id
+        WHERE f.search_text MATCH :match AND m.source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN_M AND m.kind = :kind
+          AND m.catch_up_hours > 0
+        ORDER BY m.provider_order, m.id LIMIT :limit OFFSET :offset
+        """,
+    )
+    suspend fun windowArchiveMatching(match: String, kind: String, offset: Int, limit: Int): List<MediaEntity>
+
+    @Query(
+        """
+        SELECT m.* FROM media_fts f
+        INNER JOIN media m ON m.id = f.media_id
+        WHERE f.search_text MATCH :match AND m.source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN_M AND m.kind = :kind
+          AND m.group_id = :groupId AND m.catch_up_hours > 0
+        ORDER BY m.provider_order, m.id LIMIT :limit OFFSET :offset
+        """,
+    )
+    suspend fun windowArchiveMatchingInGroup(
+        match: String,
+        kind: String,
+        groupId: String,
+        offset: Int,
+        limit: Int,
+    ): List<MediaEntity>
+
+    /**
      * The categories that hold a channel with an archive, each with how many, in the provider's order.
      *
      * One aggregate over the live rows of the active subscription -- the rows of a section that has a few thousand

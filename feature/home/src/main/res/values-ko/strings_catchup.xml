@@ -16,4 +16,9 @@
     <string name="catchup_retry">다시 시도</string>
     <string name="catchup_open_failed">이 프로그램을 열 수 없습니다</string>
     <string name="catchup_yesterday">어제</string>
+    <!-- Catch-up's search box: one for the categories and the channels. -->
+    <string name="catchup_search_hint">카테고리 및 채널 검색</string>
+    <string name="catchup_section_groups">카테고리</string>
+    <string name="catchup_section_channels">채널</string>
+    <string name="catchup_search_none">검색과 일치하는 항목이 없습니다</string>
 </resources>

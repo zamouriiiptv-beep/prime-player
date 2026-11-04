@@ -16,4 +16,9 @@
     <string name="catchup_retry">ลองอีกครั้ง</string>
     <string name="catchup_open_failed">เปิดรายการนี้ไม่ได้</string>
     <string name="catchup_yesterday">เมื่อวาน</string>
+    <!-- Catch-up's search box: one for the categories and the channels. -->
+    <string name="catchup_search_hint">ค้นหาหมวดและช่อง</string>
+    <string name="catchup_section_groups">หมวด</string>
+    <string name="catchup_section_channels">ช่อง</string>
+    <string name="catchup_search_none">ไม่พบสิ่งที่ตรงกับการค้นหา</string>
 </resources>

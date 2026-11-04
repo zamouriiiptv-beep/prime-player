@@ -16,4 +16,9 @@
     <string name="catchup_retry">Provo përsëri</string>
     <string name="catchup_open_failed">Ky program nuk mund të hapet</string>
     <string name="catchup_yesterday">Dje</string>
+    <!-- Catch-up's search box: one for the categories and the channels. -->
+    <string name="catchup_search_hint">Kërko kategori dhe kanale</string>
+    <string name="catchup_section_groups">Kategori</string>
+    <string name="catchup_section_channels">Kanale</string>
+    <string name="catchup_search_none">Asgjë nuk përputhet me kërkimin</string>
 </resources>

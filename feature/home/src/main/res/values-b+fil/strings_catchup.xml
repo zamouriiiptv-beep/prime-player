@@ -16,4 +16,9 @@
     <string name="catchup_retry">Subukan muli</string>
     <string name="catchup_open_failed">Hindi mabuksan ang programang ito</string>
     <string name="catchup_yesterday">Kahapon</string>
+    <!-- Catch-up's search box: one for the categories and the channels. -->
+    <string name="catchup_search_hint">Maghanap ng kategorya at channel</string>
+    <string name="catchup_section_groups">Kategorya</string>
+    <string name="catchup_section_channels">Mga channel</string>
+    <string name="catchup_search_none">Walang tumugma sa hinahanap mo</string>
 </resources>

@@ -16,4 +16,9 @@
     <string name="catchup_retry">再試行</string>
     <string name="catchup_open_failed">この番組を開けませんでした</string>
     <string name="catchup_yesterday">昨日</string>
+    <!-- Catch-up's search box: one for the categories and the channels. -->
+    <string name="catchup_search_hint">カテゴリーとチャンネルを検索</string>
+    <string name="catchup_section_groups">カテゴリー</string>
+    <string name="catchup_section_channels">チャンネル</string>
+    <string name="catchup_search_none">検索に一致するものはありません</string>
 </resources>

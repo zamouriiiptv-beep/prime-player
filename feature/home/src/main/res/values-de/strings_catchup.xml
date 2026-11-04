@@ -16,4 +16,9 @@
     <string name="catchup_retry">Erneut versuchen</string>
     <string name="catchup_open_failed">Diese Sendung konnte nicht geöffnet werden</string>
     <string name="catchup_yesterday">Gestern</string>
+    <!-- Catch-up's search box: one for the categories and the channels. -->
+    <string name="catchup_search_hint">Kategorien und Sender suchen</string>
+    <string name="catchup_section_groups">Kategorien</string>
+    <string name="catchup_section_channels">Sender</string>
+    <string name="catchup_search_none">Nichts passt zu deiner Suche</string>
 </resources>

@@ -16,4 +16,9 @@
     <string name="catchup_retry">تلاش دوباره</string>
     <string name="catchup_open_failed">این برنامه باز نشد</string>
     <string name="catchup_yesterday">دیروز</string>
+    <!-- Catch-up's search box: one for the categories and the channels. -->
+    <string name="catchup_search_hint">جست‌وجوی دسته‌ها و کانال‌ها</string>
+    <string name="catchup_section_groups">دسته‌ها</string>
+    <string name="catchup_section_channels">کانال‌ها</string>
+    <string name="catchup_search_none">چیزی با جست‌وجوی شما مطابقت نداشت</string>
 </resources>

@@ -16,4 +16,9 @@
     <string name="catchup_retry">Încearcă din nou</string>
     <string name="catchup_open_failed">Această emisiune nu a putut fi deschisă</string>
     <string name="catchup_yesterday">Ieri</string>
+    <!-- Catch-up's search box: one for the categories and the channels. -->
+    <string name="catchup_search_hint">Caută categorii și canale</string>
+    <string name="catchup_section_groups">Categorii</string>
+    <string name="catchup_section_channels">Canale</string>
+    <string name="catchup_search_none">Nimic nu se potrivește căutării</string>
 </resources>

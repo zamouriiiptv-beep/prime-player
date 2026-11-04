@@ -16,4 +16,9 @@
     <string name="catchup_retry">Zkusit znovu</string>
     <string name="catchup_open_failed">Tento pořad nelze otevřít</string>
     <string name="catchup_yesterday">Včera</string>
+    <!-- Catch-up's search box: one for the categories and the channels. -->
+    <string name="catchup_search_hint">Hledat kategorie a kanály</string>
+    <string name="catchup_section_groups">Kategorie</string>
+    <string name="catchup_section_channels">Kanály</string>
+    <string name="catchup_search_none">Hledání nic nenašlo</string>
 </resources>

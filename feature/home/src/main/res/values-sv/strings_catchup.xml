@@ -16,4 +16,9 @@
     <string name="catchup_retry">Försök igen</string>
     <string name="catchup_open_failed">Programmet kunde inte öppnas</string>
     <string name="catchup_yesterday">Igår</string>
+    <!-- Catch-up's search box: one for the categories and the channels. -->
+    <string name="catchup_search_hint">Sök bland kategorier och kanaler</string>
+    <string name="catchup_section_groups">Kategorier</string>
+    <string name="catchup_section_channels">Kanaler</string>
+    <string name="catchup_search_none">Inget matchar din sökning</string>
 </resources>

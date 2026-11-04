@@ -16,4 +16,9 @@
     <string name="catchup_retry">Tekrar dene</string>
     <string name="catchup_open_failed">Bu program açılamadı</string>
     <string name="catchup_yesterday">Dün</string>
+    <!-- Catch-up's search box: one for the categories and the channels. -->
+    <string name="catchup_search_hint">Kategorilerde ve kanallarda ara</string>
+    <string name="catchup_section_groups">Kategoriler</string>
+    <string name="catchup_section_channels">Kanallar</string>
+    <string name="catchup_search_none">Aramanızla eşleşen bir şey yok</string>
 </resources>
