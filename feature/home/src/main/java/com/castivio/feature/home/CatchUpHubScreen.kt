@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.displayCutout
@@ -209,6 +210,64 @@ fun CatchUpHubScreen(
     }
 }
 
+/**
+ * The header every page of Catch-up has, so that the three look like one: Back, what this page is, and the one search box.
+ *
+ * It follows the language, as a page of this kind does: Back at the start -- the right in Arabic, mirrored to point right
+ * there -- then [title], then at the end the box. The room that is left once those are placed is shared equally between the
+ * three gaps -- Back and the title, the title and the box, the box and the panel's edge -- so none is tighter than another.
+ * The pages under it are the board's, drawn left to right in every language, so the box keeps its own mark at its left.
+ *
+ * What gives, on a narrow screen, is the last thing in [title] that can: it ends in an ellipsis, and the box stays whole.
+ *
+ * @param title the words of the header's middle, in a row: what the page is and what it is about.
+ */
+@Composable
+internal fun CatchUpHeader(
+    m: ChannelsMetrics,
+    direction: LayoutDirection,
+    onBack: () -> Unit,
+    searchText: String,
+    onSearch: (String) -> Unit,
+    onSearchFocus: (Boolean) -> Unit,
+    searchHint: String,
+    title: @Composable RowScope.() -> Unit,
+) {
+    CompositionLocalProvider(LocalLayoutDirection provides direction) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            CastivioIconButton(
+                icon = CastivioIcons.ArrowBack,
+                contentDescription = stringResource(R.string.catchup_back),
+                onClick = onBack,
+                modifier = if (direction == LayoutDirection.Rtl) Modifier.graphicsLayer(scaleX = -1f) else Modifier,
+            )
+            Row(
+                Modifier.weight(1f),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(
+                    Modifier.weight(1f, fill = false),
+                    horizontalArrangement = Arrangement.spacedBy(m.controlPadH),
+                    verticalAlignment = Alignment.CenterVertically,
+                    content = title,
+                )
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                    HeaderSearchField(
+                        text = searchText,
+                        m = m,
+                        onType = onSearch,
+                        onFocusChange = onSearchFocus,
+                        hint = searchHint,
+                        markAsButton = true,
+                        scale = CATCHUP_SEARCH_SCALE,
+                    )
+                }
+            }
+        }
+    }
+}
+
 /** The frame of a page: the back control, the title, what to do, and the page under them. */
 @Composable
 private fun ColumnScope.HubPanel(
@@ -235,61 +294,31 @@ private fun ColumnScope.HubPanel(
             .border(1.dp, colors.glassBorder, shape)
             .padding(m.wellPad),
     ) {
-        // The header follows the language, as a page of this kind does: Back at the start -- the right in Arabic, and
-        // pointing the way Back goes there -- then what this is, and at the end the one search box, which looks for
-        // categories and channels together. The room that is left once those are placed is shared equally between the
-        // three gaps -- Back and the title, the title and the box, the box and the panel's edge -- so none is tighter
-        // than another. The pages under it are the board's, drawn left to right in every language, so the box keeps
-        // its own mark at its left.
-        CompositionLocalProvider(LocalLayoutDirection provides direction) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                CastivioIconButton(
-                    icon = CastivioIcons.ArrowBack,
-                    contentDescription = stringResource(R.string.catchup_back),
-                    onClick = onBack,
-                    modifier = if (direction == LayoutDirection.Rtl) Modifier.graphicsLayer(scaleX = -1f) else Modifier,
-                )
-                Row(
-                    Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    // What gives, on a narrow screen, is the line under the title: it ends in an ellipsis, and the box stays whole.
-                    Row(
-                        Modifier.weight(1f, fill = false),
-                        horizontalArrangement = Arrangement.spacedBy(m.controlPadH),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = title,
-                            style = castivioTitleStyle(m.frame.fsLabel),
-                            color = colors.onBackgroundStrong,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            text = hint,
-                            style = if (hintIsName) castivioChipStyle(m.frame.fsBody * HINT_SCALE)
-                            else castivioBodyStyle(m.frame.fsBody * HINT_SCALE),
-                            color = if (hintIsName) colors.onBackground else colors.onBackgroundMuted,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false),
-                        )
-                    }
-                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                        HeaderSearchField(
-                            text = searchText,
-                            m = m,
-                            onType = onSearch,
-                            onFocusChange = onSearchFocus,
-                            hint = stringResource(R.string.catchup_search_hint),
-                            markAsButton = true,
-                            scale = SEARCH_BOX_SCALE,
-                        )
-                    }
-                }
-            }
+        CatchUpHeader(
+            m = m,
+            direction = direction,
+            onBack = onBack,
+            searchText = searchText,
+            onSearch = onSearch,
+            onSearchFocus = onSearchFocus,
+            searchHint = stringResource(R.string.catchup_search_hint),
+        ) {
+            Text(
+                text = title,
+                style = castivioTitleStyle(m.frame.fsLabel),
+                color = colors.onBackgroundStrong,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = hint,
+                style = if (hintIsName) castivioChipStyle(m.frame.fsBody * HINT_SCALE)
+                else castivioBodyStyle(m.frame.fsBody * HINT_SCALE),
+                color = if (hintIsName) colors.onBackground else colors.onBackgroundMuted,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
+            )
         }
         Spacer(Modifier.height(m.guideGap))
         content()
@@ -605,9 +634,6 @@ private fun Empty(m: ChannelsMetrics, @StringRes message: Int = R.string.catchup
 
 /** The line under the title a little larger than a body line: it is what the page says it is for. */
 private const val HINT_SCALE = 1.2f
-
-/** The search box against the channels' board's own: larger, because here it stands alone in a header. */
-private const val SEARCH_BOX_SCALE = 1.8f
 
 /** A category's card is at least this wide: three in a row on a television's board, fewer on a phone. */
 private val GROUP_MIN_WIDTH = 150.dp

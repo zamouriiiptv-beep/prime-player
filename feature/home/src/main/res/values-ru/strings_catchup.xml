@@ -2,7 +2,6 @@
 <resources>
     <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
     <string name="catchup_title">Архив</string>
-    <string name="catchup_subtitle">Передачи для просмотра (архив)</string>
     <string name="catchup_hub_subtitle">Уже вышедшие передачи, смотрите когда удобно</string>
     <string name="catchup_all">Все</string>
     <string name="catchup_pick_channel">Выберите канал</string>
@@ -23,4 +22,5 @@
     <string name="catchup_search_none">Ничего не найдено</string>
     <!-- The line under the feature's name in the top band: one short word, because its cell is about 90dp. -->
     <string name="catchup_band">Записи</string>
+    <string name="catchup_search_programmes">Поиск передач</string>
 </resources>

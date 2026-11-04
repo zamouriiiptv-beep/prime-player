@@ -2,7 +2,6 @@
 <resources>
     <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
     <string name="catchup_title">Terugkijken</string>
-    <string name="catchup_subtitle">Programma\'s om terug te kijken (archief)</string>
     <string name="catchup_hub_subtitle">Programma\'s die al zijn uitgezonden, kijk wanneer je wilt</string>
     <string name="catchup_all">Alles</string>
     <string name="catchup_pick_channel">Kies een zender</string>
@@ -23,4 +22,5 @@
     <string name="catchup_search_none">Niets komt overeen met je zoekopdracht</string>
     <!-- The line under the feature's name in the top band: one short word, because its cell is about 90dp. -->
     <string name="catchup_band">Archief</string>
+    <string name="catchup_search_programmes">Programma\'s zoeken</string>
 </resources>

@@ -2,7 +2,6 @@
 <resources>
     <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
     <string name="catchup_title">Ό,τι χάσατε</string>
-    <string name="catchup_subtitle">Εκπομπές διαθέσιμες για προβολή (αρχείο)</string>
     <string name="catchup_hub_subtitle">Εκπομπές που έχουν ήδη προβληθεί, δείτε τις όποτε θέλετε</string>
     <string name="catchup_all">Όλα</string>
     <string name="catchup_pick_channel">Επιλέξτε κανάλι</string>
@@ -23,4 +22,5 @@
     <string name="catchup_search_none">Δεν βρέθηκε τίποτα για την αναζήτησή σας</string>
     <!-- The line under the feature's name in the top band: one short word, because its cell is about 90dp. -->
     <string name="catchup_band">Αρχείο</string>
+    <string name="catchup_search_programmes">Αναζήτηση εκπομπών</string>
 </resources>

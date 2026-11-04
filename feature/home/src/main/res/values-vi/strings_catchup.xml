@@ -2,7 +2,6 @@
 <resources>
     <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
     <string name="catchup_title">Xem lại</string>
-    <string name="catchup_subtitle">Chương trình có thể xem (lưu trữ)</string>
     <string name="catchup_hub_subtitle">Các chương trình đã phát, xem khi bạn muốn</string>
     <string name="catchup_all">Tất cả</string>
     <string name="catchup_pick_channel">Chọn kênh</string>
@@ -23,4 +22,5 @@
     <string name="catchup_search_none">Không có kết quả khớp với tìm kiếm</string>
     <!-- The line under the feature's name in the top band: one short word, because its cell is about 90dp. -->
     <string name="catchup_band">Lưu trữ</string>
+    <string name="catchup_search_programmes">Tìm chương trình</string>
 </resources>

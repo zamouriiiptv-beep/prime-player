@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,7 +26,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,7 +36,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -47,14 +44,12 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.castivio.core.design.components.CastivioChip
-import com.castivio.core.design.components.CastivioIconButton
 import com.castivio.core.design.components.CastivioSpinner
 import com.castivio.core.design.components.InteractiveGlassCard
 import com.castivio.core.design.components.ProviderArtwork
 import com.castivio.core.design.components.castivioBodyStyle
 import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.castivioTitleStyle
-import com.castivio.core.design.icons.CastivioIcons
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Spacing
 import com.castivio.domain.Channel
@@ -100,14 +95,18 @@ internal fun CatchUpOverlay(
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(m.panelRadius)
     val state by model.state.collectAsStateWithLifecycle()
+    val view by model.view.collectAsStateWithLifecycle()
+    val searchText by model.searchText.collectAsStateWithLifecycle()
     val first = remember { FocusRequester() }
+    // Back closes a search that holds something before it leaves the screen, as it does on the pages under this one.
+    val back = { if (!model.clearSearch()) onClose() }
 
     // Asked when the screen opens, cancelled when it is left: the screen owns the request for exactly as long as it is on.
     DisposableEffect(channel.id) {
         model.open(channel)
         onDispose { model.close() }
     }
-    BackHandler(onBack = onClose)
+    BackHandler(onBack = back)
     LaunchedEffect(state.phase, state.dayIndex) {
         if (state.phase == CatchUpPhase.READY) runCatching { first.requestFocus() }
     }
@@ -135,42 +134,36 @@ internal fun CatchUpOverlay(
                 .border(1.dp, colors.glassBorder, shape)
                 .padding(m.wellPad),
         ) {
-            // The header follows the language -- Back at the start, which is the right in Arabic and points right there --
-            // while the days and the programmes under it keep the board's left-to-right order.
-            CompositionLocalProvider(LocalLayoutDirection provides direction) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(m.controlPadH)) {
-                    CastivioIconButton(
-                        icon = CastivioIcons.ArrowBack,
-                        contentDescription = stringResource(R.string.catchup_back),
-                        onClick = onClose,
-                        modifier = if (direction == LayoutDirection.Rtl) Modifier.graphicsLayer(scaleX = -1f) else Modifier,
-                    )
-                    Text(
-                        text = stringResource(R.string.catchup_title),
-                        style = castivioTitleStyle(m.frame.fsLabel),
-                        color = colors.onBackgroundStrong,
-                        maxLines = 1,
-                    )
-                    ProviderArtwork(
-                        url = channel.artworkUrl,
-                        description = null,
-                        modifier = Modifier.size(m.frame.fsLabel * LOGO_IN_LABELS),
-                    )
-                    Text(
-                        text = channel.title,
-                        style = castivioChipStyle(m.frame.fsLabel),
-                        color = colors.onBackgroundStrong,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Text(
-                        text = stringResource(R.string.catchup_subtitle),
-                        style = castivioBodyStyle(m.frame.fsBody),
-                        color = colors.onBackgroundMuted,
-                        maxLines = 1,
-                    )
-                }
+            // The header every page of Catch-up has: Back, what this is -- the feature, the channel -- and the one search box,
+            // which here looks among this channel's programmes. The days and the programmes under it keep the board's order.
+            CatchUpHeader(
+                m = m,
+                direction = direction,
+                onBack = back,
+                searchText = searchText,
+                onSearch = model::search,
+                onSearchFocus = {},
+                searchHint = stringResource(R.string.catchup_search_programmes),
+            ) {
+                Text(
+                    text = stringResource(R.string.catchup_title),
+                    style = castivioTitleStyle(m.frame.fsLabel),
+                    color = colors.onBackgroundStrong,
+                    maxLines = 1,
+                )
+                ProviderArtwork(
+                    url = channel.artworkUrl,
+                    description = null,
+                    modifier = Modifier.size(m.frame.fsLabel * LOGO_IN_LABELS),
+                )
+                Text(
+                    text = channel.title,
+                    style = castivioChipStyle(m.frame.fsLabel),
+                    color = colors.onBackgroundStrong,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
             }
 
             Spacer(Modifier.height(m.guideGap))
@@ -216,14 +209,17 @@ internal fun CatchUpOverlay(
                     Spacer(Modifier.height(m.guideGap))
 
                     val day = state.days.getOrNull(state.dayIndex)
-                    if (day != null) {
+                    if (day != null && view.cards.isEmpty() && view.searching) {
+                        // Nothing on this day matches: said in the room the cards would have, and the days stay as they are.
+                        Message(m) { Say(m, R.string.catchup_search_none) }
+                    } else if (day != null) {
                         // The programmes fill what is left of the panel, two rows at a time, and scroll up and down for the rest:
                         // the cards are sized from the room there is, not from a width, so that two rows are always whole.
                         BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
                             val cardHeight = ((maxHeight - m.guideGap * (VISIBLE_ROWS - 1)) / VISIBLE_ROWS)
                                 .coerceAtLeast(CARD_MIN_HEIGHT)
-                            // Another day begins at the top, not at wherever the last one was scrolled to.
-                            val grid = remember(state.dayIndex) { LazyGridState() }
+                            // Another day, or another search, begins at the top, not at wherever the last one was scrolled to.
+                            val grid = remember(state.dayIndex, view.term) { LazyGridState() }
                             LazyVerticalGrid(
                                 columns = GridCells.Adaptive(CARD_MIN_WIDTH),
                                 state = grid,
@@ -231,7 +227,7 @@ internal fun CatchUpOverlay(
                                 horizontalArrangement = Arrangement.spacedBy(m.guideGap),
                                 verticalArrangement = Arrangement.spacedBy(m.guideGap),
                             ) {
-                                gridItemsIndexed(day.cards, key = { _, card -> card.programme.locator }) { index, card ->
+                                gridItemsIndexed(view.cards, key = { _, card -> card.programme.locator }) { index, card ->
                                     ProgrammeCard(
                                         card = card,
                                         logo = channel.artworkUrl,

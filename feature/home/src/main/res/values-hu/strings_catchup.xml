@@ -2,7 +2,6 @@
 <resources>
     <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
     <string name="catchup_title">Visszanézés</string>
-    <string name="catchup_subtitle">Megtekinthető műsorok (archívum)</string>
     <string name="catchup_hub_subtitle">Már adásba került műsorok, nézd meg, amikor akarod</string>
     <string name="catchup_all">Mind</string>
     <string name="catchup_pick_channel">Válassz csatornát</string>
@@ -23,4 +22,5 @@
     <string name="catchup_search_none">Nincs találat a keresésre</string>
     <!-- The line under the feature's name in the top band: one short word, because its cell is about 90dp. -->
     <string name="catchup_band">Archívum</string>
+    <string name="catchup_search_programmes">Műsorok keresése</string>
 </resources>

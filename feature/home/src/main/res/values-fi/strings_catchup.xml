@@ -2,7 +2,6 @@
 <resources>
     <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
     <string name="catchup_title">Jälkikäteen</string>
-    <string name="catchup_subtitle">Katsottavissa olevat ohjelmat (arkisto)</string>
     <string name="catchup_hub_subtitle">Jo esitetyt ohjelmat, katsottavissa milloin haluat</string>
     <string name="catchup_all">Kaikki</string>
     <string name="catchup_pick_channel">Valitse kanava</string>
@@ -23,4 +22,5 @@
     <string name="catchup_search_none">Haulla ei löytynyt mitään</string>
     <!-- The line under the feature's name in the top band: one short word, because its cell is about 90dp. -->
     <string name="catchup_band">Arkisto</string>
+    <string name="catchup_search_programmes">Hae ohjelmia</string>
 </resources>

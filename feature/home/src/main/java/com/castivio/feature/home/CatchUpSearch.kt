@@ -53,3 +53,24 @@ internal fun searchColumns(widthDp: Float, gapDp: Float, groupMinDp: Float, chan
 
 private fun columnsFor(widthDp: Float, gapDp: Float, minDp: Float): Int =
     floor((widthDp + gapDp) / (minDp + gapDp)).toInt().coerceAtLeast(1)
+
+/**
+ * The programmes whose title a search matches, in the order they were given: the rule [matchingGroups] applies to
+ * categories, applied to a day's cards -- every word of the search is the start of some word of the title.
+ *
+ * @param term a [searchTermOf] result; nothing searchable matches nothing, and the caller does not ask.
+ */
+internal fun matchingCards(cards: List<CatchUpCard>, term: String): List<CatchUpCard> {
+    val words = term.split(' ').filter { it.isNotEmpty() }
+    if (words.isEmpty()) return emptyList()
+    return cards.filter { card ->
+        val own = searchTermOf(card.title).split(' ')
+        words.all { word -> own.any { it.startsWith(word) } }
+    }
+}
+
+/** How long a search waits for the viewer to pause: the channels' board's own, and the same in every box of Catch-up. */
+internal const val CATCHUP_SEARCH_PAUSE_MS = 120L
+
+/** The search box of Catch-up against the channels' board's own: larger, because here it stands alone in a header. */
+internal const val CATCHUP_SEARCH_SCALE = 1.8f

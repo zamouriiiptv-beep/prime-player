@@ -1,6 +1,7 @@
 package com.castivio.feature.home
 
 import com.castivio.domain.ArchiveGroup
+import com.castivio.domain.CatchUpProgramme
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -54,6 +55,43 @@ class CatchUpSearchTest {
         val others = listOf(group("ما فاتك"), group("Новости"))
         assertEquals(listOf("Новости"), matchingGroups(others, "нов").map { it.name })
         assertEquals(listOf("ما فاتك"), matchingGroups(others, "فات").map { it.name })
+    }
+
+    // ------------------------------------------------------------------------------------ the programmes
+
+    private fun card(title: String, start: Long = 0L) = CatchUpCard(
+        programme = CatchUpProgramme(startMs = start, stopMs = start + 1, title = title, description = null, locator = "L$start$title"),
+        title = title,
+        timeText = "00:00 – 00:01",
+    )
+
+    private val day = listOf(
+        card("ICI 19/20 édition toutes régions", 1),
+        card("Le journal des talents", 2),
+        card("Journal Météo Climat", 3),
+        card("Tandem", 4),
+        card("Tandem", 5),
+        card("-", 6),
+    )
+
+    private fun titles(term: String) = matchingCards(day, term).map { it.programme.startMs }
+
+    @Test
+    fun `a programme is found by the start of a word of its title, in the order it was listed`() {
+        assertEquals(listOf(2L, 3L), titles("jour"))
+        assertEquals(listOf(4L, 5L), titles("tan"))
+    }
+
+    @Test
+    fun `every word has to be found in the title, in any order`() {
+        assertEquals(listOf(3L), titles("climat journal"))
+        assertEquals(emptyList<Long>(), titles("tandem journal"))
+    }
+
+    @Test
+    fun `nothing searchable finds no programme, and a title with nothing in it is never found`() {
+        assertEquals(emptyList<Long>(), titles(""))
+        assertEquals(emptyList<Long>(), titles("-"))
     }
 
     // --------------------------------------------------------------------------------------- the columns

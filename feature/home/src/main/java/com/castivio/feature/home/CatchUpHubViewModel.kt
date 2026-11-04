@@ -111,7 +111,7 @@ class CatchUpHubViewModel @Inject constructor(
     private val term: Flow<String> = typed
         .map(::searchTermOf)
         .distinctUntilChanged()
-        .debounce { if (it.isEmpty()) 0L else SEARCH_DEBOUNCE_MS }
+        .debounce { if (it.isEmpty()) 0L else CATCHUP_SEARCH_PAUSE_MS }
         .distinctUntilChanged()
 
     /**
@@ -224,7 +224,5 @@ class CatchUpHubViewModel @Inject constructor(
         /** How long the categories are kept after the page is left, for a quick return. */
         const val STOP_MS = 5_000L
 
-        /** How long the search waits for the viewer to pause: the channels' board's own. */
-        const val SEARCH_DEBOUNCE_MS = 120L
     }
 }

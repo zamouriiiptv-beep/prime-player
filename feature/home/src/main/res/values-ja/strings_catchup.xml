@@ -2,7 +2,6 @@
 <resources>
     <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
     <string name="catchup_title">見逃し配信</string>
-    <string name="catchup_subtitle">視聴できる番組（アーカイブ）</string>
     <string name="catchup_hub_subtitle">放送済みの番組を、好きな時に</string>
     <string name="catchup_all">すべて</string>
     <string name="catchup_pick_channel">チャンネルを選択</string>
@@ -23,4 +22,5 @@
     <string name="catchup_search_none">検索に一致するものはありません</string>
     <!-- The line under the feature's name in the top band: one short word, because its cell is about 90dp. -->
     <string name="catchup_band">アーカイブ</string>
+    <string name="catchup_search_programmes">番組を検索</string>
 </resources>

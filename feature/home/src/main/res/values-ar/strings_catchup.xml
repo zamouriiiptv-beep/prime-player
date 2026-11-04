@@ -2,7 +2,6 @@
 <resources>
     <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
     <string name="catchup_title">ما فاتك</string>
-    <string name="catchup_subtitle">برامج مضت يمكن مشاهدتها (الأرشيف)</string>
     <string name="catchup_hub_subtitle">برامج مضت، تشاهدها متى شئت</string>
     <string name="catchup_all">الكل</string>
     <string name="catchup_pick_channel">اختر قناة</string>
@@ -23,4 +22,5 @@
     <string name="catchup_search_none">لا شيء يطابق بحثك</string>
     <!-- The line under the feature's name in the top band: one short word, because its cell is about 90dp. -->
     <string name="catchup_band">أرشيف البرامج</string>
+    <string name="catchup_search_programmes">ابحث في البرامج</string>
 </resources>

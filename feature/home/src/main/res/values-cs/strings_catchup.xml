@@ -2,7 +2,6 @@
 <resources>
     <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
     <string name="catchup_title">Zpětné přehrání</string>
-    <string name="catchup_subtitle">Pořady ke zhlédnutí (archiv)</string>
     <string name="catchup_hub_subtitle">Již odvysílané pořady, k zhlédnutí kdykoli</string>
     <string name="catchup_all">Vše</string>
     <string name="catchup_pick_channel">Vyberte kanál</string>
@@ -23,4 +22,5 @@
     <string name="catchup_search_none">Hledání nic nenašlo</string>
     <!-- The line under the feature's name in the top band: one short word, because its cell is about 90dp. -->
     <string name="catchup_band">Archiv</string>
+    <string name="catchup_search_programmes">Hledat pořady</string>
 </resources>

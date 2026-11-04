@@ -2,7 +2,6 @@
 <resources>
     <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
     <string name="catchup_title">छूटे कार्यक्रम</string>
-    <string name="catchup_subtitle">देखने योग्य कार्यक्रम (संग्रह)</string>
     <string name="catchup_hub_subtitle">प्रसारित हो चुके कार्यक्रम, जब चाहें देखें</string>
     <string name="catchup_all">सभी</string>
     <string name="catchup_pick_channel">चैनल चुनें</string>
@@ -23,4 +22,5 @@
     <string name="catchup_search_none">आपकी खोज से कुछ नहीं मिला</string>
     <!-- The line under the feature's name in the top band: one short word, because its cell is about 90dp. -->
     <string name="catchup_band">संग्रह</string>
+    <string name="catchup_search_programmes">कार्यक्रम खोजें</string>
 </resources>

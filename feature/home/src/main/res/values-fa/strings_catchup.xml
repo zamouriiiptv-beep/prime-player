@@ -2,7 +2,6 @@
 <resources>
     <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
     <string name="catchup_title">برنامه‌های گذشته</string>
-    <string name="catchup_subtitle">برنامه‌های قابل تماشا (آرشیو)</string>
     <string name="catchup_hub_subtitle">برنامه‌هایی که پخش شده‌اند، هر وقت خواستید ببینید</string>
     <string name="catchup_all">همه</string>
     <string name="catchup_pick_channel">یک کانال انتخاب کنید</string>
@@ -23,4 +22,5 @@
     <string name="catchup_search_none">چیزی با جست‌وجوی شما مطابقت نداشت</string>
     <!-- The line under the feature's name in the top band: one short word, because its cell is about 90dp. -->
     <string name="catchup_band">آرشیو</string>
+    <string name="catchup_search_programmes">جست‌وجوی برنامه‌ها</string>
 </resources>

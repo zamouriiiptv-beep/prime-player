@@ -11,12 +11,20 @@ import com.castivio.domain.CatchUpListing
 import com.castivio.domain.CatchUpPolicy
 import com.castivio.domain.CatchUpProgramme
 import com.castivio.domain.Channel
+import com.castivio.domain.searchTermOf
 import com.castivio.domain.time.TrustedTime
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.TimeZone
@@ -50,14 +58,51 @@ class CatchUpViewModel @Inject constructor(
     private val _state = MutableStateFlow(CatchUpState())
     val state: StateFlow<CatchUpState> = _state.asStateFlow()
 
+    /** What the search box holds, exactly as typed: read straight off the flow, so the field never lags the keys. */
+    private val typed = MutableStateFlow("")
+
+    val searchText: StateFlow<String> = typed.asStateFlow()
+
+    /** [typed], folded and held back until the viewer pauses; empty is no search. */
+    @OptIn(FlowPreview::class)
+    private val term = typed
+        .map(::searchTermOf)
+        .distinctUntilChanged()
+        .debounce { if (it.isEmpty()) 0L else CATCHUP_SEARCH_PAUSE_MS }
+        .distinctUntilChanged()
+
+    /**
+     * The programmes of the day that is chosen, narrowed by the search when there is one.
+     *
+     * Only that day's: the search does not touch the days, which are the viewer's to move between, and a word that
+     * matches nothing on this day is told as such, with the days left where they are.
+     */
+    val view: StateFlow<CatchUpView> = combine(_state, term) { state, words ->
+        val cards = state.days.getOrNull(state.dayIndex)?.cards.orEmpty()
+        if (words.isEmpty()) CatchUpView(cards, "") else CatchUpView(matchingCards(cards, words), words)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_MS), CatchUpView(emptyList(), ""))
+
     private var loading: Job? = null
     private var opening: Job? = null
     private var target: CatchUpChannel? = null
     private var shown: Channel? = null
 
+    /** The viewer typed in the search box. */
+    fun search(text: String) {
+        typed.value = text
+    }
+
+    /** Closes a search that holds something, and says whether there was one: the first Back is the search's. */
+    fun clearSearch(): Boolean {
+        if (typed.value.isEmpty()) return false
+        typed.value = ""
+        return true
+    }
+
     /** Asks for [channel]'s archive. The one call that reaches a provider; a second while one is out replaces it. */
     fun open(channel: Channel) {
         val hours = channel.catchUpHours ?: return
+        typed.value = ""
         loading?.cancel()
         opening?.cancel()
         shown = channel
@@ -84,6 +129,7 @@ class CatchUpViewModel @Inject constructor(
 
     /** The viewer left the screen: nothing it started goes on, and nothing of it is kept on screen. */
     fun close() {
+        typed.value = ""
         loading?.cancel()
         opening?.cancel()
         loading = null
@@ -150,6 +196,9 @@ class CatchUpViewModel @Inject constructor(
     }
 
     private companion object {
+        /** How long the programmes are kept after the screen is left, for a quick return. */
+        const val STOP_MS = 5_000L
+
         /** A programme the guide gave no name: the card still has to say something, and it is not a string to translate. */
         const val UNTITLED = "-"
     }
@@ -161,6 +210,11 @@ enum class DayLabel { TODAY, YESTERDAY, DATE }
 
 /** One programme, ready to draw: its text made once, with the programme it came from for the choice. */
 data class CatchUpCard(val programme: CatchUpProgramme, val title: String, val timeText: String)
+
+/** What the grid draws: the chosen day's programmes, narrowed by the search, and the search's words -- empty for none. */
+data class CatchUpView(val cards: List<CatchUpCard>, val term: String) {
+    val searching: Boolean get() = term.isNotEmpty()
+}
 
 data class CatchUpDayView(val label: DayLabel, val date: String, val cards: List<CatchUpCard>)
 

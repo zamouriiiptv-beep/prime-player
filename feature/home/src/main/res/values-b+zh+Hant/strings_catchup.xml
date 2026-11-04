@@ -2,7 +2,6 @@
 <resources>
     <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
     <string name="catchup_title">回看</string>
-    <string name="catchup_subtitle">可觀看的節目（存檔）</string>
     <string name="catchup_hub_subtitle">已播出的節目，隨時觀看</string>
     <string name="catchup_all">全部</string>
     <string name="catchup_pick_channel">選擇頻道</string>
@@ -23,4 +22,5 @@
     <string name="catchup_search_none">沒有符合搜尋的結果</string>
     <!-- The line under the feature's name in the top band: one short word, because its cell is about 90dp. -->
     <string name="catchup_band">存檔</string>
+    <string name="catchup_search_programmes">搜尋節目</string>
 </resources>
