@@ -45,6 +45,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -394,15 +395,20 @@ private fun GroupCard(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
-            // White, as a channel's number is on the channels' board -- the plate behind it is only a quiet step up from the card.
+            // A sky blue beside the white of the name, on a plate of the azure: it was violet, which was not liked, and white,
+            // which was not either -- white figures next to a white name read as one grey run. On the azure card itself the
+            // figure stays white, as the card is the colour.
             Text(
                 text = count.toString(),
                 style = castivioChipStyle(m.frame.fsChip),
-                color = if (lead) colors.onBackgroundStrong else colors.onBackground,
+                color = if (lead) colors.onBackgroundStrong else lerp(colors.hueAzure, colors.onBackgroundStrong, COUNT_INK_LIFT),
                 maxLines = 1,
                 modifier = Modifier
                     .clip(pill)
-                    .background((if (lead) colors.onBackgroundStrong else colors.onBackground).copy(alpha = if (lead) BADGE_ON_LEAD else PLATE_ALPHA))
+                    .background(
+                        if (lead) colors.onBackgroundStrong.copy(alpha = BADGE_ON_LEAD)
+                        else colors.hueAzure.copy(alpha = COUNT_PLATE_ALPHA),
+                    )
                     .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
             )
             Icon(
@@ -648,8 +654,16 @@ private const val LOGO_IN_ENTRY = 1.8f
 private const val BADGE_ALPHA = 0.16f
 private const val BADGE_ON_LEAD = 0.22f
 
-/** The plates behind white figures: a category's count and a channel's number. Quiet, because the figure is the thing. */
-private const val PLATE_ALPHA = 0.13f
+/**
+ * A category's count, and a channel's number.
+ *
+ * The count is the azure lifted [COUNT_INK_LIFT] of the way to white -- the sky blue that sits beside a white name -- on a
+ * plate of the azure at [COUNT_PLATE_ALPHA]: five to one and over against the plate it stands on, in the drawing the owner
+ * chose from (`design/mockups/catchup-count-colours-ar.html`, option A). A channel's number stays white, on a plate of
+ * white at [NUMBER_PLATE_ALPHA], as it is on the channels' board.
+ */
+private const val COUNT_INK_LIFT = 0.35f
+private const val COUNT_PLATE_ALPHA = 0.22f
 private const val NUMBER_PLATE_ALPHA = 0.10f
 
 /** The first card's key: "all", which is no category's id. */
