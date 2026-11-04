@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<!-- Home as the owner's picture draws it ("د"), redrawn: the same screen at the phone's geometry, 833x385dp, and at the television's, 960x540dp
+     (one px per dp; rendered at 2x). One markup for both, laid out in proportions, so what differs between the frames is the room and
+     not the design. Not the app: a drawing of how the screen is meant to look.
+       **No glow, and the live-channels panel as dark as the other cards** (the owner asked to see it so): the same dark glass and the same edge as the films' and the series'; only its glyph, its ribbons and its count carry colour.
+       **No glow.** The owner did not like the glow of the first redrawing, so every glow is taken out: no light around an edge, no
+       shadow under a glyph or a word, no reflection, no radial light behind the glyph. What is left is colour and edge: the panel has
+       a gradient edge and a flat gradient fill, the glyph a flat gradient stroke, and faint ribbons across it.
+       Under the glyph the name, "loaded" with its tick, and the count.
+       Each section's card is dark glass with a lit edge; its glyph stands at the far side with no plate, and its count is large and
+       in its own hue (violet films, green series); a section not yet downloaded says so in azure beside a cloud.
+       The header's two terms are tinted (green, azure) with their glyph at the far side; the rail's glyphs are violet; the
+       footer's facts carry the key's amber and the lock's green.
+       Words are the app's: "ما فاتك" stands where the picture had "آخر الإضافات", which the owner replaced. -->
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>Home — د بلا توهج</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#05040E;color:#fff;font-family:"Inter","DejaVu Sans",system-ui,sans-serif;width:960px;display:flex;flex-direction:column;gap:8px;padding-bottom:8px}
+.tag{font-size:12px;color:#cfd0ea;padding:6px 10px;direction:rtl}
+.screen{position:relative;overflow:hidden;direction:ltr;display:flex;flex-direction:column;
+  background:radial-gradient(90% 38% at 50% 118%,rgba(110,75,216,.20),transparent 66%),radial-gradient(48% 34% at 2% 104%,rgba(46,107,255,.14),transparent 62%),linear-gradient(180deg,#05061b 0%,#090b2d 62%,#0a0f36 100%)}
+.screen>svg.bgw{position:absolute;left:0;bottom:0;width:100%;height:26%;opacity:.28;pointer-events:none}
+.in{position:relative;flex:1;display:flex;flex-direction:column;padding:calc(var(--u)*13px) calc(var(--u)*30px) calc(var(--u)*8px);gap:calc(var(--u)*11px);min-height:0}
+svg{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+/* header */
+.head{display:flex;align-items:center;gap:calc(var(--u)*10px);height:calc(var(--u)*42px);flex:none}
+.logo{display:flex;align-items:center;gap:calc(var(--u)*7px);font-weight:800;font-size:calc(var(--u)*15px);letter-spacing:.26em;margin-right:calc(var(--u)*6px);background:linear-gradient(90deg,#9b7bff,#4fa8ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.logo i{display:block;width:calc(var(--u)*25px);height:calc(var(--u)*25px);border-radius:50%;background:conic-gradient(#e0407a,#6a4cff,#2c9cff,#e0407a)}
+.term{height:100%;width:calc(var(--u)*172px);border-radius:calc(var(--u)*10px);display:flex;align-items:center;justify-content:space-between;padding:0 calc(var(--u)*13px);direction:rtl;font-size:calc(var(--u)*10px);color:#cfd0ea}
+.term b{display:block;font-size:calc(var(--u)*15px);font-weight:700;margin-top:1px}
+.term.ok{background:linear-gradient(135deg,rgba(18,84,66,.62),rgba(10,44,40,.62));border:1.5px solid rgba(61,214,140,.78)}
+.term.ok b,.term.ok svg{color:#3ddf8c}
+.term.lic{background:linear-gradient(135deg,rgba(24,48,118,.62),rgba(12,24,70,.62));border:1.5px solid rgba(86,160,255,.78)}
+.term.lic b,.term.lic svg{color:#6fb6ff}
+.sp{flex:1}
+.clock{font-size:calc(var(--u)*21px);font-weight:700;text-align:center;line-height:1}
+.clock small{display:block;font-size:calc(var(--u)*10px);font-weight:400;color:#c3c4e2;margin-top:calc(var(--u)*3px)}
+.round{width:calc(var(--u)*34px);height:calc(var(--u)*34px);border-radius:50%;background:rgba(28,32,92,.8);border:1.2px solid rgba(130,140,255,.45);display:flex;align-items:center;justify-content:center;color:#e6e8ff}
+.lang{height:calc(var(--u)*34px);padding:0 calc(var(--u)*13px);border-radius:calc(var(--u)*17px);background:rgba(28,32,92,.8);border:1.2px solid rgba(130,140,255,.45);display:flex;align-items:center;gap:calc(var(--u)*6px);font-size:calc(var(--u)*10px);color:#e6e8ff;direction:rtl}
+/* board */
+.board{flex:1;display:flex;gap:calc(var(--u)*12px);min-height:0}
+.glass{background:linear-gradient(135deg,rgba(36,40,106,.86),rgba(13,16,52,.92));border:1.4px solid rgba(132,124,255,.52);direction:rtl}
+.hero{flex:43;position:relative;border-radius:calc(var(--u)*16px);overflow:hidden;background:linear-gradient(135deg,rgba(36,40,106,.86),rgba(13,16,52,.92));border:1.4px solid rgba(132,124,255,.52)}
+.hero svg.rib{position:absolute;left:0;top:0;width:100%;height:100%;opacity:.5}
+.hero svg.rib path{stroke-width:1.5;fill:none}
+.hero svg.tv{position:absolute;left:50%;top:34%;transform:translate(-50%,-50%);width:36%;height:auto;stroke-width:6.5}
+.hero svg.refl{display:none;position:absolute;left:50%;top:54%;transform:translate(-50%,0) scaleY(-1);width:36%;opacity:.16;stroke-width:6.5;filter:blur(1.6px)}
+.hero .hc{position:absolute;left:0;right:0;bottom:calc(var(--u)*13px);text-align:center;direction:rtl;display:flex;flex-direction:column;align-items:center;gap:calc(var(--u)*2px)}
+.hero .nm{font-size:calc(var(--u)*21px);font-weight:800}
+.hero .ld{display:flex;align-items:center;gap:calc(var(--u)*5px);font-size:calc(var(--u)*12px);font-weight:700;color:#3ddf8c}
+.hero .cn{display:flex;align-items:center;gap:calc(var(--u)*7px);font-size:calc(var(--u)*30px);font-weight:800;color:#4fa6ff;line-height:1;direction:rtl}
+.hero .cn small{font-size:calc(var(--u)*19px);font-weight:700}
+.hero .cn svg{color:#4fa6ff;stroke-width:2.4}
+.mid{flex:30;display:flex;flex-direction:column;gap:calc(var(--u)*10px)}
+.card{flex:1;border-radius:calc(var(--u)*14px);display:flex;flex-direction:row-reverse;align-items:center;justify-content:space-between;padding:0 calc(var(--u)*16px);min-height:0}
+.card .ic{display:flex;align-items:center;gap:calc(var(--u)*8px)}
+.card .ic svg{width:calc(var(--u)*30px);height:calc(var(--u)*30px);stroke-width:2.1}
+.card .tx{text-align:right}
+.card .nm{font-size:calc(var(--u)*17px);font-weight:800}
+.card .ct{display:flex;align-items:baseline;gap:calc(var(--u)*6px);justify-content:flex-end;margin-top:calc(var(--u)*2px);direction:rtl}
+.card .ct b{font-size:calc(var(--u)*26px);font-weight:800;line-height:1.05;font-variant-numeric:tabular-nums}
+.card .ct span{font-size:calc(var(--u)*13px);font-weight:600}
+.c1{color:#b66bff}.c2{color:#46e08a}.c3{color:#ffb020}
+.c1 .ct,.c2 .ct{color:inherit}
+.card .nm{color:#fff}
+.card.idle .ct{color:#5fa8ff;font-size:calc(var(--u)*14px);font-weight:600}
+.card .cloud{color:#5fa8ff}
+.rail{flex:17;display:flex;flex-direction:column;gap:calc(var(--u)*9px)}
+.btn{flex:1;border-radius:calc(var(--u)*12px);display:flex;align-items:center;justify-content:space-between;flex-direction:row-reverse;padding:0 calc(var(--u)*14px);font-size:calc(var(--u)*13px);color:#f0eefc;min-height:0}
+.btn svg{color:#a070ff;width:calc(var(--u)*20px);height:calc(var(--u)*20px);stroke-width:2.2}
+/* footer */
+.foot{display:flex;gap:calc(var(--u)*12px);height:calc(var(--u)*38px);flex:none}
+.fact{flex:1;border-radius:calc(var(--u)*11px);display:flex;align-items:center;justify-content:center;gap:calc(var(--u)*9px);font-size:calc(var(--u)*11.5px);color:#dcdaf0;flex-direction:row-reverse;direction:rtl}
+.fact svg{width:calc(var(--u)*19px);height:calc(var(--u)*19px);stroke-width:2.2}
+.fact.k svg{color:#ffb020}.fact.m svg{color:#b69cff}.fact.l svg{color:#3ddf8c}
+.note{display:flex;align-items:center;justify-content:center;gap:calc(var(--u)*8px);font-size:calc(var(--u)*10.5px);color:#c3c2e0;flex:none;direction:rtl;flex-direction:row-reverse;padding-bottom:calc(var(--u)*2px)}
+.note svg{color:#a070ff;width:calc(var(--u)*17px);height:calc(var(--u)*17px)}
+</style></head><body>
+<div class="tag">د — الهاتف 833×385</div>
+<div class="screen" id="phone" style="--u:1;width:833px;height:385px"></div>
+<div class="tag">د — التلفاز 960×540</div>
+<div class="screen" id="tv" style="--u:1.18;width:960px;height:540px"></div>
+<script>
+const I = {
+  tick:'<svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/></svg>',
+  shield:'<svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/></svg>',
+  sun:'<svg viewBox="0 0 24 24" width="17" height="17"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg>',
+  globe:'<svg viewBox="0 0 24 24" width="16" height="16"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>',
+  refresh:'<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5"/></svg>',
+  list:'<svg viewBox="0 0 24 24"><path d="M4 7h12M4 12h8M4 17h8M17 13v6M14 16h6"/></svg>',
+  replay:'<svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.5-5.8M4 4v5h5M12 8v4l3 2"/></svg>',
+  gear:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>',
+  power:'<svg viewBox="0 0 24 24"><path d="M12 3v8M6.5 6.5a8 8 0 1 0 11 0"/></svg>',
+  film:'<svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M3 8l3-4 3 4M9 8l3-4 3 4M15 8l3-4 3 4"/></svg>',
+  mon:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M9 21h6M12 17v4"/></svg>',
+  radio:'<svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="12" rx="2"/><circle cx="9" cy="14" r="2.5"/><path d="M14 12h4M14 16h4M7 8l10-4"/></svg>',
+  cloud:'<svg viewBox="0 0 24 24"><path d="M7 18a4 4 0 0 1-.6-7.9A6 6 0 0 1 18 9.5a4.2 4.2 0 0 1-.5 8.5M12 11v7M9 15l3 3 3-3"/></svg>',
+  key:'<svg viewBox="0 0 24 24"><circle cx="8" cy="12" r="4"/><path d="M12 12h9M18 12v4M21 12v3"/></svg>',
+  chip:'<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3"/></svg>',
+  lock:'<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0"/></svg>',
+  info:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.5"/></svg>',
+  tvs:'<svg viewBox="0 0 24 24" width="26" height="26"><rect x="3" y="7" width="18" height="12" rx="2.5"/><path d="M8 3l4 4 4-4"/></svg>'
+};
+const build = k => `
+<svg class="bgw" viewBox="0 0 800 120" preserveAspectRatio="none"><path d="M0 70C120 20 240 110 380 62S640 20 800 70" stroke="#7f6bff" stroke-width="1.4" fill="none" opacity=".7"/><path d="M0 92C130 44 250 126 390 82S650 44 800 92" stroke="#4f9bff" stroke-width="1.2" fill="none" opacity=".6"/><path d="M0 108C140 66 260 134 400 100S660 66 800 108" stroke="#a06bff" stroke-width="1" fill="none" opacity=".5"/></svg>
+<div class="in">
+  <div class="head">
+    <div class="logo"><i></i>CASTIVIO</div>
+    <div class="term ok">${I.tick}<span style="text-align:right">الاشتراك<b>8-4-2027</b></span></div>
+    <div class="term lic">${I.shield}<span style="text-align:right">رخصة Castivio<b>11-11-2026</b></span></div>
+    <div class="sp"></div>
+    <div class="clock">21:24<small>4-11-2026</small></div>
+    <div class="round">${I.sun}</div>
+    <div class="lang">اللغة ${I.globe}</div>
+  </div>
+  <div class="board">
+    <div class="hero">
+      <svg class="rib" viewBox="0 0 400 300" preserveAspectRatio="none">
+        <defs><linearGradient id="rg${k}" x1="0" x2="1"><stop offset="0" stop-color="#9b6bff" stop-opacity="0"/><stop offset=".45" stop-color="#78a4ff" stop-opacity=".95"/><stop offset="1" stop-color="#b66bff" stop-opacity="0"/></linearGradient></defs>
+        <path d="M0 185C70 120 150 215 235 150S350 110 400 140" stroke="url(#rg${k})"/>
+        <path d="M0 205C80 140 160 235 245 170S360 130 400 160" stroke="url(#rg${k})" opacity=".75"/>
+        <path d="M0 165C65 100 145 195 230 130S345 92 400 120" stroke="url(#rg${k})" opacity=".55"/>
+        <path d="M0 225C90 165 170 250 255 190S365 150 400 180" stroke="url(#rg${k})" opacity=".4"/>
+      </svg>
+      <svg class="refl" viewBox="0 0 150 130" style="color:#4cc9ff"><path d="M45 18L75 42L105 18"/><rect x="10" y="40" width="130" height="84" rx="14"/><path d="M62 62v40l34-20z"/></svg>
+      <svg class="tv" viewBox="0 0 150 130"><defs><linearGradient id="tg${k}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4cd2ff"/><stop offset=".6" stop-color="#5a9bff"/><stop offset="1" stop-color="#9b6bff"/></linearGradient></defs><g stroke="url(#tg${k})"><path d="M45 18L75 42L105 18"/><rect x="10" y="40" width="130" height="84" rx="14"/><path d="M62 62v40l34-20z"/></g></svg>
+      <div class="hc"><div class="nm">البث المباشر</div><div class="ld">${I.tick.replace('width="20" height="20"','width="15" height="15"')} مُحمَّل</div><div class="cn">${I.tvs}<small>قناة</small>54,295</div></div>
+    </div>
+    <div class="mid">
+      <div class="card glass c1"><div class="ic">${I.film}</div><div class="tx"><div class="nm">الأفلام</div><div class="ct"><b>120,654</b><span>فيلمًا</span></div></div></div>
+      <div class="card glass c2"><div class="ic">${I.mon}</div><div class="tx"><div class="nm">المسلسلات</div><div class="ct"><b>29,066</b><span>مسلسلًا</span></div></div></div>
+      <div class="card glass c3 idle"><div class="ic">${I.radio}<span class="cloud">${I.cloud}</span></div><div class="tx"><div class="nm">الراديو</div><div class="ct">لم يُحمَّل بعد</div></div></div>
+    </div>
+    <div class="rail">
+      <div class="btn glass">${I.refresh}تحديث</div>
+      <div class="btn glass">${I.list}تبديل القائمة</div>
+      <div class="btn glass">${I.replay}ما فاتك</div>
+      <div class="btn glass">${I.gear}الإعدادات</div>
+      <div class="btn glass">${I.power}خروج</div>
+    </div>
+  </div>
+  <div class="foot">
+    <div class="fact glass k">${I.key}مفتاح الجهاز: 116822</div>
+    <div class="fact glass m">${I.chip}ماك: FE:F8:4D:83:78:9F</div>
+    <div class="fact glass l">${I.lock}الجهاز مُفعَّل</div>
+  </div>
+  <div class="note">${I.info}Castivio مشغّل وسائط. لا يوفّر قنوات ولا أفلامًا ولا اشتراكات — أنت من يضيفها.</div>
+</div>`;
+document.getElementById('phone').innerHTML = build('p');
+document.getElementById('tv').innerHTML = build('t');
+</script>
+</body></html>
