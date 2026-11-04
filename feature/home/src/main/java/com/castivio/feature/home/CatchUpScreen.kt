@@ -9,12 +9,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
@@ -277,12 +277,15 @@ internal fun CatchUpOverlay(
 }
 
 /**
- * One programme, small enough for two rows of them to share the panel, in three bands so none of it is bare: when it was on
- * at the top, the channel's logo in the middle where a picture would be, and its title at the bottom.
+ * One programme, small enough for three rows of them to share the panel: when it was on at the start of the top line and
+ * the channel's logo at its end, and the title under them, standing on the card's floor.
  *
  * The card's size is the caller's. The title is the one part that can be long, so it is the part that gives: it holds two
- * lines and then ends in an ellipsis, and the card never grows to make room for it. Its band is two lines high whatever
- * the title, with the text at the bottom, so the names stand on one line across a row and the logos on another.
+ * lines and then ends in an ellipsis, and the card never grows to make room for it. It is in a band that takes whatever
+ * the top line leaves, with the text at the bottom, so the names of a row stand on one line.
+ *
+ * It had three bands -- the logo large in the middle -- when two rows shared the panel and a card was half as tall again;
+ * at three rows there is no room for a middle, and the logo is the small one beside the time that it was before.
  */
 @Composable
 private fun ProgrammeCard(
@@ -299,28 +302,22 @@ private fun ProgrammeCard(
         shape = RoundedCornerShape(m.panelRadius),
         fill = SolidColor(colors.glassFill),
     ) {
-        Column(Modifier.fillMaxSize().padding(Spacing.sm)) {
-            Text(
-                text = card.timeText,
-                style = castivioBodyStyle(m.frame.fsBody),
-                color = colors.onBackgroundMuted,
-                maxLines = 1,
-            )
-            // Whatever the time and the title leave: the logo is fitted into it, never cropped, and it is the one thing there.
-            Box(
-                Modifier.weight(1f).fillMaxWidth().padding(vertical = Spacing.xs),
-                contentAlignment = Alignment.Center,
-            ) {
+        Column(Modifier.fillMaxSize().padding(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text(
+                    text = card.timeText,
+                    style = castivioBodyStyle(m.frame.fsBody),
+                    color = colors.onBackgroundMuted,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f),
+                )
                 ProviderArtwork(
                     url = logo,
                     description = null,
-                    modifier = Modifier.fillMaxSize(LOGO_OF_MIDDLE),
+                    modifier = Modifier.size(m.frame.fsLabel * LOGO_IN_CARD),
                 )
             }
-            Box(
-                Modifier.fillMaxWidth().heightIn(min = m.frame.fsLabel * TITLE_TWO_LINES),
-                contentAlignment = Alignment.BottomStart,
-            ) {
+            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.BottomStart) {
                 Text(
                     text = card.title,
                     style = castivioChipStyle(m.frame.fsLabel),
@@ -362,7 +359,7 @@ private fun dayName(label: DayLabel): String = when (label) {
 private val CARD_MIN_WIDTH = 150.dp
 
 /** Rows of programmes shown whole at a time; the rest are a scroll away. */
-private const val VISIBLE_ROWS = 2
+private const val VISIBLE_ROWS = 3
 
 /** The floor under a card's height, so a very short panel still draws a card that can be read and scrolls instead. */
 private val CARD_MIN_HEIGHT = 76.dp
@@ -370,8 +367,5 @@ private val CARD_MIN_HEIGHT = 76.dp
 /** The channel's logo in the header, a little taller than the label beside it. */
 private const val LOGO_IN_LABELS = 1.6f
 
-/** How much of the card's middle band the logo is fitted into, in both directions: it breathes, and never touches a band. */
-private const val LOGO_OF_MIDDLE = 0.72f
-
-/** The title band's floor, in the label's own size: two lines, so a one-line title stands on the same line as a longer one. */
-private const val TITLE_TWO_LINES = 2.6f
+/** The logo on a programme card, at the end of the top line: about as tall as two lines of the label's own size. */
+private const val LOGO_IN_CARD = 1.8f
