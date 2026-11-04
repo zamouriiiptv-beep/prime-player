@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- The card for a catch-up programme the provider has no recording of. -->
-    <string name="player_archive_missing_title">No archive for this channel</string>
-    <string name="player_archive_missing_detail">The provider says this channel has an archive but keeps no recording of it. Try another channel.</string>
+    <!-- The card for a catch-up programme the provider has no recording of. It says the programme, not the channel: the
+         channel's other programmes may well play. -->
+    <string name="player_archive_missing_title">This programme is not in the archive</string>
+    <string name="player_archive_missing_detail">The provider lists it but has no recording of it. Go back and try another programme.</string>
 </resources>

@@ -25,9 +25,8 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * Where the viewer is inside Catch-up, and what the player's report does to the list: the three places and the order Back
- * leaves them in, the first page being the only one Back does not handle, and a channel the provider has no recording of
- * being remembered as such, at the moment the player said so.
+ * Where the viewer is inside Catch-up: the three places and the order Back leaves them in, the first page being the only
+ * one Back does not handle, and what a search does to them.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class CatchUpHubViewModelTest {
@@ -48,16 +47,12 @@ class CatchUpHubViewModelTest {
         }
     }
 
-    /** Remembers what it is told is unavailable, and answers [knownEmpty] from it. */
+    /** A provider that is never asked: the places and the search are the view-model's own. */
     private class Gateway : CatchUpGateway {
-        val marked = mutableListOf<Pair<String, Long>>()
         override suspend fun listing(channel: CatchUpChannel, nowMs: Long): CatchUpListing = error("not asked")
         override suspend fun playbackUrl(channel: CatchUpChannel, programme: CatchUpProgramme): Outcome<String> =
             error("not asked")
-        override fun knownEmpty(mediaId: String, nowMs: Long): Boolean = marked.any { it.first == mediaId }
-        override fun markUnavailable(mediaId: String, nowMs: Long) {
-            marked += mediaId to nowMs
-        }
+        override fun knownEmpty(mediaId: String, nowMs: Long): Boolean = false
     }
 
     private val clock = Clock(1_000L)
@@ -191,19 +186,6 @@ class CatchUpHubViewModelTest {
         hub.search("sport")
         hub.reset()
         assertEquals("", hub.searchText.value)
-    }
-
-    // -------------------------------------------------------------------- a channel with no recording
-
-    @Test
-    fun `a channel the provider has no recording of is remembered at the time the player said so`() {
-        clock.epochMs = 42_000L
-        val hub = hub()
-
-        hub.unavailable("c1")
-
-        assertEquals(listOf("c1" to 42_000L), gateway.marked)
-        assertTrue(gateway.knownEmpty("c1", 42_000L))
     }
 
     // ---------------------------------------------------------------------------------- the counts

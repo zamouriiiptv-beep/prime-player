@@ -129,11 +129,6 @@ class XtreamCatchUp(
 
     override fun knownEmpty(mediaId: String, nowMs: Long): Boolean = synchronized(lock) { memory.knownEmpty(mediaId, nowMs) }
 
-    /** The same memory a listing found empty is kept in: the channel leaves Catch-up for as long as that lasts. */
-    override fun markUnavailable(mediaId: String, nowMs: Long) {
-        synchronized(lock) { memory.remember(mediaId, emptyList(), nowMs) }
-    }
-
     /** Null for an entry whose start cannot be written the way the archive path wants it: it cannot be addressed. */
     private fun XtreamArchiveEntry.toProgramme(): CatchUpProgramme? {
         val locator = XtreamUrls.timeshiftStart(serverStart) ?: return null

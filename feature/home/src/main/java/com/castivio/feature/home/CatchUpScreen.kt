@@ -29,7 +29,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -82,6 +84,11 @@ internal fun CatchUpOverlay(
     onPlay: (CatalogSelection) -> Unit,
     onClose: () -> Unit,
     /**
+     * The player is open over this screen. The screen stays composed under it -- that is what lets Back land on the same
+     * programmes, on the same day, scrolled to the same place -- and takes the cursor back when this turns false.
+     */
+    playing: Boolean = false,
+    /**
      * The room on the end side that the screen leaves uncovered. The channels' board keeps its picture there, and the
      * default is that column; Catch-up's own page has no picture and passes nothing.
      */
@@ -97,7 +104,14 @@ internal fun CatchUpOverlay(
     val state by model.state.collectAsStateWithLifecycle()
     val view by model.view.collectAsStateWithLifecycle()
     val searchText by model.searchText.collectAsStateWithLifecycle()
-    val first = remember { FocusRequester() }
+    // The card the cursor goes to when the programmes appear and when the player closes over them: the programme the viewer
+    // started last if this day still shows it, and the first one otherwise.
+    val landing = remember { FocusRequester() }
+    var played by remember { mutableStateOf<String?>(null) }
+    val landOn = remember(view.cards, played) {
+        played?.takeIf { key -> view.cards.any { it.programme.locator == key } }
+            ?: view.cards.firstOrNull()?.programme?.locator
+    }
     // Back closes a search that holds something before it leaves the screen, as it does on the pages under this one.
     val back = { if (!model.clearSearch()) onClose() }
 
@@ -107,8 +121,8 @@ internal fun CatchUpOverlay(
         onDispose { model.close() }
     }
     BackHandler(onBack = back)
-    LaunchedEffect(state.phase, state.dayIndex) {
-        if (state.phase == CatchUpPhase.READY) runCatching { first.requestFocus() }
+    LaunchedEffect(state.phase, state.dayIndex, playing) {
+        if (state.phase == CatchUpPhase.READY && !playing) runCatching { landing.requestFocus() }
     }
 
     Box(
@@ -227,7 +241,7 @@ internal fun CatchUpOverlay(
                                 horizontalArrangement = Arrangement.spacedBy(m.guideGap),
                                 verticalArrangement = Arrangement.spacedBy(m.guideGap),
                             ) {
-                                gridItemsIndexed(view.cards, key = { _, card -> card.programme.locator }) { index, card ->
+                                gridItemsIndexed(view.cards, key = { _, card -> card.programme.locator }) { _, card ->
                                     ProgrammeCard(
                                         card = card,
                                         logo = channel.artworkUrl,
@@ -235,9 +249,14 @@ internal fun CatchUpOverlay(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .height(cardHeight)
-                                            .then(if (index == 0) Modifier.focusRequester(first) else Modifier),
+                                            .then(
+                                                if (card.programme.locator == landOn) Modifier.focusRequester(landing) else Modifier,
+                                            ),
                                         onClick = {
                                             model.choose(card) { address, channelTitle ->
+                                                // Nothing is closed: the player opens over this screen and Back from it returns
+                                                // here, to the programmes of this channel and not to the list of channels.
+                                                played = card.programme.locator
                                                 onPlay(
                                                     CatalogSelection(
                                                         url = address,
@@ -249,7 +268,6 @@ internal fun CatchUpOverlay(
                                                         archiveOf = channel.id,
                                                     ),
                                                 )
-                                                onClose()
                                             }
                                         },
                                     )

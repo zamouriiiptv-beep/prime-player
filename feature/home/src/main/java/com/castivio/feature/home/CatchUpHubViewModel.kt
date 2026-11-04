@@ -31,7 +31,6 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 
 /**
  * Where the viewer is in Catch-up. Three places, one inside the next, and Back leaves them in the opposite order.
@@ -71,10 +70,9 @@ data class HubGroups(val groups: List<ArchiveGroup>) {
  *
  * ## A channel the provider claims and does not keep
  *
- * A provider can mark a channel as keeping an archive and hold no recording of it: the player finds that out when it opens a
- * programme, and says so ([unavailable]). The channel is then left out of the list for as long as the gateway remembers an
- * empty listing, and the list is read again at once, so the viewer who comes back from the failed programme finds the
- * channel gone and not a second way to fail the same way.
+ * A provider can mark a channel as keeping an archive and list nothing for it: a channel whose listing the gateway
+ * remembers as empty is left out of the list the next time the list is read. A single programme the provider has no
+ * recording of is not that. It is the player's card and nothing more: the channel stays, and its other programmes may play.
  *
  * ## The search
  *
@@ -83,7 +81,8 @@ data class HubGroups(val groups: List<ArchiveGroup>) {
  * category it looks among that category's channels. Typing is the search: the words are folded, held back until the viewer
  * pauses and a superseded question is cancelled, as the channels' own are. Back closes it before it leaves the page.
  *
- * One instance for the activity, as the other screens' are: what the player reports reaches the list that is open.
+ * One instance for the activity, as the other screens' are: the place the viewer is in is still there when a programme's
+ * player closes over it.
  */
 @HiltViewModel
 class CatchUpHubViewModel @Inject constructor(
@@ -122,20 +121,15 @@ class CatchUpHubViewModel @Inject constructor(
         if (all == null || words.isEmpty()) null else matchingGroups(all.groups, words)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_MS), null)
 
-    /** Bumped when a channel is found unavailable, so the list is read again without it. */
-    private val reading = MutableStateFlow(0)
-
     /**
-     * The channels of the category that is open, with the unavailable ones left out.
+     * The channels of the category that is open, with the ones known to have nothing archived left out.
      *
      * Keyed to the **category and the search**, not to the stage: opening a channel's programmes over the list does not read
      * the list again, and Back lands on the same rows.
      */
     @OptIn(ExperimentalCoroutinesApi::class)
-    val channels: Flow<PagingData<Channel>> = combine(
-        combine(_stage, term) { stage, words -> keyOf(stage, words) }.distinctUntilChanged(),
-        reading,
-    ) { key, _ -> key }
+    val channels: Flow<PagingData<Channel>> = combine(_stage, term) { stage, words -> keyOf(stage, words) }
+        .distinctUntilChanged()
         .flatMapLatest { key ->
             if (key == null) {
                 emptyFlow()
@@ -206,16 +200,6 @@ class CatchUpHubViewModel @Inject constructor(
     fun reset() {
         typed.value = ""
         _stage.value = HubStage.Groups
-    }
-
-    /**
-     * The player opened a programme of [mediaId] and the provider has none: the channel leaves the list.
-     *
-     * Told by whoever hosts the player, because the player is not in this module. Memory only, and the list is read again.
-     */
-    fun unavailable(mediaId: String) {
-        gateway.markUnavailable(mediaId, clock.nowMs())
-        reading.update { it + 1 }
     }
 
     private data class ListKey(val groupId: String?, val term: String)

@@ -169,8 +169,8 @@ data class CatalogSelection(
     /**
      * The id of the channel whose archive this is, for a programme played from Catch-up, and null for everything else.
      *
-     * What lets the player say, when the provider has no recording, that it is the archive that is missing and not a link
-     * that moved -- and lets the shell leave that channel out of Catch-up. See `PlayerRequest.archiveOf`.
+     * What lets the player say, when the provider has no recording of a programme, that it is the archive that is missing and
+     * not a link that moved. See `PlayerRequest.archiveOf`.
      */
     val archiveOf: String? = null,
 )

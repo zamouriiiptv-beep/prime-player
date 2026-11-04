@@ -358,8 +358,9 @@ private fun failureCopy(reason: PlaybackError, catchUp: Boolean = false): Failur
         FailureCopy(R.string.player_drm_title, R.string.player_drm_detail)
     PlaybackError.NETWORK ->
         FailureCopy(R.string.player_network_title, R.string.player_network_detail)
-    // A programme of a channel's archive that the server does not know is not a link that moved: the provider claims an
-    // archive for the channel and keeps no recording of it, and the card says that -- in Catch-up's own words.
+    // A programme of a channel's archive that the server does not know is not a link that moved: the provider lists the
+    // programme and keeps no recording of it, and the card says that -- in Catch-up's own words, of the programme and not of
+    // the channel, whose other programmes may play.
     PlaybackError.NOT_FOUND ->
         if (catchUp) {
             FailureCopy(R.string.player_archive_missing_title, R.string.player_archive_missing_detail)

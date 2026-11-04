@@ -52,8 +52,8 @@ data class PlayerRequest(
     /**
      * The id of the channel whose archive this programme is from, or null for everything that is not a catch-up programme.
      *
-     * The player's two uses of it are the two things that differ about a programme the provider claims and does not keep: the
-     * card says so in words of its own, and whoever hosts the player is told, so the channel is not offered again.
+     * What it changes in the player is the card of a programme the provider lists and does not keep: it says so in words of
+     * its own -- that this programme is missing, not that the channel is -- instead of the card of a link that moved.
      */
     val archiveOf: String? = null,
 ) {

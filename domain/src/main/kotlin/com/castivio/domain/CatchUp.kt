@@ -93,14 +93,6 @@ interface CatchUpGateway {
      * lets the button go away for a channel that has been found empty, without anything being asked of the network.
      */
     fun knownEmpty(mediaId: String, nowMs: Long): Boolean
-
-    /**
-     * The player opened a programme of [mediaId] and the provider answered that it has none: the provider claims an archive
-     * for the channel and keeps no recording. Remembered for as long as an empty listing is, so the channel is left out of
-     * Catch-up and not offered again to fail the same way. Memory only, nothing asked. A provider with nothing to
-     * remember has nothing to do.
-     */
-    fun markUnavailable(mediaId: String, nowMs: Long) = Unit
 }
 
 /** One day of an archive, as the viewer's own calendar draws it. */

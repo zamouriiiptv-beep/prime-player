@@ -101,6 +101,8 @@ fun CatchUpHubScreen(
     onPlay: (CatalogSelection) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    /** The player is open over this screen: a programme was started from it, and Back from the player returns here. */
+    playing: Boolean = false,
     hub: CatchUpHubViewModel = hiltViewModel(),
     programmes: CatchUpViewModel = hiltViewModel(),
 ) {
@@ -203,6 +205,7 @@ fun CatchUpHubScreen(
                     model = programmes,
                     onPlay = onPlay,
                     onClose = { hub.back() },
+                    playing = playing,
                     reserveEnd = 0.dp,
                     direction = direction,
                 )

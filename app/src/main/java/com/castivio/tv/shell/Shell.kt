@@ -85,7 +85,6 @@ import com.castivio.feature.home.CatalogSearchScreen
 import com.castivio.feature.home.CatalogSection
 import com.castivio.feature.home.CatalogSelection
 import com.castivio.feature.home.CatchUpHubScreen
-import com.castivio.feature.home.CatchUpHubViewModel
 import com.castivio.feature.home.ChannelFavoritesViewModel
 import com.castivio.feature.home.ChannelHidingViewModel
 import com.castivio.feature.home.ChannelLockViewModel
@@ -114,7 +113,6 @@ import com.castivio.feature.player.PlayerRequest
 import com.castivio.feature.player.PlayerRoute
 import com.castivio.feature.player.RadioAudioRoute
 import com.castivio.playback.api.MediaKind
-import com.castivio.playback.api.PlaybackError
 import com.castivio.tv.R
 import com.castivio.tv.licence.LicenceWithLanguage
 import com.castivio.tv.locale.LocalLocaleController
@@ -364,8 +362,6 @@ fun ShellScreen(
     // The viewer's favourites, for the large player's heart: the same holder and the same set the board's star is
     // drawn from, so a channel marked in the player is marked on the board when it collapses.
     val favoritesModel: ChannelFavoritesViewModel = hiltViewModel()
-    // Catch-up's list, shared with its screen: what the player says about a programme reaches the list that is open.
-    val catchUpHub: CatchUpHubViewModel = hiltViewModel()
     val favoriteIds by favoritesModel.ids.collectAsState()
     // What the list of channels says on a row besides the name: which are locked and what each was measured at.
     val lockedIds = lockModel.locked.collectAsState().value.orEmpty()
@@ -644,9 +640,13 @@ fun ShellScreen(
                             radio.station?.takeIf { it.streamUrl == sounding }?.let { recentModel.watched(it.id) }
                         }
                     }
-                    // Catch-up plays through the same hand-off a film does: the player opens large, and Back from it
-                    // lands here, on the list the programme was chosen from.
-                    Dest.CatchUp -> CatchUpHubScreen(onPlay = play, onBack = { dest = Dest.Home })
+                    // Catch-up plays through the same hand-off a film does: the player opens large over this screen, which
+                    // stays where it was -- the channel's programmes -- and Back from the player lands on them.
+                    Dest.CatchUp -> CatchUpHubScreen(
+                        onPlay = play,
+                        onBack = { dest = Dest.Home },
+                        playing = overlay is Overlay.Play,
+                    )
                     Dest.Favourites -> FavouritesScreen()
                     Dest.Library -> LibraryScreen(onOpenSection = { dest = it })
                     Dest.Search -> CatalogSearchScreen(onPlay = play, restrictTo = searchKind)
@@ -705,12 +705,6 @@ fun ShellScreen(
                         onLeave = { overlay = o.back },
                         onCollapse = if (o.request == livePreview) collapse else null,
                         onPulseChange = { pulse = it },
-                        // A programme of a channel's archive that the provider answers "not found": it claims an archive and
-                        // has no recording, so the channel leaves Catch-up -- the card has already said why.
-                        onFailed = { reason ->
-                            val channelId = o.request.archiveOf
-                            if (channelId != null && reason == PlaybackError.NOT_FOUND) catchUpHub.unavailable(channelId)
-                        },
                         // Only for a live channel that was started from somewhere to step from -- see `Zapping` --
                         // and not while a password is being asked, whose keypad the remote's arrows walk.
                         onChannelStep = if (zapped != null && asking == null) stepChannel else null,
