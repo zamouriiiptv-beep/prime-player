@@ -148,7 +148,6 @@
     <string name="home_add_playlist">إضافة قائمة</string>
     <string name="home_my_subscriptions">اشتراكاتي</string>
     <string name="home_language">اللغة</string>
-    <string name="home_latest">آخر الإضافات</string>
     <string name="home_exit">خروج</string>
 
     <!-- The label is Arabic; the value is not. Six hexadecimal pairs are not a word

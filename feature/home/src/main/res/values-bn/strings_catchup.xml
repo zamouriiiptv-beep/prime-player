@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
+    <string name="catchup_title">মিস করা অনুষ্ঠান</string>
+    <string name="catchup_subtitle">দেখার মতো অনুষ্ঠান (আর্কাইভ)</string>
+    <string name="catchup_hub_subtitle">সম্প্রচার হয়ে যাওয়া অনুষ্ঠান, যখন খুশি দেখুন</string>
+    <string name="catchup_all">সব</string>
+    <string name="catchup_pick_channel">চ্যানেল বেছে নিন</string>
+    <string name="catchup_days">দিন: %1$d</string>
+    <string name="catchup_hub_empty">এই সাবস্ক্রিপশনের কোনো চ্যানেলে আর্কাইভ নেই</string>
+    <string name="catchup_back">পিছনে</string>
+    <string name="catchup_loading">আর্কাইভ লোড হচ্ছে…</string>
+    <string name="catchup_empty">এই চ্যানেলের কোনো আর্কাইভ করা অনুষ্ঠান নেই</string>
+    <string name="catchup_unsupported">এই সাবস্ক্রিপশনে মিস করা অনুষ্ঠান দেখা যায় না</string>
+    <string name="catchup_failed">আর্কাইভ সাড়া দেয়নি</string>
+    <string name="catchup_retry">আবার চেষ্টা করুন</string>
+    <string name="catchup_open_failed">এই অনুষ্ঠানটি খোলা যায়নি</string>
+    <string name="catchup_yesterday">গতকাল</string>
+</resources>

@@ -50,14 +50,12 @@ data class PlayerRequest(
     /** Not filled today either; see [headers]. */
     val userAgent: String? = null,
     /**
-     * **A catch-up programme's other address**, tried once if [url] is answered "not found", and null for everything else.
+     * The id of the channel whose archive this programme is from, or null for everything that is not a catch-up programme.
      *
-     * A provider may serve its archive at either of two addresses and does not say which. The player opens [url]; if
-     * the server answers 404 it opens this once, and whatever that comes to is the result. It is the only thing that
-     * can make the player open a second address, and a channel, a film or an episode never carries one -- so none of
-     * their openings is touched by it.
+     * The player's two uses of it are the two things that differ about a programme the provider claims and does not keep: the
+     * card says so in words of its own, and whoever hosts the player is told, so the channel is not offered again.
      */
-    val alternateUrl: String? = null,
+    val archiveOf: String? = null,
 ) {
 
     /**
@@ -76,6 +74,9 @@ data class PlayerRequest(
     val pressedAtNanos: Long = System.nanoTime()
 
     val isLive: Boolean get() = kind == MediaKind.LIVE
+
+    /** A programme of a channel's archive, played from Catch-up. */
+    val isCatchUp: Boolean get() = archiveOf != null
 
     /** Whether the timeshift controls exist on this source at all. */
     val supportsTimeshift: Boolean get() = isLive && (catchUpHours ?: 0) > 0

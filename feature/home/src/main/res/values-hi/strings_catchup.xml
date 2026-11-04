@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
+    <string name="catchup_title">छूटे कार्यक्रम</string>
+    <string name="catchup_subtitle">देखने योग्य कार्यक्रम (संग्रह)</string>
+    <string name="catchup_hub_subtitle">प्रसारित हो चुके कार्यक्रम, जब चाहें देखें</string>
+    <string name="catchup_all">सभी</string>
+    <string name="catchup_pick_channel">चैनल चुनें</string>
+    <string name="catchup_days">दिन: %1$d</string>
+    <string name="catchup_hub_empty">इस सदस्यता का कोई चैनल संग्रह नहीं रखता</string>
+    <string name="catchup_back">वापस</string>
+    <string name="catchup_loading">संग्रह लोड हो रहा है…</string>
+    <string name="catchup_empty">इस चैनल के लिए कोई संग्रहीत कार्यक्रम नहीं</string>
+    <string name="catchup_unsupported">यह सदस्यता छूटे कार्यक्रम की सुविधा नहीं देती</string>
+    <string name="catchup_failed">संग्रह ने उत्तर नहीं दिया</string>
+    <string name="catchup_retry">फिर कोशिश करें</string>
+    <string name="catchup_open_failed">यह कार्यक्रम खोला नहीं जा सका</string>
+    <string name="catchup_yesterday">कल</string>
+</resources>

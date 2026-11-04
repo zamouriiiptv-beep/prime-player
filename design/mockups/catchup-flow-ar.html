@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<!-- «ما فاتك» — Catch-up as a place of its own, not a button on every channel.
+     Four frames at the phone geometry, 833x385dp, one px per dp; rendered at 2.4x to match a
+     device screenshot. Not the app: a drawing of how the screens are meant to look.
+       1. Home: the third rail button, where «آخر الإضافات» (a stub that opened "not ready") was.
+       2. The groups that keep an archive, with how many channels each, and «الكل».
+       3. One group's channels, each with how many days the provider says it keeps.
+       4. The failure that is told plainly: the provider claims an archive and has no recording. -->
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>ما فاتك — النماذج</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#05040E;color:#fff;font-family:"DejaVu Sans",system-ui,sans-serif;display:flex;flex-direction:column;gap:16px;width:833px}
+.screen{position:relative;width:833px;height:385px;overflow:hidden;
+  background:linear-gradient(135deg,#141031 0%,#1B1038 46%,#0A1E3D 100%)}
+.screen::before,.screen::after{content:"";position:absolute;border-radius:50%;filter:blur(70px)}
+.screen::before{width:420px;height:300px;left:-90px;bottom:-120px;background:#6E4BD8;opacity:.30}
+.screen::after{width:460px;height:320px;right:-110px;top:-140px;background:#2E6BFF;opacity:.22}
+.in{position:absolute;inset:0;z-index:2}
+/* ---------- top bar (as the app draws it) ---------- */
+.logo{position:absolute;left:58px;top:9px;display:flex;align-items:center;gap:7px;font-weight:700;font-size:16px;direction:ltr}
+.logo i{display:block;width:24px;height:24px;border-radius:50%;background:conic-gradient(#e0407a,#6a4cff,#2c9cff,#e0407a)}
+.lab{position:absolute;left:235px;top:6px;font-size:13px;color:#9b7bff;direction:rtl;font-weight:700}
+.lab small{display:block;color:#d9d6f0;font-size:10.5px;direction:ltr;margin-top:3px;font-weight:400}
+.clock{position:absolute;right:20px;top:6px;text-align:right;font-size:17px;font-weight:700;direction:ltr}
+.clock small{display:block;font-size:10px;font-weight:400;color:#cfd0ea}
+.outer{position:absolute;left:45px;top:42px;width:780px;height:338px;border:1px solid rgba(172,180,214,.18);border-radius:10px}
+/* ---------- shared pieces ---------- */
+.mut{color:#a8a6c8}
+.ibtn{width:44px;height:44px;border-radius:7px;background:rgba(255,255,255,.05);border:1px solid rgba(172,180,214,.22);display:flex;align-items:center;justify-content:center;flex:none}
+.panel{position:absolute;left:52px;top:50px;width:769px;height:323px;background:#1b1946;border:1px solid rgba(172,180,214,.22);border-radius:7px;padding:6px}
+.head{display:flex;align-items:center;gap:10px;height:44px;direction:ltr}
+.ttl{font-weight:700;font-size:16px;white-space:nowrap}
+.sub{font-size:11px;color:#a8a6c8;white-space:nowrap;direction:rtl}
+.glow{box-shadow:0 0 0 2px #6FB2FF,0 0 14px rgba(111,178,255,.5)}
+/* ---------- frame 1: Home ---------- */
+.block{position:absolute;left:72px;right:72px;top:12px;bottom:12px;display:flex;flex-direction:column}
+.htop{height:40px;flex:none;display:flex;align-items:center;gap:11px;direction:ltr}
+.brand{display:flex;align-items:center;gap:7px}
+.mark{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#6E4BD8,#2E6BFF);display:flex;align-items:center;justify-content:center;font-size:10px}
+.bname{font-size:15px;font-weight:700;letter-spacing:.11em}
+.terms{flex:1;display:flex;gap:9px;direction:rtl}
+.term{flex:1;padding:3px 9px;border-radius:7px;background:rgba(255,255,255,.035);border:1px solid rgba(160,163,215,.14);font-size:8px;color:#8F8FAE}
+.term b{display:block;font-size:10px;font-weight:400;margin-top:2px;color:#2FBF9F}
+.term.l b{color:#6FB2FF}
+.hclock{font-size:16px;font-weight:700;text-align:right}
+.hclock small{display:block;font-size:8.5px;color:#7A7A96;font-weight:400;margin-top:2px}
+.gapA{height:20px;flex:none}.gapB{height:20px;flex:none}
+.body{flex:1;display:flex;gap:15.7px;min-height:0;direction:rtl}
+.rail{width:113px;flex:none;display:flex;flex-direction:column;gap:6px}
+.util{flex:1;display:flex;align-items:center;gap:8px;padding:0 9px;border-radius:9px;font-size:10.5px;color:#C9C9DA;background:rgba(255,255,255,.035);border:1px solid rgba(160,163,215,.14)}
+.util svg{width:13px;height:13px;flex:none}
+.util.quit{color:#ffb3b3}
+.util.new{color:#fff;background:linear-gradient(90deg,rgba(91,140,255,.34),rgba(44,103,240,.30));border-color:#6FB2FF;font-weight:700}
+.stack{width:223px;flex:none;display:flex;flex-direction:column;gap:12px}
+.row{flex:1;border-radius:14px;padding:0 12px;display:flex;align-items:center;gap:11px;background:rgba(255,255,255,.045);border:1px solid rgba(126,140,255,.24)}
+.rname{font-size:13px;font-weight:700}.rsub{font-size:10px;margin-top:2px;color:#6FB2FF}
+.hero{flex:1;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;justify-content:flex-end;background:linear-gradient(150deg,rgba(46,107,255,.14),rgba(20,16,49,.42));border:1px solid rgba(126,140,255,.24)}
+.hname{font-size:18px;font-weight:700}.hsub{font-size:11px;color:#6FB2FF;margin-top:2px}
+.foot{flex:none;display:flex;gap:9px;height:32px;direction:rtl}
+.fact{flex:1;display:flex;align-items:center;justify-content:center;font-size:9.5px;border-radius:7px;background:rgba(255,255,255,.035);border:1px solid rgba(160,163,215,.14);color:#8F8FAE}
+.fact b{color:#C9C9DA;margin-inline-start:5px}
+/* ---------- frame 2: groups ---------- */
+.ggrid{direction:ltr;position:absolute;left:6px;right:6px;top:56px;bottom:6px;display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:46px;gap:6px;overflow:hidden;align-content:start}
+.g{display:flex;align-items:center;gap:8px;padding:0 10px;border-radius:8px;background:rgba(255,255,255,.06);border:1px solid rgba(150,140,255,.28);direction:ltr}
+.g .n{flex:1;font-weight:700;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.g .c{min-width:30px;height:22px;border-radius:11px;background:rgba(111,178,255,.16);color:#6FB2FF;font-weight:700;font-size:12px;text-align:center;line-height:22px;padding:0 6px;direction:ltr}
+.g svg{width:11px;height:11px;flex:none;opacity:.6}
+.g.all{background:linear-gradient(90deg,#5b8cff,#2c67f0);border-color:rgba(255,255,255,.2)}
+.g.all .c{background:rgba(255,255,255,.22);color:#fff}
+.hint{position:absolute;right:10px;bottom:7px;font-size:9.5px;color:#8F8FAE}
+/* ---------- frame 3: channels of one group ---------- */
+.cgrid{direction:ltr;position:absolute;left:6px;right:6px;top:56px;bottom:6px;display:grid;grid-template-columns:repeat(2,1fr);grid-auto-rows:50px;gap:6px;overflow:hidden;align-content:start}
+.ch{display:flex;align-items:center;gap:9px;padding:0 9px;border-radius:8px;background:rgba(255,255,255,.06);border:1px solid rgba(150,140,255,.28);direction:ltr}
+.num{width:26px;height:22px;border-radius:5px;background:rgba(255,255,255,.08);font-size:11px;text-align:center;line-height:22px;flex:none;color:#cfd0ea}
+.lg{width:34px;height:34px;border-radius:7px;flex:none;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;color:#fff}
+.cn{flex:1;font-weight:600;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.days{font-size:10px;font-weight:700;color:#2fbf9f;background:rgba(47,191,159,.13);border:1px solid rgba(47,191,159,.3);border-radius:10px;padding:2px 8px;white-space:nowrap;direction:rtl}
+.ch.sel{border-color:#6FB2FF;background:rgba(91,140,255,.18)}
+/* ---------- frame 4: the failure told plainly ---------- */
+.list{position:absolute;left:52px;top:50px;width:480px;height:323px;background:#1b1946;border:1px solid rgba(172,180,214,.22);border-radius:7px;padding:6px;display:flex;flex-direction:column;gap:5px;direction:ltr}
+.li{height:34px;border-radius:7px;display:flex;align-items:center;gap:9px;padding:0 9px;background:rgba(255,255,255,.04);border:1px solid rgba(150,140,255,.16);font-size:12px;font-weight:600}
+.li.sel{border-color:#6FB2FF;background:rgba(91,140,255,.18)}
+.li .lg{width:24px;height:24px;font-size:8px;border-radius:5px}
+.li .nn{width:20px;color:#a8a6c8;font-weight:400;font-size:10.5px;text-align:center}
+.prev{position:absolute;left:544px;top:46px;width:277px;height:157px;background:#000;border-radius:8px;border:1px solid rgba(172,180,214,.14);overflow:hidden}
+.card{position:absolute;left:36px;top:9px;width:205px;height:139px;background:#15142e;border:1px solid rgba(172,180,214,.22);border-radius:14px;text-align:center;direction:rtl;padding:12px 14px;line-height:1.55}
+.card b{display:block;font-size:13.5px;margin-bottom:6px}
+.card p{font-size:10.5px;color:#cfcde6}
+.card .chip{margin:9px auto 0;display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 12px;border-radius:13px;background:linear-gradient(90deg,#5b8cff,#2c67f0);font-size:10.5px;font-weight:700}
+.facts{position:absolute;left:544px;top:207px;width:277px;height:117px;border-radius:8px;border:1px solid rgba(172,180,214,.14);background:rgba(255,255,255,.03);padding:7px 8px;font-size:11px}
+.btns{position:absolute;left:544px;top:329px;width:277px;height:48px;display:flex;gap:5px}
+.btn{flex:1;border-radius:6px;background:rgba(255,255,255,.06);border:1px solid rgba(172,180,214,.18);display:flex;align-items:center;justify-content:center;font-size:9.5px;color:#d6d3e8}
+</style></head><body>
+
+<!-- ===================== 1. HOME ===================== -->
+<div class="screen" id="f1"><div class="in"><div class="block">
+  <div class="htop">
+    <div class="brand"><span class="mark">&#9654;</span><div class="bname">CASTIVIO</div></div>
+    <div class="terms"><div class="term">اشتراك المزوّد<b>حتى 08/04/2027 · Active</b></div><div class="term l">رخصة Castivio<b>حتى 01/10/2026 · تجريبية</b></div></div>
+    <div class="hclock">12:26<small>04/11/2026</small></div>
+  </div>
+  <div class="gapA"></div>
+  <div class="body">
+    <div class="rail">
+      <div class="util"><svg viewBox="0 0 24 24" fill="none" stroke="#9B6BFF" stroke-width="2.2" stroke-linecap="round"><path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5"/></svg>تحديث</div>
+      <div class="util"><svg viewBox="0 0 24 24" fill="none" stroke="#9B6BFF" stroke-width="2.2" stroke-linecap="round"><path d="M7 7h12l-3-3M17 17H5l3 3"/></svg>تغيير الاشتراك</div>
+      <div class="util new glow"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.6-5.9"/><path d="M4 4v4.5h4.5"/><path d="M12 8v4l3 2"/></svg>ما فاتك</div>
+      <div class="util"><svg viewBox="0 0 24 24" fill="none" stroke="#9B6BFF" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>الإعدادات</div>
+      <div class="util quit"><svg viewBox="0 0 24 24" fill="none" stroke="#FF9B9B" stroke-width="2.4" stroke-linecap="round"><path d="M12 3v8M6.5 7a8 8 0 1 0 11 0"/></svg>خروج</div>
+    </div>
+    <div class="stack">
+      <div class="row"><span>🎞</span><div><div class="rname">الأفلام</div><div class="rsub">12 480 فيلمًا</div></div></div>
+      <div class="row"><span>🎬</span><div><div class="rname">المسلسلات</div><div class="rsub">3 210 مسلسلات</div></div></div>
+      <div class="row"><span>🎙</span><div><div class="rname">الراديو</div><div class="rsub">340 محطة</div></div></div>
+    </div>
+    <div class="hero"><div class="hname">البث المباشر</div><div class="hsub">2 850 قناة</div></div>
+  </div>
+  <div class="gapB"></div>
+  <div class="foot"><div class="fact">الجهاز:<b>مُفعَّل</b></div><div class="fact">ماك:<b>FE:F8:4D:83:78:9F</b></div><div class="fact">مفتاح الجهاز:<b>K6BB-0P2R</b></div></div>
+</div></div></div>
+
+<!-- ===================== 2. GROUPS ===================== -->
+<div class="screen" id="f2"><div class="in">
+  <div class="logo"><i></i>Castivio</div><div class="lab">ما فاتك<small>379 قناة لها أرشيف</small></div><div class="clock">12:26<small>4-11-2026</small></div>
+  <div class="outer"></div>
+  <div class="panel">
+    <div class="head"><span class="ibtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5b9bff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12H5M11 5l-7 7 7 7"/></svg></span>
+      <span class="ttl">ما فاتك</span><span class="sub" style="flex:1;text-align:left">برامج مضت، تشاهدها متى شئت</span></div>
+    <div class="ggrid">
+      <div class="g all glow"><span class="n" style="font-family:inherit;direction:rtl;text-align:left">الكل</span><span class="c">379</span><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M9 5l7 7-7 7"/></svg></div>
+      <div class="g"><span class="n">FR ❖ GENERALE</span><span class="c">11</span><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M9 5l7 7-7 7"/></svg></div>
+      <div class="g"><span class="n">FR ❖ GENERALE FHD</span><span class="c">1</span><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M9 5l7 7-7 7"/></svg></div>
+      <div class="g"><span class="n">FR ❖ INFORMATION</span><span class="c">4</span><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M9 5l7 7-7 7"/></svg></div>
+      <div class="g"><span class="n">FR ❖ INFORMATION 4K</span><span class="c">1</span><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M9 5l7 7-7 7"/></svg></div>
+      <div class="g"><span class="n">FR ❖ SPORTS</span><span class="c">3</span><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M9 5l7 7-7 7"/></svg></div>
+      <div class="g"><span class="n">FR ❖ CINÉMA</span><span class="c">2</span><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M9 5l7 7-7 7"/></svg></div>
+      <div class="g"><span class="n">FR ❖ DIVERTISSEMENT</span><span class="c">4</span><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M9 5l7 7-7 7"/></svg></div>
+      <div class="g"><span class="n">FR ❖ DECOUVERTE</span><span class="c">4</span><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M9 5l7 7-7 7"/></svg></div>
+      <div class="g"><span class="n">BE ❖ WALLONIË</span><span class="c">11</span><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M9 5l7 7-7 7"/></svg></div>
+      <div class="g"><span class="n">BE ❖ VLAANDEREN</span><span class="c">13</span><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M9 5l7 7-7 7"/></svg></div>
+      <div class="g"><span class="n">CH ❖ SWITZERLAND</span><span class="c">4</span><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M9 5l7 7-7 7"/></svg></div>
+      <div class="g"><span class="n">NL ❖ NEDERLAND FHD</span><span class="c">54</span><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M9 5l7 7-7 7"/></svg></div>
+    </div>
+  </div>
+</div></div>
+
+<!-- ===================== 3. CHANNELS OF ONE GROUP ===================== -->
+<div class="screen" id="f3"><div class="in">
+  <div class="logo"><i></i>Castivio</div><div class="lab">ما فاتك<small>FR ❖ GENERALE</small></div><div class="clock">12:27<small>4-11-2026</small></div>
+  <div class="outer"></div>
+  <div class="panel">
+    <div class="head"><span class="ibtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5b9bff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12H5M11 5l-7 7 7 7"/></svg></span>
+      <span class="ttl">FR ❖ GENERALE</span><span class="sub" style="flex:1;text-align:left">11 قناة · اختر قناة</span></div>
+    <div class="cgrid">
+      <div class="ch sel glow"><span class="num">1</span><span class="lg" style="background:#1d3f9c">TF1</span><span class="cn">FR ★ TF1 ◉</span><span class="days">3 أيام</span></div>
+      <div class="ch"><span class="num">2</span><span class="lg" style="background:#d6283b">2</span><span class="cn">FR ★ FRANCE 2 ◉</span><span class="days">3 أيام</span></div>
+      <div class="ch"><span class="num">3</span><span class="lg" style="background:#1f7ad8">3</span><span class="cn">FR ★ FRANCE 3 ◉</span><span class="days">3 أيام</span></div>
+      <div class="ch"><span class="num">4</span><span class="lg" style="background:#7a3fc0">4</span><span class="cn">FR ★ FRANCE 4 ◉</span><span class="days">3 أيام</span></div>
+      <div class="ch"><span class="num">5</span><span class="lg" style="background:#1f9a55">5</span><span class="cn">FR ★ FRANCE 5 ◉</span><span class="days">3 أيام</span></div>
+      <div class="ch"><span class="num">7</span><span class="lg" style="background:#c8481f">M6</span><span class="cn">FR ★ M6 ◉</span><span class="days">3 أيام</span></div>
+      <div class="ch"><span class="num">8</span><span class="lg" style="background:#2a2f9c">W9</span><span class="cn">FR ★ W9 ◉</span><span class="days">3 أيام</span></div>
+      <div class="ch"><span class="num">9</span><span class="lg" style="background:#9c2a6e">6ter</span><span class="cn">FR ★ 6TER ◉</span><span class="days">3 أيام</span></div>
+      <div class="ch"><span class="num">11</span><span class="lg" style="background:#d98a1f">TFX</span><span class="cn">FR ★ TFX ◉</span><span class="days">3 أيام</span></div>
+      <div class="ch"><span class="num">12</span><span class="lg" style="background:#6a1fa8">RTL9</span><span class="cn">FR ★ RTL 9</span><span class="days">3 أيام</span></div>
+      <div class="ch"><span class="num">14</span><span class="lg" style="background:#2c7a8c">C+</span><span class="cn">FR ★ CANAL+ ◉</span><span class="days">3 أيام</span></div>
+    </div>
+  </div>
+</div></div>
+
+<!-- ===================== 4. THE FAILURE, TOLD PLAINLY ===================== -->
+<div class="screen" id="f4"><div class="in">
+  <div class="logo"><i></i>Castivio</div><div class="lab">البث المباشر<small>NL ❖ NEDERLAND FHD</small></div><div class="clock">12:30<small>4-11-2026</small></div>
+  <div class="outer"></div>
+  <div class="list">
+    <div class="li"><span class="nn">8</span><span class="lg" style="background:#d6283b">RTL</span>NL ★ RTL 8 FHD ◉</div>
+    <div class="li sel"><span class="nn">9</span><span class="lg" style="background:#e8a31f">SBS9</span>NL ★ SBS 9 FHD ◉</div>
+    <div class="li"><span class="nn">10</span><span class="lg" style="background:#1fa05a">net5</span>NL ★ NET 5 FHD ◉</div>
+    <div class="li"><span class="nn">11</span><span class="lg" style="background:#8a3fc0">V</span>NL ★ VERONICA FHD ◉</div>
+  </div>
+  <div class="prev"><div class="card"><b>لا أرشيف لهذه القناة</b><p>المزوّد يعلن أرشيفًا لها لكنه لا يحتفظ بتسجيلات فعلية. جرّب قناة أخرى.</p><span class="chip">عودة إلى ما فاتك</span></div></div>
+  <div class="facts"><div style="font-weight:700;font-size:12px;direction:ltr">NL ★ SBS 9 FHD ●</div><div style="height:1px;background:rgba(172,180,214,.28);margin:6px 0"></div><div style="font-size:12px;font-weight:600">Telvero</div><div class="mut" style="font-size:10.5px;margin-top:6px">لم تعد القناة تُعرض في ما فاتك خلال هذه الجلسة</div></div>
+  <div class="btns"><div class="btn">الدليل</div><div class="btn">المفضلة</div><div class="btn">قفل</div><div class="btn">إخفاء</div><div class="btn">ترتيب</div></div>
+</div></div>
+</body></html>

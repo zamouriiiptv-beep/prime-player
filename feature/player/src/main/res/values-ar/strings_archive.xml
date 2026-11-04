@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The card for a catch-up programme the provider has no recording of. -->
+    <string name="player_archive_missing_title">لا أرشيف لهذه القناة</string>
+    <string name="player_archive_missing_detail">المزوّد يعلن أرشيفًا لها لكنه لا يحتفظ بتسجيلات فعلية. جرّب قناة أخرى.</string>
+</resources>

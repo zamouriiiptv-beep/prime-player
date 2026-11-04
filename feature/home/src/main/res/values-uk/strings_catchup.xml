@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
+    <string name="catchup_title">Архів</string>
+    <string name="catchup_subtitle">Передачі для перегляду (архів)</string>
+    <string name="catchup_hub_subtitle">Уже показані передачі, дивіться коли зручно</string>
+    <string name="catchup_all">Усі</string>
+    <string name="catchup_pick_channel">Виберіть канал</string>
+    <string name="catchup_days">Днів: %1$d</string>
+    <string name="catchup_hub_empty">Жоден канал цієї підписки не зберігає архів</string>
+    <string name="catchup_back">Назад</string>
+    <string name="catchup_loading">Завантаження архіву…</string>
+    <string name="catchup_empty">Для цього каналу немає архівних передач</string>
+    <string name="catchup_unsupported">Ця підписка не підтримує перегляд архіву</string>
+    <string name="catchup_failed">Архів не відповів</string>
+    <string name="catchup_retry">Повторити</string>
+    <string name="catchup_open_failed">Не вдалося відкрити цю передачу</string>
+    <string name="catchup_yesterday">Учора</string>
+</resources>

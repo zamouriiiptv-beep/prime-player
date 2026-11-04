@@ -13,7 +13,6 @@ import com.castivio.domain.CatchUpProgramme
 import com.castivio.domain.Channel
 import com.castivio.domain.time.TrustedTime
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,11 +27,11 @@ import javax.inject.Inject
  *
  * ## Nothing is asked until the screen opens
  *
- * [offered] is read from the catalogue's own value and from a memory of what was already found empty: it never touches
- * a network, so the guide can ask it for every channel it draws. [open] is the one call that reaches a provider and is
- * made when the viewer presses the button; [choose] reaches it only through a gateway that builds an address and asks
- * nothing. **[close] cancels whatever is out**, and the screen calls it when it is left, so a request for an archive
- * that nobody is looking at is not left running.
+ * Which channels have an archive is the catalogue's own value, read by [CatchUpHubViewModel] a page at a time, and never
+ * touches a network. [open] is the one call that reaches a provider and is made when a channel is opened in Catch-up;
+ * [choose] reaches it only through a gateway that builds an address and asks nothing. **[close] cancels whatever is
+ * out**, and the screen calls it when it is left, so a request for an archive that nobody is looking at is not left
+ * running.
  *
  * ## One request, seven days
  *
@@ -55,13 +54,6 @@ class CatchUpViewModel @Inject constructor(
     private var opening: Job? = null
     private var target: CatchUpChannel? = null
     private var shown: Channel? = null
-
-    /**
-     * Whether [channel]'s guide should offer catch-up: the catalogue says it has an archive, and it has not just been
-     * found with nothing in it. Memory and arithmetic only.
-     */
-    fun offered(channel: Channel): Boolean =
-        CatchUpPolicy.offered(channel.catchUpHours) && !gateway.knownEmpty(channel.id, clock.nowMs())
 
     /** Asks for [channel]'s archive. The one call that reaches a provider; a second while one is out replaces it. */
     fun open(channel: Channel) {
@@ -117,24 +109,15 @@ class CatchUpViewModel @Inject constructor(
      * Nothing is asked of the provider here -- see [CatchUpGateway.playbackUrl] -- and a second press while the first is
      * being resolved is ignored rather than started twice.
      */
-    fun choose(card: CatchUpCard, onAddress: (address: String, alternate: String?, channelTitle: String) -> Unit) {
+    fun choose(card: CatchUpCard, onAddress: (address: String, channelTitle: String) -> Unit) {
         val request = target ?: return
         if (_state.value.opening) return
         _state.update { it.copy(opening = true, openFailed = false) }
         opening = viewModelScope.launch {
             when (val result = gateway.playbackUrl(request, card.programme)) {
                 is Outcome.Success -> {
-                    // The other way the provider may be addressed, made now and tried by the player only if this one is
-                    // answered "not found". Never a reason to fail: a programme that has only the one address plays on it.
-                    val alternate = try {
-                        gateway.alternateUrl(request, card.programme)
-                    } catch (cancelled: CancellationException) {
-                        throw cancelled
-                    } catch (_: Exception) {
-                        null
-                    }
                     _state.update { it.copy(opening = false) }
-                    onAddress(result.value, alternate, request.title)
+                    onAddress(result.value, request.title)
                 }
 
                 is Outcome.Failure -> _state.update { it.copy(opening = false, openFailed = true) }

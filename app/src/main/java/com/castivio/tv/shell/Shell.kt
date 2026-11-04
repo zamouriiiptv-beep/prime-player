@@ -47,15 +47,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.castivio.core.common.AppError
-import com.castivio.core.common.ScreenState
 import com.castivio.core.design.components.CardShape
 import com.castivio.core.design.components.CastivioShell
 import com.castivio.core.design.components.EmptyState
 import com.castivio.core.design.components.IconLabel
 import com.castivio.core.design.components.MediaCard
 import com.castivio.core.design.components.NowPlayingBadge
-import com.castivio.core.design.components.ScreenScaffold
 import com.castivio.core.design.components.SectionHeader
 import com.castivio.core.design.components.WatchState
 import com.castivio.core.design.components.WatchedTag
@@ -87,6 +84,8 @@ import com.castivio.feature.activation.LanguagePicker
 import com.castivio.feature.home.CatalogSearchScreen
 import com.castivio.feature.home.CatalogSection
 import com.castivio.feature.home.CatalogSelection
+import com.castivio.feature.home.CatchUpHubScreen
+import com.castivio.feature.home.CatchUpHubViewModel
 import com.castivio.feature.home.ChannelFavoritesViewModel
 import com.castivio.feature.home.ChannelHidingViewModel
 import com.castivio.feature.home.ChannelLockViewModel
@@ -115,6 +114,7 @@ import com.castivio.feature.player.PlayerRequest
 import com.castivio.feature.player.PlayerRoute
 import com.castivio.feature.player.RadioAudioRoute
 import com.castivio.playback.api.MediaKind
+import com.castivio.playback.api.PlaybackError
 import com.castivio.tv.R
 import com.castivio.tv.licence.LicenceWithLanguage
 import com.castivio.tv.locale.LocalLocaleController
@@ -124,7 +124,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /** The top-level destinations the shell can be on. */
-private enum class Dest { Home, Live, Movies, Series, Radio, Favourites, Library, Search, Settings }
+private enum class Dest { Home, Live, Movies, Series, Radio, Favourites, Library, Search, Settings, CatchUp }
 
 /** An overlay drawn above the shell: a show's episodes, the player, or Settings' extras. */
 private sealed interface Overlay {
@@ -227,21 +227,6 @@ private sealed interface Overlay {
      * the grid owns the viewport and dismisses back to whatever opened it.
      */
     data object Language : Overlay
-
-    /**
-     * The newest channels, films and series, whose screen this build does not have yet.
-     *
-     * The control is on Home's rail now; its screen is built after the section screens
-     * it takes its cards from. What it opens until then is the app's own sentence for a
-     * part of Castivio that is not ready yet — the same `NOT_CONFIGURED` copy every other
-     * screen uses — rather than nothing at all. A button that does nothing when pressed
-     * teaches a user that the row is decorative; one that explains itself teaches them
-     * the feature is coming.
-     *
-     * It took Time Shift's place. Time shift and catch-up act on what is playing, so
-     * they are built into the player, not opened from Home.
-     */
-    data object Latest : Overlay
 }
 
 /**
@@ -379,6 +364,8 @@ fun ShellScreen(
     // The viewer's favourites, for the large player's heart: the same holder and the same set the board's star is
     // drawn from, so a channel marked in the player is marked on the board when it collapses.
     val favoritesModel: ChannelFavoritesViewModel = hiltViewModel()
+    // Catch-up's list, shared with its screen: what the player says about a programme reaches the list that is open.
+    val catchUpHub: CatchUpHubViewModel = hiltViewModel()
     val favoriteIds by favoritesModel.ids.collectAsState()
     // What the list of channels says on a row besides the name: which are locked and what each was measured at.
     val lockedIds = lockModel.locked.collectAsState().value.orEmpty()
@@ -589,7 +576,9 @@ fun ShellScreen(
                         onManageSources = { overlay = Overlay.AddSource(ActivationEntry.SavedSources) },
                         onSettings = { dest = Dest.Settings },
                         onLanguage = { overlay = Overlay.Language },
-                        onLatest = { overlay = Overlay.Latest },
+                        // Catch-up is a destination of its own: the channels that keep an archive, and the programmes
+                        // that have aired on them. It took the place of the button for the newest additions.
+                        onCatchUp = { dest = Dest.CatchUp },
                         // No `onAbout`: "about" is this build's licence, its device and its
                         // version, and Settings already opens exactly that screen through
                         // `onShowLicence` below. Home's rail carried a second door to the
@@ -655,6 +644,9 @@ fun ShellScreen(
                             radio.station?.takeIf { it.streamUrl == sounding }?.let { recentModel.watched(it.id) }
                         }
                     }
+                    // Catch-up plays through the same hand-off a film does: the player opens large, and Back from it
+                    // lands here, on the list the programme was chosen from.
+                    Dest.CatchUp -> CatchUpHubScreen(onPlay = play, onBack = { dest = Dest.Home })
                     Dest.Favourites -> FavouritesScreen()
                     Dest.Library -> LibraryScreen(onOpenSection = { dest = it })
                     Dest.Search -> CatalogSearchScreen(onPlay = play, restrictTo = searchKind)
@@ -713,6 +705,12 @@ fun ShellScreen(
                         onLeave = { overlay = o.back },
                         onCollapse = if (o.request == livePreview) collapse else null,
                         onPulseChange = { pulse = it },
+                        // A programme of a channel's archive that the provider answers "not found": it claims an archive and
+                        // has no recording, so the channel leaves Catch-up -- the card has already said why.
+                        onFailed = { reason ->
+                            val channelId = o.request.archiveOf
+                            if (channelId != null && reason == PlaybackError.NOT_FOUND) catchUpHub.unavailable(channelId)
+                        },
                         // Only for a live channel that was started from somewhere to step from -- see `Zapping` --
                         // and not while a password is being asked, whose keypad the remote's arrows walk.
                         onChannelStep = if (zapped != null && asking == null) stepChannel else null,
@@ -742,7 +740,6 @@ fun ShellScreen(
             // that difference is the caller's -- the screen itself has no
             // opinion about where back goes.
             is Overlay.Licence -> LicenceWithLanguage(onLeave = { overlay = null })
-            is Overlay.Latest -> NotReadyOverlay(onBack = { overlay = null })
             is Overlay.Language -> {
                 val locale = LocalLocaleController.current
                 LanguagePicker(
@@ -861,7 +858,7 @@ private fun CatalogSelection.asPlayerRequest() = PlayerRequest(
     subtitle = subtitle,
     channelNumber = channelNumber,
     catchUpHours = catchUpHours,
-    alternateUrl = alternateUrl,
+    archiveOf = archiveOf,
 )
 
 /** Which rail entry a section belongs to, so Home's "see all" lands somewhere real. */
@@ -872,34 +869,6 @@ private val CatalogSection.destination: Dest
         CatalogSection.Series -> Dest.Series
         CatalogSection.Radio -> Dest.Radio
     }
-
-/**
- * A part of Castivio that is not ready in this build, said in the app's own words.
- *
- * `ScreenState.Failed(NOT_CONFIGURED)` and not a bespoke dialog: the scaffold already
- * owns that sentence — "Not available yet · This part of Castivio isn't ready in this
- * build" — and it already offers Back rather than a retry, because retrying is not
- * what fixes it. A second copy of the same message is a second copy to translate.
- */
-@Composable
-private fun NotReadyOverlay(onBack: () -> Unit) {
-    BackHandler(enabled = true, onBack = onBack)
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(CastivioTheme.colors.scrim)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onBack,
-            ),
-    ) {
-        ScreenScaffold<Unit>(
-            state = ScreenState.Failed(AppError.NOT_CONFIGURED, retryable = false),
-            onAction = onBack,
-        ) { _, _ -> }
-    }
-}
 
 // -------------------------------------------------------------------- sections
 

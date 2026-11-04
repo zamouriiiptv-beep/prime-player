@@ -254,13 +254,6 @@ class XtreamHttpApi(
     fun archiveUrl(streamId: String, durationMinutes: Int, start: String): String =
         XtreamUrls.timeshift(base, username, password, streamId, durationMinutes, start)
 
-    /**
-     * The same programme addressed the other way, `streaming/timeshift.php`, or null when the stream, the duration or the
-     * start is not in the form the panel reads -- see [XtreamUrls.timeshiftQuery]. Made, not asked: no request.
-     */
-    fun archiveQueryUrl(streamId: String, durationMinutes: Int, start: String): String? =
-        XtreamUrls.timeshiftQuery(base, username, password, streamId, durationMinutes, start)
-
     /** The provider's own XMLTV endpoint, for a full guide import. */
     fun xmltvUrl(): String = XtreamUrls.xmltv(base, username, password)
 

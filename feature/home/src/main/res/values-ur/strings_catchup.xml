@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
+    <string name="catchup_title">چھوٹے ہوئے پروگرام</string>
+    <string name="catchup_subtitle">دیکھنے کے قابل پروگرام (آرکائیو)</string>
+    <string name="catchup_hub_subtitle">نشر ہو چکے پروگرام، جب چاہیں دیکھیں</string>
+    <string name="catchup_all">سب</string>
+    <string name="catchup_pick_channel">چینل منتخب کریں</string>
+    <string name="catchup_days">دن: %1$d</string>
+    <string name="catchup_hub_empty">اس سبسکرپشن کا کوئی چینل آرکائیو نہیں رکھتا</string>
+    <string name="catchup_back">واپس</string>
+    <string name="catchup_loading">آرکائیو لوڈ ہو رہا ہے…</string>
+    <string name="catchup_empty">اس چینل کے لیے کوئی آرکائیو شدہ پروگرام نہیں</string>
+    <string name="catchup_unsupported">یہ سبسکرپشن چھوٹے ہوئے پروگرام کی سہولت نہیں دیتی</string>
+    <string name="catchup_failed">آرکائیو نے جواب نہیں دیا</string>
+    <string name="catchup_retry">دوبارہ کوشش کریں</string>
+    <string name="catchup_open_failed">یہ پروگرام کھولا نہیں جا سکا</string>
+    <string name="catchup_yesterday">کل</string>
+</resources>

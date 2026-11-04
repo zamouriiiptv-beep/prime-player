@@ -89,17 +89,18 @@ interface CatchUpGateway {
     suspend fun playbackUrl(channel: CatchUpChannel, programme: CatchUpProgramme): Outcome<String>
 
     /**
-     * The same programme addressed another way, for the player to try **once** if the address from [playbackUrl] is
-     * answered "not found" -- or null where the provider has no other way. Made when a programme is chosen, beside
-     * [playbackUrl], and like it asks nothing of the network: the player is what tries it, and only after the first fails.
-     */
-    suspend fun alternateUrl(channel: CatchUpChannel, programme: CatchUpProgramme): String? = null
-
-    /**
      * Whether this channel was asked for and had nothing archived, a short while ago. Answered from memory: it is what
      * lets the button go away for a channel that has been found empty, without anything being asked of the network.
      */
     fun knownEmpty(mediaId: String, nowMs: Long): Boolean
+
+    /**
+     * The player opened a programme of [mediaId] and the provider answered that it has none: the provider claims an archive
+     * for the channel and keeps no recording. Remembered for as long as an empty listing is, so the channel is left out of
+     * Catch-up and not offered again to fail the same way. Memory only, nothing asked. A provider with nothing to
+     * remember has nothing to do.
+     */
+    fun markUnavailable(mediaId: String, nowMs: Long) = Unit
 }
 
 /** One day of an archive, as the viewer's own calendar draws it. */
@@ -119,6 +120,13 @@ object CatchUpPolicy {
 
     /** Whether a channel offers catch-up at all, from what the catalogue holds. */
     fun offered(archiveHours: Int?): Boolean = (archiveHours ?: 0) > 0
+
+    /**
+     * How many days of archive a provider's hours amount to, as the channel's row says them: whole days, a part of one
+     * counted as one, and never less than one for an archive that exists. Null for a channel with none.
+     */
+    fun daysOf(archiveHours: Int?): Int? =
+        archiveHours?.takeIf { it > 0 }?.let { (it + HOURS_PER_DAY - 1) / HOURS_PER_DAY }
 
     /**
      * The programmes that can be replayed: over, and inside the window the provider claims, newest first.
@@ -159,6 +167,7 @@ object CatchUpPolicy {
         return ((ms + MINUTE_MS - 1) / MINUTE_MS).toInt().coerceAtLeast(1)
     }
 
+    private const val HOURS_PER_DAY = 24
     const val MINUTE_MS = 60_000L
     const val HOUR_MS = 60 * MINUTE_MS
     const val DAY_MS = 24 * HOUR_MS

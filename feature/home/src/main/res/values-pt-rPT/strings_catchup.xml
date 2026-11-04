@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
+    <string name="catchup_title">Rever</string>
+    <string name="catchup_subtitle">Programas disponíveis para ver (arquivo)</string>
+    <string name="catchup_hub_subtitle">Programas já emitidos, para ver quando quiser</string>
+    <string name="catchup_all">Todos</string>
+    <string name="catchup_pick_channel">Escolha um canal</string>
+    <string name="catchup_days">Dias: %1$d</string>
+    <string name="catchup_hub_empty">Nenhum canal desta subscrição mantém arquivo</string>
+    <string name="catchup_back">Voltar</string>
+    <string name="catchup_loading">A carregar o arquivo…</string>
+    <string name="catchup_empty">Nenhum programa arquivado para este canal</string>
+    <string name="catchup_unsupported">Esta subscrição não oferece programas em diferido</string>
+    <string name="catchup_failed">O arquivo não respondeu</string>
+    <string name="catchup_retry">Tentar novamente</string>
+    <string name="catchup_open_failed">Não foi possível abrir este programa</string>
+    <string name="catchup_yesterday">Ontem</string>
+</resources>

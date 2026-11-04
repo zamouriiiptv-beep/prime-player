@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
+    <string name="catchup_title">ย้อนหลัง</string>
+    <string name="catchup_subtitle">รายการที่ดูได้ (คลังย้อนหลัง)</string>
+    <string name="catchup_hub_subtitle">รายการที่ออกอากาศไปแล้ว ดูได้ตามต้องการ</string>
+    <string name="catchup_all">ทั้งหมด</string>
+    <string name="catchup_pick_channel">เลือกช่อง</string>
+    <string name="catchup_days">วัน: %1$d</string>
+    <string name="catchup_hub_empty">ไม่มีช่องใดในแพ็กเกจนี้ที่เก็บรายการย้อนหลัง</string>
+    <string name="catchup_back">ย้อนกลับ</string>
+    <string name="catchup_loading">กำลังโหลดคลังย้อนหลัง…</string>
+    <string name="catchup_empty">ไม่มีรายการย้อนหลังสำหรับช่องนี้</string>
+    <string name="catchup_unsupported">แพ็กเกจนี้ไม่มีรายการย้อนหลัง</string>
+    <string name="catchup_failed">คลังย้อนหลังไม่ตอบสนอง</string>
+    <string name="catchup_retry">ลองอีกครั้ง</string>
+    <string name="catchup_open_failed">เปิดรายการนี้ไม่ได้</string>
+    <string name="catchup_yesterday">เมื่อวาน</string>
+</resources>

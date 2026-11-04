@@ -44,6 +44,12 @@ data class CatalogQuery(
      * no [groupId], [search] or [arranging], and never asked for with [favorites].
      */
     val recent: Boolean = false,
+    /**
+     * Only the channels whose provider keeps an archive -- those with [Channel.catchUpHours] -- optionally of one
+     * [groupId], in the provider's order: the list Catch-up opens. Like [favorites], a list of its own: no [search] and no
+     * [arranging], and what it narrows is the catalogue's own channels, so [kind] is the live one.
+     */
+    val archive: Boolean = false,
 )
 
 /**

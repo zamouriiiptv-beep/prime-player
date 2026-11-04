@@ -294,21 +294,11 @@ fun CastivioChip(
     padV: Dp = Spacing.sm,
     /** A mark after the label, such as a chevron on a chip that opens a choice. Nothing by default. */
     trailingIcon: ImageVector? = null,
-    /**
-     * What the pill is painted with, where it has to stand out from the glass chips around it. Null keeps glass.
-     *
-     * The same idea as [CastivioButton]'s `fill`: the parameter says what the chip is painted with, and the caller says
-     * why. Meant for the one chip in a row that is the action to take, with [ink] chosen to read on it.
-     */
-    fill: Brush? = null,
-    /** The ink of the label and of the leading mark. Null keeps the ordinary one. */
-    ink: Color? = null,
 ) {
     val colors = CastivioTheme.colors
     val interaction = remember { MutableInteractionSource() }
     var focused by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(Radius.pill)
-    val labelInk = ink ?: colors.onBackground
     val border by animateColorAsState(
         if (focused) colors.focusRing else colors.glassBorder, Motion.focusSpec(), label = "chipBorder",
     )
@@ -324,15 +314,15 @@ fun CastivioChip(
             // padding still decides the *width*; the floor decides the height.
             .defaultMinSize(minHeight = Sizing.minTarget(CastivioTheme.device.isTv))
             .clip(shape)
-            .background(fill ?: colors.glassFillBrush)
+            .background(colors.glassFillBrush)
             .border(BorderStroke(1.dp, border), shape)
             .clickable(interaction, indication = null, onClick = onClick)
             .padding(horizontal = padH, vertical = padV),
     ) {
         if (icon != null) {
-            Icon(icon, null, tint = labelInk, modifier = Modifier.size(Sizing.iconSm))
+            Icon(icon, null, tint = colors.onBackground, modifier = Modifier.size(Sizing.iconSm))
         }
-        Text(text, color = labelInk, style = labelStyle)
+        Text(text, color = colors.onBackground, style = labelStyle)
         if (trailingIcon != null) {
             Icon(trailingIcon, null, tint = colors.onBackgroundMuted, modifier = Modifier.size(Sizing.iconSm))
         }

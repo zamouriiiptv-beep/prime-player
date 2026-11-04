@@ -36,6 +36,19 @@ class CatchUpTest {
         assertTrue(CatchUpPolicy.offered(7 * 24))
     }
 
+    // ------------------------------------------------------------------------------------- daysOf
+
+    @Test
+    fun `an archive is told in whole days, a part of a day counting as one`() {
+        assertNull(CatchUpPolicy.daysOf(null))
+        assertNull(CatchUpPolicy.daysOf(0))
+        assertNull(CatchUpPolicy.daysOf(-24))
+        assertEquals(1, CatchUpPolicy.daysOf(1))
+        assertEquals(1, CatchUpPolicy.daysOf(24))
+        assertEquals(2, CatchUpPolicy.daysOf(25))
+        assertEquals(7, CatchUpPolicy.daysOf(7 * 24))
+    }
+
     // ---------------------------------------------------------------------------------- replayable
 
     @Test

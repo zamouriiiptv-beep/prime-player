@@ -125,7 +125,7 @@ internal fun BoxScope.Transients(state: PlayerState, actions: PlayerActions, ins
                 stringResource(R.string.player_attempt, picture.attempt, picture.of),
         )
 
-        is Picture.Failed -> FailureCard(picture, state.diagnosis, actions)
+        is Picture.Failed -> FailureCard(picture, state.diagnosis, actions, catchUp = state.request.isCatchUp)
 
         else -> Unit
     }
@@ -240,9 +240,14 @@ private fun BoxScope.CentredSpinner(label: String) {
  * card and the machine can never disagree about whether the backup is worth trying.
  */
 @Composable
-private fun BoxScope.FailureCard(failure: Picture.Failed, diagnosis: PlaybackDiagnosis?, actions: PlayerActions) {
+private fun BoxScope.FailureCard(
+    failure: Picture.Failed,
+    diagnosis: PlaybackDiagnosis?,
+    actions: PlayerActions,
+    catchUp: Boolean = false,
+) {
     val colors = CastivioTheme.colors
-    val copy = failureCopy(failure.reason)
+    val copy = failureCopy(failure.reason, catchUp)
 
     Column(
         Modifier
@@ -346,15 +351,21 @@ private data class FailureCopy(val title: Int, val detail: Int)
  * perfectly ordinary MP4 was an unsupported format, and the diagnosis under the card keeps
  * the distinction the copy compresses.
  */
-private fun failureCopy(reason: PlaybackError): FailureCopy = when (reason) {
+private fun failureCopy(reason: PlaybackError, catchUp: Boolean = false): FailureCopy = when (reason) {
     PlaybackError.UNSUPPORTED_FORMAT ->
         FailureCopy(R.string.player_unsupported_title, R.string.player_unsupported_detail)
     PlaybackError.DRM ->
         FailureCopy(R.string.player_drm_title, R.string.player_drm_detail)
     PlaybackError.NETWORK ->
         FailureCopy(R.string.player_network_title, R.string.player_network_detail)
+    // A programme of a channel's archive that the server does not know is not a link that moved: the provider claims an
+    // archive for the channel and keeps no recording of it, and the card says that -- in Catch-up's own words.
     PlaybackError.NOT_FOUND ->
-        FailureCopy(R.string.player_not_found_title, R.string.player_not_found_detail)
+        if (catchUp) {
+            FailureCopy(R.string.player_archive_missing_title, R.string.player_archive_missing_detail)
+        } else {
+            FailureCopy(R.string.player_not_found_title, R.string.player_not_found_detail)
+        }
     PlaybackError.PERMISSION, PlaybackError.SOURCE ->
         FailureCopy(R.string.player_source_title, R.string.player_source_detail)
     PlaybackError.TIMEOUT ->

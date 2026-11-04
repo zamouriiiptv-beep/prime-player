@@ -100,11 +100,11 @@ object XtreamUrls {
     /**
      * The address of an archived programme: `http://host:8080/timeshift/user/pass/<minutes>/<start>/<stream id>.ts`.
      *
-     * **One of the forms Xtream panels accept, and the one used here -- it is not a standard.** Community clients for the
-     * panel write the same path, with the duration in minutes and the start as `YYYY-MM-DD:HH-MM`, and the panel serves
-     * it from the same handler as its `streaming/timeshift.php?stream=&start=&duration=` address. Panels differ in the
-     * details (a duration in seconds, another start format), and this has not been tried against a live panel: see
-     * `LOCAL_CHANGES.md` section 56 for what is and is not verified.
+     * **The one form used, and it is not a standard.** Community clients for the panel write the same path, with the
+     * duration in minutes and the start as `YYYY-MM-DD:HH-MM`. It has been played end to end against one live panel, on
+     * a channel that really keeps an archive; a 404 on a channel the panel merely *flags* as archived is the panel
+     * having no recording, not this path being wrong. Panels differ in the details (a duration in seconds, another
+     * start format): see `LOCAL_CHANGES.md` section 56 for what is and is not verified.
      *
      * @param start the programme's start as the panel wrote it, already turned into the path's form by [timeshiftStart].
      */
@@ -141,61 +141,6 @@ object XtreamUrls {
             append(text, 0, 10).append(':').append(text, 11, 13).append('-').append(text, 14, 16)
         }
     }
-
-    /**
-     * The same archived programme as [timeshift], addressed the other way Xtream panels accept:
-     * `http://host:port/streaming/timeshift.php?username=&password=&stream=&start=&duration=`.
-     *
-     * **Asked for only after the path form answered 404, and once** -- see the player's catch-up fallback. Which of the
-     * two a panel serves is not something it says; some serve one, some both. The parameter names are the ones community
-     * documentation lists for this endpoint -- not an official specification, and not yet tried against a live panel --
-     * with the same values as the path form: the stream is the stream id, the start is `YYYY-MM-DD:HH-MM` in the panel's
-     * own time zone, and the duration is in whole minutes.
-     *
-     * **Checked before it is built, and null for anything the panel would not read:**
-     * - the stream is made of letters, digits, `-` and `_` and is not empty -- what a panel's stream id is;
-     * - the duration is a whole number of minutes from 1 to [MAX_ARCHIVE_MINUTES];
-     * - the start is exactly `YYYY-MM-DD:HH-MM`: digits and its three separators, nothing else.
-     *
-     * The account is percent-encoded as it is in [timeshift]; the colon of the start is written as it is, which a query
-     * allows and a panel reads as written.
-     */
-    fun timeshiftQuery(
-        base: String,
-        username: String,
-        password: String,
-        streamId: String,
-        durationMinutes: Int,
-        start: String,
-    ): String? {
-        val stream = streamId.trim()
-        if (!isStreamId(stream) || durationMinutes !in 1..MAX_ARCHIVE_MINUTES || !isTimeshiftStart(start)) return null
-        return buildString {
-            append(normaliseBase(base)).append("/streaming/timeshift.php")
-            append("?username=").append(encode(username))
-            append("&password=").append(encode(password))
-            append("&stream=").append(stream)
-            append("&start=").append(start)
-            append("&duration=").append(durationMinutes)
-        }
-    }
-
-    /** The longest programme an archive address is built for: a day. Longer is not a programme, it is a gap in a guide. */
-    const val MAX_ARCHIVE_MINUTES = 24 * 60
-
-    /** Whether [text] is exactly `YYYY-MM-DD:HH-MM`: the form [timeshiftStart] makes and a panel reads. */
-    internal fun isTimeshiftStart(text: String): Boolean {
-        if (text.length != TIMESHIFT_START_LENGTH) return false
-        if (text[4] != '-' || text[7] != '-' || text[10] != ':' || text[13] != '-') return false
-        for (i in intArrayOf(0, 1, 2, 3, 5, 6, 8, 9, 11, 12, 14, 15)) if (text[i] !in '0'..'9') return false
-        return true
-    }
-
-    /** Whether [text] can be a stream id: not empty, and only ASCII letters, digits, `-` and `_`. */
-    internal fun isStreamId(text: String): Boolean =
-        text.isNotEmpty() && text.all { it in 'a'..'z' || it in 'A'..'Z' || it in '0'..'9' || it == '-' || it == '_' }
-
-    private const val TIMESHIFT_START_LENGTH = 16
 
     /** The alternate container for a stream, used by playback fallback. */
     fun alternateLiveFormat(url: String): String? = when {

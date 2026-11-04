@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
+    <string name="catchup_title">Se på nytt</string>
+    <string name="catchup_subtitle">Programmer du kan se (arkiv)</string>
+    <string name="catchup_hub_subtitle">Programmer som har gått, å se når du vil</string>
+    <string name="catchup_all">Alle</string>
+    <string name="catchup_pick_channel">Velg en kanal</string>
+    <string name="catchup_days">Dager: %1$d</string>
+    <string name="catchup_hub_empty">Ingen kanal i dette abonnementet har arkiv</string>
+    <string name="catchup_back">Tilbake</string>
+    <string name="catchup_loading">Laster arkivet…</string>
+    <string name="catchup_empty">Ingen arkiverte programmer for denne kanalen</string>
+    <string name="catchup_unsupported">Dette abonnementet tilbyr ikke se på nytt</string>
+    <string name="catchup_failed">Arkivet svarte ikke</string>
+    <string name="catchup_retry">Prøv igjen</string>
+    <string name="catchup_open_failed">Programmet kunne ikke åpnes</string>
+    <string name="catchup_yesterday">I går</string>
+</resources>

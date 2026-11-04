@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
+    <string name="catchup_title">回看</string>
+    <string name="catchup_subtitle">可觀看的節目（存檔）</string>
+    <string name="catchup_hub_subtitle">已播出的節目，隨時觀看</string>
+    <string name="catchup_all">全部</string>
+    <string name="catchup_pick_channel">選擇頻道</string>
+    <string name="catchup_days">天數：%1$d</string>
+    <string name="catchup_hub_empty">此訂閱中沒有保留存檔的頻道</string>
+    <string name="catchup_back">返回</string>
+    <string name="catchup_loading">正在載入存檔…</string>
+    <string name="catchup_empty">此頻道沒有存檔節目</string>
+    <string name="catchup_unsupported">此訂閱不提供回看</string>
+    <string name="catchup_failed">存檔沒有回應</string>
+    <string name="catchup_retry">重試</string>
+    <string name="catchup_open_failed">無法開啟此節目</string>
+    <string name="catchup_yesterday">昨天</string>
+</resources>

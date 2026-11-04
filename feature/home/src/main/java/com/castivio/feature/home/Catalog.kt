@@ -167,11 +167,12 @@ data class CatalogSelection(
      */
     val listed: CatalogQuery? = null,
     /**
-     * Another address for the same thing, for the player to try **once** if [url] is answered "not found". Only a
-     * catch-up programme has one: a channel, a film and an episode have the one address and leave this null, which is
-     * what keeps every other opening exactly as it was.
+     * The id of the channel whose archive this is, for a programme played from Catch-up, and null for everything else.
+     *
+     * What lets the player say, when the provider has no recording, that it is the archive that is missing and not a link
+     * that moved -- and lets the shell leave that channel out of Catch-up. See `PlayerRequest.archiveOf`.
      */
-    val alternateUrl: String? = null,
+    val archiveOf: String? = null,
 )
 
 /**

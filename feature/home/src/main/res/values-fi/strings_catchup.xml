@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
+    <string name="catchup_title">Jälkikäteen</string>
+    <string name="catchup_subtitle">Katsottavissa olevat ohjelmat (arkisto)</string>
+    <string name="catchup_hub_subtitle">Jo esitetyt ohjelmat, katsottavissa milloin haluat</string>
+    <string name="catchup_all">Kaikki</string>
+    <string name="catchup_pick_channel">Valitse kanava</string>
+    <string name="catchup_days">Päivät: %1$d</string>
+    <string name="catchup_hub_empty">Mikään tämän tilauksen kanava ei säilytä arkistoa</string>
+    <string name="catchup_back">Takaisin</string>
+    <string name="catchup_loading">Ladataan arkistoa…</string>
+    <string name="catchup_empty">Tällä kanavalla ei ole arkistoituja ohjelmia</string>
+    <string name="catchup_unsupported">Tämä tilaus ei tarjoa jälkikäteen katselua</string>
+    <string name="catchup_failed">Arkisto ei vastannut</string>
+    <string name="catchup_retry">Yritä uudelleen</string>
+    <string name="catchup_open_failed">Ohjelmaa ei voitu avata</string>
+    <string name="catchup_yesterday">Eilen</string>
+</resources>

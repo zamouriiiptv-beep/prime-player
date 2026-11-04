@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
+    <string name="catchup_title">Spätné prehrávanie</string>
+    <string name="catchup_subtitle">Relácie na pozretie (archív)</string>
+    <string name="catchup_hub_subtitle">Už odvysielané relácie, na pozretie kedykoľvek</string>
+    <string name="catchup_all">Všetko</string>
+    <string name="catchup_pick_channel">Vyberte kanál</string>
+    <string name="catchup_days">Dni: %1$d</string>
+    <string name="catchup_hub_empty">Žiadny kanál tohto predplatného nemá archív</string>
+    <string name="catchup_back">Späť</string>
+    <string name="catchup_loading">Načítava sa archív…</string>
+    <string name="catchup_empty">Pre tento kanál nie sú archivované relácie</string>
+    <string name="catchup_unsupported">Toto predplatné nenúka spätné prehrávanie</string>
+    <string name="catchup_failed">Archív neodpovedal</string>
+    <string name="catchup_retry">Skúsiť znova</string>
+    <string name="catchup_open_failed">Túto reláciu sa nepodarilo otvoriť</string>
+    <string name="catchup_yesterday">Včera</string>
+</resources>

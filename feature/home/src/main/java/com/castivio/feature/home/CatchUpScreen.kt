@@ -38,6 +38,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.castivio.core.design.components.CastivioChip
@@ -80,6 +81,11 @@ internal fun CatchUpOverlay(
     model: CatchUpViewModel,
     onPlay: (CatalogSelection) -> Unit,
     onClose: () -> Unit,
+    /**
+     * The room on the end side that the screen leaves uncovered. The channels' board keeps its picture there, and the
+     * default is that column; Catch-up's own page has no picture and passes nothing.
+     */
+    reserveEnd: Dp = m.player + m.playerGap,
 ) {
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(m.panelRadius)
@@ -99,7 +105,7 @@ internal fun CatchUpOverlay(
     Box(
         Modifier
             .fillMaxSize()
-            .padding(end = m.player + m.playerGap)
+            .padding(end = reserveEnd)
             .background(colors.scrim)
             // Swallows the press so a tap on the dimmed board behind does not reach a channel row, as the guide's does.
             .clickable(
@@ -220,14 +226,16 @@ internal fun CatchUpOverlay(
                                             .height(cardHeight)
                                             .then(if (index == 0) Modifier.focusRequester(first) else Modifier),
                                         onClick = {
-                                            model.choose(card) { address, alternate, channelTitle ->
+                                            model.choose(card) { address, channelTitle ->
                                                 onPlay(
                                                     CatalogSelection(
                                                         url = address,
                                                         title = card.title,
                                                         live = false,
-                                                        subtitle = "$channelTitle · ${card.timeText}",
-                                                        alternateUrl = alternate,
+                                                        // The time first: a subtitle that began with the channel's name would be
+                                                        // read as a show's season and episode when the name began with S or E.
+                                                        subtitle = "${card.timeText} · $channelTitle",
+                                                        archiveOf = channel.id,
                                                     ),
                                                 )
                                                 onClose()

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
+    <string name="catchup_title">Tonton Semula</string>
+    <string name="catchup_subtitle">Program yang boleh ditonton (arkib)</string>
+    <string name="catchup_hub_subtitle">Program yang sudah disiarkan, tonton bila-bila masa</string>
+    <string name="catchup_all">Semua</string>
+    <string name="catchup_pick_channel">Pilih saluran</string>
+    <string name="catchup_days">Hari: %1$d</string>
+    <string name="catchup_hub_empty">Tiada saluran dalam langganan ini menyimpan arkib</string>
+    <string name="catchup_back">Kembali</string>
+    <string name="catchup_loading">Memuatkan arkib…</string>
+    <string name="catchup_empty">Tiada program diarkibkan untuk saluran ini</string>
+    <string name="catchup_unsupported">Langganan ini tidak menawarkan tonton semula</string>
+    <string name="catchup_failed">Arkib tidak bertindak balas</string>
+    <string name="catchup_retry">Cuba lagi</string>
+    <string name="catchup_open_failed">Program ini tidak dapat dibuka</string>
+    <string name="catchup_yesterday">Semalam</string>
+</resources>

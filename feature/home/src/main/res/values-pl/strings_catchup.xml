@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
+    <string name="catchup_title">Powtórki</string>
+    <string name="catchup_subtitle">Programy do obejrzenia (archiwum)</string>
+    <string name="catchup_hub_subtitle">Programy, które już były, obejrzysz kiedy chcesz</string>
+    <string name="catchup_all">Wszystkie</string>
+    <string name="catchup_pick_channel">Wybierz kanał</string>
+    <string name="catchup_days">Dni: %1$d</string>
+    <string name="catchup_hub_empty">Żaden kanał w tej subskrypcji nie ma archiwum</string>
+    <string name="catchup_back">Wstecz</string>
+    <string name="catchup_loading">Wczytywanie archiwum…</string>
+    <string name="catchup_empty">Brak zarchiwizowanych programów dla tego kanału</string>
+    <string name="catchup_unsupported">Ta subskrypcja nie oferuje powtórek</string>
+    <string name="catchup_failed">Archiwum nie odpowiedziało</string>
+    <string name="catchup_retry">Spróbuj ponownie</string>
+    <string name="catchup_open_failed">Nie można otworzyć tego programu</string>
+    <string name="catchup_yesterday">Wczoraj</string>
+</resources>

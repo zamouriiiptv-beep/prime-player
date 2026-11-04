@@ -112,6 +112,48 @@ interface MediaDao {
     )
     suspend fun windowInGroup(kind: String, groupId: String, offset: Int, limit: Int): List<MediaEntity>
 
+    // ------------------------------------------------------------ the channels that keep an archive
+    //
+    // Catch-up's own lists: the provider's order, a window at a time like every list here, narrowed to the rows the
+    // importer or the backfill gave a `catch_up_hours` -- a few hundred of a section's tens of thousands. Read through
+    // the section's own index, so a window visits the live rows in order and keeps the ones with an archive.
+
+    @Query(
+        """
+        SELECT * FROM media WHERE source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN AND kind = :kind AND catch_up_hours > 0
+        ORDER BY provider_order, id LIMIT :limit OFFSET :offset
+        """,
+    )
+    suspend fun windowArchive(kind: String, offset: Int, limit: Int): List<MediaEntity>
+
+    @Query(
+        """
+        SELECT * FROM media WHERE source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN AND kind = :kind AND group_id = :groupId
+        AND catch_up_hours > 0
+        ORDER BY provider_order, id LIMIT :limit OFFSET :offset
+        """,
+    )
+    suspend fun windowArchiveInGroup(kind: String, groupId: String, offset: Int, limit: Int): List<MediaEntity>
+
+    /**
+     * The categories that hold a channel with an archive, each with how many, in the provider's order.
+     *
+     * One aggregate over the live rows of the active subscription -- the rows of a section that has a few thousand
+     * channels, not of the catalogue -- joined to the category's own row for its name and its place. A category the
+     * viewer hid, and a channel they hid, are left out as they are everywhere else. Room observes `media`, `media_group`
+     * and `hidden_item` through it, so it reads itself again when the backfill fills the hours in.
+     */
+    @Query(
+        """
+        SELECT g.id AS id, g.name AS name, COUNT(*) AS channels
+        FROM media m INNER JOIN media_group g ON g.id = m.group_id
+        WHERE m.source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN_M AND m.kind = :kind AND m.catch_up_hours > 0
+        GROUP BY g.id, g.name
+        ORDER BY MIN(g.provider_order), g.id
+        """,
+    )
+    fun archiveGroups(kind: String): Flow<List<ArchiveGroupRow>>
+
     /**
      * One window of a bouquet's channels in the viewer's own order -- [scope] names whose: see
      * `CustomOrderEntity` -- and the provider's for any channel that order has no place for.
@@ -587,6 +629,13 @@ data class ChannelRefRow(
     val mediaId: String,
     val providerRef: String?,
     val epgChannelId: String?,
+)
+
+/** Projection for Catch-up's categories: a category, and how many of its channels keep an archive. */
+data class ArchiveGroupRow(
+    val id: String,
+    val name: String,
+    val channels: Int,
 )
 
 /** Projection for the series aggregation. Not an entity — there is no series table. */

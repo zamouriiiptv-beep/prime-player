@@ -248,8 +248,6 @@ fun ChannelsScreen(
     favoritesModel: ChannelFavoritesViewModel = hiltViewModel(),
     /** What the viewer is choosing to hide, and the write that hides it. See [HidingUi]. */
     hidingModel: ChannelHidingViewModel = hiltViewModel(),
-    /** The archive of the channel whose guide is open: asked only when its catch-up screen is. See [CatchUpOverlay]. */
-    catchUpModel: CatchUpViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(Unit) { model.show(CatalogSection.Live) }
     // Temporary, for development: the screen is on, counted from the press on Home -- see `LoadTrace`.
@@ -440,8 +438,6 @@ fun ChannelsScreen(
                 favorites = favorites,
                 hider = hider,
                 typing = searchFocused,
-                catchUpModel = catchUpModel,
-                onPlay = onPlay,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -612,6 +608,8 @@ internal fun BoardBand(
     hint: String = stringResource(R.string.channels_search_hint),
     /** What a section adds to the band between its field and the clock: the films' order. Nothing for channels. */
     trailing: (@Composable () -> Unit)? = null,
+    /** Whether the band has a field at all. Catch-up's has none: a field that searched nothing would be a promise. */
+    withSearch: Boolean = true,
 ) {
     val colors = CastivioTheme.colors
 
@@ -710,7 +708,7 @@ internal fun BoardBand(
             // lost: Home draws both, captioned and side by side, on a screen with room
             // to say which is which.
             if (trailing == null) {
-                Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { field() }
+                Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { if (withSearch) field() }
                 BoardClock(m, Modifier.width(m.dates).padding(end = bandInset(m)))
             } else {
                 BandTail(
@@ -1016,9 +1014,6 @@ private fun Board(
     hider: HidingUi,
     /** The header's field has the remote: see [ChannelList]. */
     typing: Boolean,
-    /** The archive of the channel whose guide is open, and what a chosen programme is played with. See [CatchUpOverlay]. */
-    catchUpModel: CatchUpViewModel,
-    onPlay: (CatalogSelection) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
@@ -1099,8 +1094,6 @@ private fun Board(
                     favorites = favorites,
                     hider = hider,
                     typing = typing,
-                    catchUpModel = catchUpModel,
-                    onPlay = onPlay,
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -1253,16 +1246,12 @@ private fun Columns(
     favorites: FavoritesUi,
     hider: HidingUi,
     typing: Boolean,
-    /** The archive of the channel whose guide is open, and what a chosen programme is played with. See [CatchUpOverlay]. */
-    catchUpModel: CatchUpViewModel,
-    onPlay: (CatalogSelection) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val rows = model.items.collectAsLazyPagingItems()
     val listState = rememberLazyListState()
 
     var guideOpen by remember { mutableStateOf(false) }
-    var catchUpOpen by remember { mutableStateOf(false) }
 
     val listFocus = remember { FocusRequester() }
     val wellFocus = remember { FocusRequester() }
@@ -1396,27 +1385,6 @@ private fun Columns(
                     guide = fullGuide,
                     m = m,
                     onClose = { guideOpen = false },
-                    // Offered only for a channel the catalogue says has an archive and that has not just been found empty:
-                    // memory and arithmetic, so asking it on every composition costs nothing and reaches no network.
-                    onCatchUp = if (shown.channel?.let(catchUpModel::offered) == true) {
-                        { catchUpOpen = true }
-                    } else {
-                        null
-                    },
-                )
-            }
-            val catchUpChannel = shown.channel
-            if (catchUpOpen && catchUpChannel != null) {
-                CatchUpOverlay(
-                    channel = catchUpChannel,
-                    m = m,
-                    model = catchUpModel,
-                    // A programme chosen is played by the player on screen, and both screens have done their work.
-                    onPlay = { selection ->
-                        onPlay(selection)
-                        guideOpen = false
-                    },
-                    onClose = { catchUpOpen = false },
                 )
             }
         }
@@ -3394,8 +3362,6 @@ private fun ChannelGuideOverlay(
     guide: FullGuide,
     m: ChannelsMetrics,
     onClose: () -> Unit,
-    /** Opens the channel's catch-up, or null where the channel offers none: the button is then not drawn at all. */
-    onCatchUp: (() -> Unit)? = null,
 ) {
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(m.panelRadius)
@@ -3448,28 +3414,15 @@ private fun ChannelGuideOverlay(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                // After the channel's name, as the approved drawing has it, and only where there is an archive to open.
-                //
-                // **The header's two controls are one family.** The same pill, the same type and the same height, told
-                // apart only by their mark: the replay arc opens the archive, the cross leaves. The close was bare
-                // muted text at body size beside a chip at the default size -- two sizes for two controls of equal
-                // standing -- and it was not a control at all, with nothing for a remote or a finger to land on.
-                if (onCatchUp != null) {
-                    GuideHeaderChip(
-                        text = stringResource(R.string.catchup_button),
-                        icon = CastivioIcons.ReplayArc,
-                        m = m,
-                        onClick = onCatchUp,
-                        // The one action the header offers, so the one that is drawn to be seen; the close stays glass.
-                        lead = true,
-                    )
-                    Spacer(Modifier.width(m.controlPadH))
-                }
-                GuideHeaderChip(
+                // A control and not bare text: something for a remote or a finger to land on, in the chip the other lists'
+                // headers use, sized from the same metrics.
+                CastivioChip(
                     text = stringResource(R.string.channels_guide_close),
-                    icon = CastivioIcons.Close,
-                    m = m,
                     onClick = onClose,
+                    icon = CastivioIcons.Close,
+                    labelStyle = castivioChipStyle(m.frame.fsChip),
+                    padH = m.controlPadH,
+                    padV = m.badgePadV,
                 )
             }
 
@@ -3510,34 +3463,6 @@ private fun ChannelGuideOverlay(
             }
         }
     }
-}
-
-/**
- * A control in the guide's header: the chip the other lists' headers use, sized from the same metrics.
- *
- * Both of the header's controls are made here so that they cannot differ: the type, the padding and therefore the
- * height are one decision, and the floor under it is the chip's own touch target.
- */
-@Composable
-private fun GuideHeaderChip(
-    text: String,
-    icon: ImageVector,
-    m: ChannelsMetrics,
-    onClick: () -> Unit,
-    /** The header's one action to take: painted in the azure every primary action in the app has. */
-    lead: Boolean = false,
-) {
-    val colors = CastivioTheme.colors
-    CastivioChip(
-        text = text,
-        onClick = onClick,
-        icon = icon,
-        labelStyle = castivioChipStyle(m.frame.fsChip),
-        padH = m.controlPadH,
-        padV = m.badgePadV,
-        fill = if (lead) colors.primaryBrush else null,
-        ink = if (lead) colors.onBackgroundStrong else null,
-    )
 }
 
 /** The reference's red `LIVE` chip, at the head of the on-screen display. */

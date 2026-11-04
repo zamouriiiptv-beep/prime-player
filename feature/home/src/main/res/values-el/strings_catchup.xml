@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
+    <string name="catchup_title">Ό,τι χάσατε</string>
+    <string name="catchup_subtitle">Εκπομπές διαθέσιμες για προβολή (αρχείο)</string>
+    <string name="catchup_hub_subtitle">Εκπομπές που έχουν ήδη προβληθεί, δείτε τις όποτε θέλετε</string>
+    <string name="catchup_all">Όλα</string>
+    <string name="catchup_pick_channel">Επιλέξτε κανάλι</string>
+    <string name="catchup_days">Ημέρες: %1$d</string>
+    <string name="catchup_hub_empty">Κανένα κανάλι αυτής της συνδρομής δεν διατηρεί αρχείο</string>
+    <string name="catchup_back">Πίσω</string>
+    <string name="catchup_loading">Φόρτωση αρχείου…</string>
+    <string name="catchup_empty">Δεν υπάρχουν αρχειοθετημένες εκπομπές για αυτό το κανάλι</string>
+    <string name="catchup_unsupported">Αυτή η συνδρομή δεν προσφέρει επανάληψη</string>
+    <string name="catchup_failed">Το αρχείο δεν απάντησε</string>
+    <string name="catchup_retry">Δοκιμάστε ξανά</string>
+    <string name="catchup_open_failed">Δεν ήταν δυνατό να ανοίξει αυτή η εκπομπή</string>
+    <string name="catchup_yesterday">Χθες</string>
+</resources>

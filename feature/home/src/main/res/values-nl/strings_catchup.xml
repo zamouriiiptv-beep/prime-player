@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
+    <string name="catchup_title">Terugkijken</string>
+    <string name="catchup_subtitle">Programma\'s om terug te kijken (archief)</string>
+    <string name="catchup_hub_subtitle">Programma\'s die al zijn uitgezonden, kijk wanneer je wilt</string>
+    <string name="catchup_all">Alles</string>
+    <string name="catchup_pick_channel">Kies een zender</string>
+    <string name="catchup_days">Dagen: %1$d</string>
+    <string name="catchup_hub_empty">Geen zender in dit abonnement bewaart een archief</string>
+    <string name="catchup_back">Terug</string>
+    <string name="catchup_loading">Archief laden…</string>
+    <string name="catchup_empty">Geen gearchiveerde programma\'s voor deze zender</string>
+    <string name="catchup_unsupported">Dit abonnement biedt geen terugkijken</string>
+    <string name="catchup_failed">Het archief antwoordde niet</string>
+    <string name="catchup_retry">Opnieuw proberen</string>
+    <string name="catchup_open_failed">Dit programma kon niet worden geopend</string>
+    <string name="catchup_yesterday">Gisteren</string>
+</resources>

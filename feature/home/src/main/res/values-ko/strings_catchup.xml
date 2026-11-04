@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
+    <string name="catchup_title">다시보기</string>
+    <string name="catchup_subtitle">시청 가능한 프로그램(아카이브)</string>
+    <string name="catchup_hub_subtitle">이미 방송된 프로그램을 원할 때 시청하세요</string>
+    <string name="catchup_all">전체</string>
+    <string name="catchup_pick_channel">채널 선택</string>
+    <string name="catchup_days">일수: %1$d</string>
+    <string name="catchup_hub_empty">이 구독에는 아카이브가 있는 채널이 없습니다</string>
+    <string name="catchup_back">뒤로</string>
+    <string name="catchup_loading">아카이브 불러오는 중…</string>
+    <string name="catchup_empty">이 채널에는 보관된 프로그램이 없습니다</string>
+    <string name="catchup_unsupported">이 구독은 다시보기를 제공하지 않습니다</string>
+    <string name="catchup_failed">아카이브가 응답하지 않았습니다</string>
+    <string name="catchup_retry">다시 시도</string>
+    <string name="catchup_open_failed">이 프로그램을 열 수 없습니다</string>
+    <string name="catchup_yesterday">어제</string>
+</resources>

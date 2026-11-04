@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
+    <string name="catchup_title">Изпуснато</string>
+    <string name="catchup_subtitle">Предавания за гледане (архив)</string>
+    <string name="catchup_hub_subtitle">Вече излъчени предавания, гледайте когато искате</string>
+    <string name="catchup_all">Всички</string>
+    <string name="catchup_pick_channel">Изберете канал</string>
+    <string name="catchup_days">Дни: %1$d</string>
+    <string name="catchup_hub_empty">Нито един канал в този абонамент не пази архив</string>
+    <string name="catchup_back">Назад</string>
+    <string name="catchup_loading">Архивът се зарежда…</string>
+    <string name="catchup_empty">Няма архивирани предавания за този канал</string>
+    <string name="catchup_unsupported">Този абонамент не предлага гледане назад</string>
+    <string name="catchup_failed">Архивът не отговори</string>
+    <string name="catchup_retry">Опитайте отново</string>
+    <string name="catchup_open_failed">Това предаване не може да се отвори</string>
+    <string name="catchup_yesterday">Вчера</string>
+</resources>

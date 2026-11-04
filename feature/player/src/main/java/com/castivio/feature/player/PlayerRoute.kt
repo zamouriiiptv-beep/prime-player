@@ -24,6 +24,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.castivio.core.design.input.KeyRelay
 import com.castivio.core.design.input.LocalKeyRelay
 import com.castivio.domain.PlayerPulse
+import com.castivio.playback.api.PlaybackError
 import kotlinx.coroutines.delay
 
 /**
@@ -175,6 +176,11 @@ fun PlayerRoute(
      * player nobody opens that way, which is every one but the board's and the large player's.
      */
     opener: PlayerOpener? = null,
+    /**
+     * Told why a stream ended on its card, once per failure: what the host may act on without the player knowing what it is.
+     * Catch-up uses it to leave a channel whose provider has no recording out of its list. Null for a host that does nothing.
+     */
+    onFailed: ((PlaybackError) -> Unit)? = null,
 ) {
     val compact = mode == PlayerMode.Compact
     val model: PlayerViewModel = hiltViewModel()
@@ -199,6 +205,10 @@ fun PlayerRoute(
 
     val report by rememberUpdatedState(onPulseChange)
     LaunchedEffect(model) { model.pulse.collect { report(it) } }
+
+    val failed by rememberUpdatedState(onFailed)
+    val failure = (state?.picture as? Picture.Failed)?.reason
+    LaunchedEffect(failure, request) { if (failure != null) failed?.invoke(failure) }
 
     // The screen must not sleep during a film. Cleared on the way out rather than left
     // set, because a flag that outlives its screen is a battery complaint nobody traces.

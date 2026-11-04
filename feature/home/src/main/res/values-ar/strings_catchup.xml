@@ -1,15 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Catch-up: مشاهدة برنامج انتهى بثه من أرشيف المزوّد. الزر والعنوان بالإنجليزية كما في التصميم المعتمد. -->
-    <string name="catchup_button">Catch-up</string>
-    <string name="catchup_title">Catch-up</string>
-    <string name="catchup_subtitle">البرامج المتاحة للمشاهدة (الأرشيف)</string>
+    <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
+    <string name="catchup_title">ما فاتك</string>
+    <string name="catchup_subtitle">برامج مضت يمكن مشاهدتها (الأرشيف)</string>
+    <string name="catchup_hub_subtitle">برامج مضت، تشاهدها متى شئت</string>
+    <string name="catchup_all">الكل</string>
+    <string name="catchup_pick_channel">اختر قناة</string>
+    <string name="catchup_days">الأيام: %1$d</string>
+    <string name="catchup_hub_empty">لا توجد قناة تحتفظ بأرشيف في هذا الاشتراك</string>
     <string name="catchup_back">رجوع</string>
     <string name="catchup_loading">جارٍ تحميل الأرشيف…</string>
-    <string name="catchup_empty">لا توجد برامج مؤرشفة لهذه القناة</string>
-    <string name="catchup_unsupported">هذا الاشتراك لا يدعم المشاهدة المؤرشفة</string>
-    <string name="catchup_failed">تعذّر الوصول إلى الأرشيف</string>
-    <string name="catchup_retry">إعادة المحاولة</string>
+    <string name="catchup_empty">لا برامج مؤرشفة لهذه القناة</string>
+    <string name="catchup_unsupported">هذا الاشتراك لا يوفّر ما فاتك</string>
+    <string name="catchup_failed">لم يردّ الأرشيف</string>
+    <string name="catchup_retry">حاول مرة أخرى</string>
     <string name="catchup_open_failed">تعذّر فتح هذا البرنامج</string>
     <string name="catchup_yesterday">أمس</string>
 </resources>

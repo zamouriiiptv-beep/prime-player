@@ -1,6 +1,14 @@
 package com.castivio.domain
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
+
+/**
+ * A category of live channels that holds at least one channel keeping an archive, and how many of them it holds.
+ *
+ * What Catch-up's first page lists: [channels] is the number of those channels and not the category's own count.
+ */
+data class ArchiveGroup(val id: String, val name: String, val channels: Int)
 
 /**
  * The catalogue boundary.
@@ -40,6 +48,15 @@ interface CatalogRepository {
 
     /** Row counts for headers, answered by SQL COUNT rather than by loading. */
     fun count(kind: MediaKind, groupId: String? = null): Flow<Int>
+
+    /**
+     * The live categories that keep at least one channel with an archive, each with how many, in the provider's order.
+     *
+     * One aggregate over the live rows of the active subscription, read again when a bouquet is hidden or another
+     * subscription is chosen. Hundreds of groups at most, so read whole like [groups]; the channels themselves are read a
+     * page at a time with [CatalogQuery.archive]. Defaulted so a fake that does not offer Catch-up need not answer.
+     */
+    fun archiveGroups(): Flow<List<ArchiveGroup>> = flowOf(emptyList())
 
     /**
      * Provider and guide ids for specific rows.

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
+    <string name="catchup_title">Ce ai ratat</string>
+    <string name="catchup_subtitle">Emisiuni disponibile (arhivă)</string>
+    <string name="catchup_hub_subtitle">Emisiuni difuzate deja, de urmărit oricând</string>
+    <string name="catchup_all">Toate</string>
+    <string name="catchup_pick_channel">Alege un canal</string>
+    <string name="catchup_days">Zile: %1$d</string>
+    <string name="catchup_hub_empty">Niciun canal din acest abonament nu păstrează arhivă</string>
+    <string name="catchup_back">Înapoi</string>
+    <string name="catchup_loading">Se încarcă arhiva…</string>
+    <string name="catchup_empty">Nicio emisiune arhivată pentru acest canal</string>
+    <string name="catchup_unsupported">Acest abonament nu oferă vizionare ulterioară</string>
+    <string name="catchup_failed">Arhiva nu a răspuns</string>
+    <string name="catchup_retry">Încearcă din nou</string>
+    <string name="catchup_open_failed">Această emisiune nu a putut fi deschisă</string>
+    <string name="catchup_yesterday">Ieri</string>
+</resources>

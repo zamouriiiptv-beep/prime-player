@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
+    <string name="catchup_title">Rishiko</string>
+    <string name="catchup_subtitle">Programe për t\'u parë (arkivi)</string>
+    <string name="catchup_hub_subtitle">Programe të transmetuara, shiko kur të duash</string>
+    <string name="catchup_all">Të gjitha</string>
+    <string name="catchup_pick_channel">Zgjidh një kanal</string>
+    <string name="catchup_days">Ditë: %1$d</string>
+    <string name="catchup_hub_empty">Asnjë kanal i këtij abonimi nuk ka arkiv</string>
+    <string name="catchup_back">Mbrapa</string>
+    <string name="catchup_loading">Po ngarkohet arkivi…</string>
+    <string name="catchup_empty">Nuk ka programe të arkivuara për këtë kanal</string>
+    <string name="catchup_unsupported">Ky abonim nuk ofron rishikim</string>
+    <string name="catchup_failed">Arkivi nuk u përgjigj</string>
+    <string name="catchup_retry">Provo përsëri</string>
+    <string name="catchup_open_failed">Ky program nuk mund të hapet</string>
+    <string name="catchup_yesterday">Dje</string>
+</resources>

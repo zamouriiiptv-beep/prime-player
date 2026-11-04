@@ -36,7 +36,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.CloudOff
@@ -124,6 +123,7 @@ import com.castivio.core.design.components.castivioTitleStyle
 import com.castivio.core.design.components.formatCount
 import com.castivio.core.design.components.ltrIsolate
 import com.castivio.core.design.components.ltrToken
+import com.castivio.core.design.icons.CastivioIcons
 import com.castivio.core.design.theme.CASTIVIO_ARTWORK_ASPECT
 import com.castivio.core.design.theme.CastivioMetrics
 import com.castivio.core.design.theme.CastivioTheme
@@ -213,10 +213,10 @@ fun HomeScreen(
     onManageSources: () -> Unit,
     onSettings: () -> Unit,
     /**
-     * The newest channels, films and series, whose screen is not built yet: the caller
-     * says so rather than doing nothing.
+     * Opens Catch-up: the channels whose provider keeps an archive, and the programmes that have aired on them. It took
+     * the place of the button for the newest additions, a screen that was never built.
      */
-    onLatest: () -> Unit,
+    onCatchUp: () -> Unit,
     /** Opens the language chooser. */
     onLanguage: () -> Unit,
     /** Ask to leave. The confirmation is the application's, not this screen's. */
@@ -377,7 +377,7 @@ fun HomeScreen(
                         onChoosePlaylist = model::choosePlaylist,
                         onAddPlaylist = onAddPlaylist,
                         onManageSources = onManageSources,
-                        onLatest = onLatest,
+                        onCatchUp = onCatchUp,
                         onSettings = onSettings,
                         onExit = onExit,
                         modifier = Modifier.fillMaxWidth().weight(1f),
@@ -968,7 +968,7 @@ private fun SectionBoard(
     onChoosePlaylist: (String) -> Unit,
     onAddPlaylist: () -> Unit,
     onManageSources: () -> Unit,
-    onLatest: () -> Unit,
+    onCatchUp: () -> Unit,
     onSettings: () -> Unit,
     onExit: () -> Unit,
     modifier: Modifier = Modifier,
@@ -1010,7 +1010,7 @@ private fun SectionBoard(
             onChoosePlaylist = onChoosePlaylist,
             onAddPlaylist = onAddPlaylist,
             onManageSources = onManageSources,
-            onLatest = onLatest,
+            onCatchUp = onCatchUp,
             onSettings = onSettings,
             onExit = onExit,
             modifier = Modifier
@@ -1564,7 +1564,7 @@ private fun UtilityRail(
     onChoosePlaylist: (String) -> Unit,
     onAddPlaylist: () -> Unit,
     onManageSources: () -> Unit,
-    onLatest: () -> Unit,
+    onCatchUp: () -> Unit,
     onSettings: () -> Unit,
     onExit: () -> Unit,
     modifier: Modifier = Modifier,
@@ -1608,7 +1608,7 @@ private fun UtilityRail(
             onAdd = onAddPlaylist,
             onManage = onManageSources,
         )
-        Utility(Icons.Rounded.AutoAwesome, stringResource(R.string.home_latest), frame, onLatest)
+        Utility(CastivioIcons.ReplayArc, stringResource(R.string.catchup_title), frame, onCatchUp)
         Utility(Icons.Rounded.Settings, stringResource(R.string.home_settings), frame, onSettings)
         Utility(Icons.Rounded.PowerSettingsNew, stringResource(R.string.home_exit), frame, onExit)
     }

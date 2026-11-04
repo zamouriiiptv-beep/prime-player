@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
+    <string name="catchup_title">見逃し配信</string>
+    <string name="catchup_subtitle">視聴できる番組（アーカイブ）</string>
+    <string name="catchup_hub_subtitle">放送済みの番組を、好きな時に</string>
+    <string name="catchup_all">すべて</string>
+    <string name="catchup_pick_channel">チャンネルを選択</string>
+    <string name="catchup_days">日数: %1$d</string>
+    <string name="catchup_hub_empty">この契約にアーカイブのあるチャンネルはありません</string>
+    <string name="catchup_back">戻る</string>
+    <string name="catchup_loading">アーカイブを読み込み中…</string>
+    <string name="catchup_empty">このチャンネルにアーカイブ済みの番組はありません</string>
+    <string name="catchup_unsupported">この契約は見逃し配信に対応していません</string>
+    <string name="catchup_failed">アーカイブが応答しませんでした</string>
+    <string name="catchup_retry">再試行</string>
+    <string name="catchup_open_failed">この番組を開けませんでした</string>
+    <string name="catchup_yesterday">昨日</string>
+</resources>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
+    <string name="catchup_title">Replay</string>
+    <string name="catchup_subtitle">Programmes à revoir (archive)</string>
+    <string name="catchup_hub_subtitle">Les programmes déjà diffusés, à regarder quand vous voulez</string>
+    <string name="catchup_all">Tout</string>
+    <string name="catchup_pick_channel">Choisissez une chaîne</string>
+    <string name="catchup_days">Jours : %1$d</string>
+    <string name="catchup_hub_empty">Aucune chaîne de cet abonnement ne conserve d\'archive</string>
+    <string name="catchup_back">Retour</string>
+    <string name="catchup_loading">Chargement de l\'archive…</string>
+    <string name="catchup_empty">Aucun programme archivé pour cette chaîne</string>
+    <string name="catchup_unsupported">Cet abonnement ne propose pas le replay</string>
+    <string name="catchup_failed">L\'archive n\'a pas répondu</string>
+    <string name="catchup_retry">Réessayer</string>
+    <string name="catchup_open_failed">Impossible d\'ouvrir ce programme</string>
+    <string name="catchup_yesterday">Hier</string>
+</resources>

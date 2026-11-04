@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Catch-up: watching a programme that has already been on, from the provider's archive. -->
-    <string name="catchup_button">Catch-up</string>
+    <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
     <string name="catchup_title">Catch-up</string>
     <string name="catchup_subtitle">Programmes available to watch (archive)</string>
+    <string name="catchup_hub_subtitle">Programmes that have aired, to watch when you like</string>
+    <string name="catchup_all">All</string>
+    <string name="catchup_pick_channel">Choose a channel</string>
+    <string name="catchup_days">Days: %1$d</string>
+    <string name="catchup_hub_empty">No channel on this subscription keeps an archive</string>
     <string name="catchup_back">Back</string>
     <string name="catchup_loading">Loading the archive…</string>
     <string name="catchup_empty">No archived programmes for this channel</string>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
+    <string name="catchup_title">Nakaraang Palabas</string>
+    <string name="catchup_subtitle">Mga programang mapapanood (archive)</string>
+    <string name="catchup_hub_subtitle">Mga programang naipalabas na, panoorin kahit kailan</string>
+    <string name="catchup_all">Lahat</string>
+    <string name="catchup_pick_channel">Pumili ng channel</string>
+    <string name="catchup_days">Mga araw: %1$d</string>
+    <string name="catchup_hub_empty">Walang channel sa subscription na ito ang may archive</string>
+    <string name="catchup_back">Bumalik</string>
+    <string name="catchup_loading">Nilo-load ang archive…</string>
+    <string name="catchup_empty">Walang naka-archive na programa para sa channel na ito</string>
+    <string name="catchup_unsupported">Hindi nag-aalok ng catch-up ang subscription na ito</string>
+    <string name="catchup_failed">Hindi sumagot ang archive</string>
+    <string name="catchup_retry">Subukan muli</string>
+    <string name="catchup_open_failed">Hindi mabuksan ang programang ito</string>
+    <string name="catchup_yesterday">Kahapon</string>
+</resources>

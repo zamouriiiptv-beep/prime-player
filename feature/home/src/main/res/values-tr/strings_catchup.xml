@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Catch-up: programmes that have aired, watched from the provider's archive. -->
+    <string name="catchup_title">Kaçırdıklarınız</string>
+    <string name="catchup_subtitle">İzlenebilir programlar (arşiv)</string>
+    <string name="catchup_hub_subtitle">Yayınlanmış programlar, istediğiniz zaman izleyin</string>
+    <string name="catchup_all">Tümü</string>
+    <string name="catchup_pick_channel">Bir kanal seçin</string>
+    <string name="catchup_days">Gün: %1$d</string>
+    <string name="catchup_hub_empty">Bu aboneliğin hiçbir kanalı arşiv tutmuyor</string>
+    <string name="catchup_back">Geri</string>
+    <string name="catchup_loading">Arşiv yükleniyor…</string>
+    <string name="catchup_empty">Bu kanal için arşivlenmiş program yok</string>
+    <string name="catchup_unsupported">Bu abonelik geriye dönük izlemeyi sunmuyor</string>
+    <string name="catchup_failed">Arşiv yanıt vermedi</string>
+    <string name="catchup_retry">Tekrar dene</string>
+    <string name="catchup_open_failed">Bu program açılamadı</string>
+    <string name="catchup_yesterday">Dün</string>
+</resources>

@@ -13,6 +13,7 @@ import com.castivio.data.database.dao.MediaDao
 import com.castivio.data.database.dao.OrderDao
 import com.castivio.data.database.dao.ProgressDao
 import com.castivio.data.database.entity.MediaEntity
+import com.castivio.domain.ArchiveGroup
 import com.castivio.domain.CatalogOrder
 import com.castivio.domain.CatalogPager
 import com.castivio.domain.CatalogQuery
@@ -194,6 +195,11 @@ class RoomCatalogRepository(
             }.arrangedBy(saved.associate { it.itemId to it.position })
         }
 
+    /** The live categories that keep an archive, with how many channels: read again as [count] is. */
+    override fun archiveGroups(): Flow<List<ArchiveGroup>> =
+        rereading { mediaDao.archiveGroups(MediaKind.LIVE.name) }
+            .map { rows -> rows.map { ArchiveGroup(id = it.id, name = it.name, channels = it.channels) } }
+
     override suspend fun page(request: PageRequest): Page<MediaItem> {
         val kind = request.kind.name
         // Held in a local: a property from another module cannot be smart cast,
@@ -267,6 +273,14 @@ class RoomCatalogRepository(
                 ) { offset, limit -> rowsOf(query, null, offset, limit) }
             }.map { data -> data.map { it.toDomain() } }
         }
+        // The channels that keep an archive, of a category or of all: the provider's windows, narrowed by the hours.
+        if (query.archive) {
+            return pager {
+                WindowPagingSource(database.invalidationTracker, database.queryExecutor) { offset, limit ->
+                    rowsOf(query, null, offset, limit)
+                }
+            }.map { data -> data.map { it.toDomain() } }
+        }
         // The channels watched, the last first: read again when another is watched -- see [watchedChanged].
         if (query.recent) {
             return pager {
@@ -327,6 +341,10 @@ class RoomCatalogRepository(
         val group = query.groupId
         if (query.favorites) return mediaDao.windowFavorites(kind, offset, limit)
         if (query.recent) return mediaDao.windowRecent(kind, offset, limit)
+        if (query.archive) {
+            return if (group == null) mediaDao.windowArchive(kind, offset, limit)
+            else mediaDao.windowArchiveInGroup(kind, group, offset, limit)
+        }
         if (match != null) {
             return if (group == null) mediaDao.windowMatching(match, kind, offset, limit)
             else mediaDao.windowMatchingInGroup(match, kind, group, offset, limit)
