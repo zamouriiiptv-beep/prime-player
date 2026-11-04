@@ -121,7 +121,6 @@ import com.castivio.core.design.components.CastivioMiddleEllipsisText
 import com.castivio.core.design.components.DelayedSpinner
 import com.castivio.core.design.components.EmptyState
 import com.castivio.core.design.components.ErrorState
-import com.castivio.core.design.components.CastivioChip
 import com.castivio.core.design.components.ProviderArtwork
 import com.castivio.core.design.components.CastivioClock
 import com.castivio.core.design.components.castivioBodyStyle
@@ -130,7 +129,6 @@ import com.castivio.core.design.components.castivioTitleStyle
 import com.castivio.core.design.components.formatCount
 import com.castivio.core.design.components.ltrToken
 import com.castivio.core.design.theme.CastivioTheme
-import com.castivio.core.design.icons.CastivioIcons
 import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Sizing
 import com.castivio.core.platform.CastivioTrace
@@ -3448,15 +3446,13 @@ private fun ChannelGuideOverlay(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                // A control and not bare text: something for a remote or a finger to land on, in the chip the other lists'
-                // headers use, sized from the same metrics.
-                CastivioChip(
+                // The word, as it was before Catch-up was in this page: bare muted text at the end of the line. The page closes
+                // from the dimmed board behind it and from Back, as it always did.
+                Text(
                     text = stringResource(R.string.channels_guide_close),
-                    onClick = onClose,
-                    icon = CastivioIcons.Close,
-                    labelStyle = castivioChipStyle(m.frame.fsChip),
-                    padH = m.controlPadH,
-                    padV = m.badgePadV,
+                    style = castivioBodyStyle(m.frame.fsBody),
+                    color = colors.onBackgroundMuted,
+                    maxLines = 1,
                 )
             }
 
