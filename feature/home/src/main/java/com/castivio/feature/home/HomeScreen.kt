@@ -643,6 +643,7 @@ internal fun DashboardHeader(
                         ProviderTone.Refused -> colors.danger
                         ProviderTone.Unchecked -> colors.onBackgroundMuted
                     },
+                    ok = tone != ProviderTone.Refused,
                     reading = reading,
                     frame = frame,
                     modifier = Modifier.weight(1f),
@@ -653,6 +654,7 @@ internal fun DashboardHeader(
                     label = stringResource(R.string.home_term_licence),
                     value = licenceSentence(licenceTerm(state.entitlement)),
                     hue = if (state.licenceHolds) colors.hueAzure else colors.danger,
+                    ok = state.licenceHolds,
                     reading = reading,
                     frame = frame,
                     modifier = Modifier.weight(1f),
@@ -668,10 +670,10 @@ internal fun DashboardHeader(
 /**
  * One term: which system it belongs to, what it says, and when it runs out.
  *
- * The edge is the hue's, not the shared quiet one, because the edge is half of what
- * separates this card from the term beside it — `discBorder` is the palette's own
- * recipe for "this surface belongs to this hue", and reaching for it here rather
- * than inventing a tint is what keeps the two cards in the system.
+ * The card is graphite like the others while the term is all right, with its glyph the one
+ * thing in the hue; a term in trouble takes the hue on its edge and its words as well --
+ * `discBorder` is the palette's own recipe for "this surface belongs to this hue" -- so
+ * that trouble is the one thing in the band that is not quiet. See [TermCard]'s `ok`.
  *
  * ## The card reads in the reader's direction, and the band does not
  *
@@ -706,6 +708,12 @@ private fun TermCard(
     /** The finished second line. See [providerSentence] and [licenceSentence]. */
     value: String,
     hue: Color,
+    /**
+     * Whether the term is all right. The glyph is always in its [hue] -- the one place a status is said in colour -- but the
+     * card's edge and its sentence are the screen's graphite and white only while it is: a term in trouble keeps the hue
+     * on its edge and its words, so that trouble is the one thing in this band that is not quiet.
+     */
+    ok: Boolean,
     /** The reader's own direction, captured before the header pinned its subtree. */
     reading: LayoutDirection,
     frame: CastivioMetrics,
@@ -719,8 +727,8 @@ private fun TermCard(
             modifier
                 .height(frame.chip + frame.chipPad)
                 .clip(shape)
-                .background(colors.glassFillBrush)
-                .border(BorderStroke(1.dp, colors.discBorder(hue)), shape)
+                .background(liftedFill())
+                .border(BorderStroke(1.dp, if (ok) neutralEdge() else colors.discBorder(hue)), shape)
                 .padding(horizontal = frame.chipPad),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2),
@@ -745,7 +753,7 @@ private fun TermCard(
                 Text(
                     value,
                     style = castivioChipStyle(frame.fsLabel),
-                    color = hue,
+                    color = if (ok) colors.onBackgroundStrong else hue,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -974,6 +982,8 @@ private fun SectionBoard(
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
+    // **One accent, and it is the live channels'.** The other three sections are graphite with a neutral glyph -- their hue
+    // is the neutral ink -- and the colour on this screen is spent in one place, on what Castivio is for. See [SectionLine].
     val live = Section(
         CatalogSection.Live, Icons.Rounded.LiveTv, colors.hueAzure,
         R.string.browse_live, state.liveCount, R.string.home_count_live,
@@ -982,19 +992,19 @@ private fun SectionBoard(
     )
     val rest = listOf(
         Section(
-            CatalogSection.Movies, Icons.Rounded.Movie, colors.hueViolet,
+            CatalogSection.Movies, Icons.Rounded.Movie, colors.onBackgroundVariant,
             R.string.browse_movies, state.movieCount, R.string.home_count_movies,
             R.string.home_section_no_movies, state.sections[MediaKind.MOVIE],
             state.loads[MediaKind.MOVIE] ?: CardLoad.Idle,
         ),
         Section(
-            CatalogSection.Series, Icons.Rounded.Tv, colors.hueGreen,
+            CatalogSection.Series, Icons.Rounded.Tv, colors.onBackgroundVariant,
             R.string.browse_series, state.seriesCount, R.string.home_count_series,
             R.string.home_section_no_series, state.sections[MediaKind.SERIES],
             state.loads[MediaKind.SERIES] ?: CardLoad.Idle,
         ),
         Section(
-            CatalogSection.Radio, Icons.Rounded.Radio, colors.hueAmber,
+            CatalogSection.Radio, Icons.Rounded.Radio, colors.onBackgroundVariant,
             R.string.browse_radio, state.radioCount, R.string.home_count_radio,
             R.string.home_section_no_radio, state.sections[MediaKind.RADIO],
             state.loads[MediaKind.RADIO] ?: CardLoad.Idle,
@@ -1087,11 +1097,15 @@ private fun Section.sentence(): String = when (tally) {
     Tally.Counted -> stringResource(unit, formatCount(count))
 }
 
+/**
+ * The colour the section's sentence is said in. [accented] is the hero's: a section never asked says so in the primary
+ * accent there, where the press that asks it is the call to action, and in the quiet ink on a line, which has none.
+ */
 @Composable
-private fun Section.ink(): Color {
+private fun Section.ink(accented: Boolean = true): Color {
     val colors = CastivioTheme.colors
     return when (tally) {
-        Tally.Unfetched -> colors.primary
+        Tally.Unfetched -> if (accented) colors.primary else colors.onBackgroundMuted
         Tally.Empty -> colors.onBackgroundMuted
         Tally.Counted -> hue
     }
@@ -1286,28 +1300,29 @@ private fun SectionLine(
         onClick = onClick,
         modifier = modifier,
         shape = RoundedCornerShape(frame.radius / 2),
-        // The panel's few seconds of success green, on a line as on the panel -- and otherwise the line's own hue.
-        fill = if (arrived) arrivedFill() else tintFill(section.hue),
-        restBorder = if (arrived) colors.success.copy(alpha = ARRIVED_EDGE_ALPHA) else section.hue.copy(alpha = TILE_EDGE_ALPHA),
-        restGlow = section.hue.copy(alpha = TILE_GLOW_ALPHA),
+        // The panel's few seconds of success green, on a line as on the panel -- and otherwise graphite: a lifted fill and an
+        // edge that can be seen, with no hue of its own. The colour on this screen is the hero's.
+        fill = if (arrived) arrivedFill() else liftedFill(),
+        restBorder = if (arrived) colors.success.copy(alpha = ARRIVED_EDGE_ALPHA) else neutralEdge(),
     ) {
         Row(
             Modifier.fillMaxSize().padding(horizontal = frame.chipPad),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(frame.chipPad),
         ) {
-            // The glyph on a plate of the hue, so the colour of the line has a place to start from.
+            // The glyph on a plate of the glass's own stronger rung, in the neutral ink: the line is told from the next by its
+            // glyph and its name, not by a colour.
             Box(
                 Modifier
                     .size(Sizing.iconMd + frame.chipPad)
                     .clip(RoundedCornerShape(frame.radius / 3))
-                    .background(section.hue.copy(alpha = ICON_PLATE_ALPHA)),
+                    .background(colors.glassFillStrong),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = section.icon,
                     contentDescription = null,
-                    tint = colors.discGlyph(section.hue),
+                    tint = colors.onBackgroundVariant,
                     modifier = Modifier.size(Sizing.iconMd),
                 )
             }
@@ -1336,7 +1351,7 @@ private fun LineLoad(section: Section, frame: CastivioMetrics) {
         CardLoad.Idle -> Text(
             text = section.sentence(),
             style = castivioBodyStyle(frame.fsBody),
-            color = section.ink(),
+            color = section.ink(accented = false),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -1525,18 +1540,15 @@ private fun loadSeconds(load: CardLoad.Arrived): String? {
 }
 
 /**
- * A card in the hue of what it holds: the hue at [TILE_TINT_TOP] in one corner running to [TILE_TINT_BOTTOM] in the
- * other, over the page.
+ * The edge of a card that has no hue: the muted ink at [NEUTRAL_EDGE_ALPHA], which on the page is an edge that can be seen.
  *
- * It was white at a few per cent -- "glass" -- which on a dark page is a grey film: a card a hair's breadth from the page
- * it stands on (contrast 1.0 to 1.45, measured on two screenshots), with no colour in it and an edge as quiet as its fill.
- * On a glossy television in a bright room that is the worst thing a surface can be: a flat, mid-tone field is exactly
- * where a reflection of the room shows as if it were drawn there. A tint of the card's own hue, an edge of the same hue
- * and a glow under it are what make the page read as colour first and glass second.
+ * The glass's own edge is a fifth of its ink and vanishes against a lifted fill on a glossy panel in a bright room; this
+ * is a third. Together with [liftedFill] it is what keeps a graphite card from being the grey film the first Home was --
+ * a card a hair's breadth from the page it stood on (contrast 1.0 to 1.45, measured on two screenshots) -- without being
+ * a colour of its own, which the owner found too many.
  */
 @Composable
-private fun tintFill(hue: Color): Brush =
-    Brush.linearGradient(listOf(hue.copy(alpha = TILE_TINT_TOP), hue.copy(alpha = TILE_TINT_BOTTOM)))
+private fun neutralEdge(): Color = CastivioTheme.colors.onBackgroundMuted.copy(alpha = NEUTRAL_EDGE_ALPHA)
 
 /**
  * The hero's fill: its hue, then the violet the wordmark and the backdrop share, running out to a quieter violet --
@@ -1550,7 +1562,7 @@ private fun litFill(hue: Color): Brush {
     )
 }
 
-/** The lift a plain control stands on -- the glass's two rungs as a ramp -- where it has no hue of its own to be tinted with. */
+/** The lift a graphite card stands on -- the glass's two rungs as a ramp, a card lighter than the page it is on. */
 @Composable
 private fun liftedFill(): Brush {
     val colors = CastivioTheme.colors
@@ -1655,7 +1667,7 @@ private fun UtilityRail(
             onAdd = onAddPlaylist,
             onManage = onManageSources,
         )
-        Utility(CastivioIcons.ReplayArc, stringResource(R.string.catchup_title), frame, onCatchUp, emphasis = true)
+        Utility(CastivioIcons.ReplayArc, stringResource(R.string.catchup_title), frame, onCatchUp)
         Utility(Icons.Rounded.Settings, stringResource(R.string.home_settings), frame, onSettings)
         Utility(Icons.Rounded.PowerSettingsNew, stringResource(R.string.home_exit), frame, onExit)
     }
@@ -1934,7 +1946,7 @@ private fun ColumnScope.PlaylistPicker(
                                         Icon(
                                             Icons.Rounded.Check,
                                             contentDescription = null,
-                                            tint = colors.hueGreen,
+                                            tint = colors.onBackgroundStrong,
                                             modifier = Modifier.size(Sizing.iconSm),
                                         )
                                     } else {
@@ -1981,7 +1993,7 @@ private fun ColumnScope.PlaylistPicker(
                                 Icon(
                                     Icons.Rounded.Add,
                                     contentDescription = null,
-                                    tint = colors.hueViolet,
+                                    tint = colors.onBackgroundVariant,
                                     modifier = Modifier.size(Sizing.iconSm),
                                 )
                             },
@@ -2037,7 +2049,7 @@ private fun ColumnScope.PlaylistPicker(
                                 Icon(
                                     Icons.Rounded.Settings,
                                     contentDescription = null,
-                                    tint = colors.hueViolet,
+                                    tint = colors.onBackgroundVariant,
                                     modifier = Modifier.size(Sizing.iconSm),
                                 )
                             },
@@ -2077,7 +2089,7 @@ private fun ColumnScope.UtilityBusy(label: String, frame: CastivioMetrics) {
         ) {
             CircularProgressIndicator(
                 modifier = Modifier.size(Sizing.iconSm),
-                color = colors.hueViolet,
+                color = colors.primary,
                 strokeWidth = BUSY_STROKE,
             )
             Text(
@@ -2298,10 +2310,8 @@ private fun ColumnScope.Utility(
     label: String,
     frame: CastivioMetrics,
     onClick: () -> Unit,
-    /** The one thing new on the rail, drawn in the primary azure until it is old news. */
-    emphasis: Boolean = false,
 ) {
-    UtilityCard(icon, label, frame, onClick, Modifier.fillMaxWidth().weight(1f), emphasis)
+    UtilityCard(icon, label, frame, onClick, Modifier.fillMaxWidth().weight(1f))
 }
 
 /**
@@ -2318,15 +2328,14 @@ private fun UtilityCard(
     frame: CastivioMetrics,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    emphasis: Boolean = false,
 ) {
     val colors = CastivioTheme.colors
     InteractiveGlassCard(
         onClick = onClick,
         modifier = modifier,
         shape = RoundedCornerShape(frame.radius / 2),
-        fill = if (emphasis) tintFill(colors.hueAzure) else liftedFill(),
-        restBorder = colors.hueAzure.copy(alpha = if (emphasis) EMPHASIS_EDGE_ALPHA else UTILITY_EDGE_ALPHA),
+        fill = liftedFill(),
+        restBorder = neutralEdge(),
     ) {
         Row(
             Modifier.fillMaxSize().padding(horizontal = frame.chipPad),
@@ -2336,7 +2345,7 @@ private fun UtilityCard(
             Icon(
                 icon,
                 contentDescription = null,
-                tint = if (emphasis) colors.onBackgroundStrong else colors.hueViolet,
+                tint = colors.onBackgroundVariant,
                 modifier = Modifier.size(Sizing.iconSm),
             )
             Text(
@@ -2397,9 +2406,9 @@ private fun UtilityCard(
  * launches and reinstalls, and reproducible by a support tool or a licence server
  * without the device in hand.
  *
- * It is drawn in amber rather than the muted ink the address uses, because the two
- * are answers to *different* questions a provider asks and a user copying one into a
- * form for the other is the mistake this line exists to prevent.
+ * It was drawn in amber so that it would not be mistaken for the address. The three cards are now the same quiet ink --
+ * the owner found the screen had too many colours -- and the label each carries ("device key", "MAC") and its own glyph
+ * are what tell them apart.
  */
 @Composable
 private fun FooterLine(
@@ -2442,14 +2451,16 @@ private fun FooterLine(
                         else R.string.home_device_locked,
                     ),
                 ),
-                if (state.licenceHolds) colors.success else colors.danger,
+                // Quiet while all is well, and the failure red when the licence does not hold: a colour that means something
+                // is spent only where something is wrong.
+                if (state.licenceHolds) colors.onBackgroundVariant else colors.danger,
                 frame,
                 Modifier.weight(1f),
             )
             Fact(
                 Icons.Rounded.Memory,
                 stringResource(R.string.home_device_mac, ltrIsolate(state.mac)),
-                colors.onBackgroundMuted,
+                colors.onBackgroundVariant,
                 frame,
                 Modifier.weight(1f),
             )
@@ -2460,7 +2471,7 @@ private fun FooterLine(
                 Fact(
                     Icons.Rounded.VpnKey,
                     stringResource(R.string.home_device_key, ltrIsolate(state.deviceKey)),
-                    colors.hueAmber,
+                    colors.onBackgroundVariant,
                     frame,
                     Modifier.weight(1f),
                 )
@@ -2476,7 +2487,7 @@ private fun FooterLine(
             Icon(
                 if (trouble == null) Icons.Rounded.Info else trouble.icon,
                 contentDescription = null,
-                tint = if (trouble == null) colors.hueViolet else colors.danger,
+                tint = if (trouble == null) colors.onBackgroundMuted else colors.danger,
                 modifier = Modifier.size(Sizing.iconSm),
             )
             Text(
@@ -2517,7 +2528,7 @@ private fun Fact(
             .height(frame.chip)
             .clip(shape)
             .background(liftedFill())
-            .border(BorderStroke(1.dp, colors.hueAzure.copy(alpha = UTILITY_EDGE_ALPHA)), shape)
+            .border(BorderStroke(1.dp, neutralEdge()), shape)
             .padding(horizontal = frame.chipPad),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2, Alignment.CenterHorizontally),
@@ -2646,25 +2657,20 @@ private const val SEGMENT_REST = 0.375f
 private const val ARRIVED_EDGE_ALPHA = 0.55f
 
 /**
- * What the surfaces of Home are drawn with -- the drawing is `design/mockups/home-vivid-ar.html`.
+ * What the surfaces of Home are drawn with -- the drawing is `design/mockups/home-calm-ar.html`, its frame C.
  *
- * A section's tint runs from [TILE_TINT_TOP] to [TILE_TINT_BOTTOM] of its hue, its edge is [TILE_EDGE_ALPHA] of it and the
- * glow under it [TILE_GLOW_ALPHA]; the glyph's plate is [ICON_PLATE_ALPHA]. The hero is lit by [HERO_TINT_HUE], then
- * [HERO_TINT_VIOLET] and [HERO_TINT_FOOT] of the violet, with an edge of [HERO_EDGE_ALPHA]; its watermark used to be
- * drawn at 0.18, which on a television in a lit room was not seen at all. The plain controls' edge is
- * [UTILITY_EDGE_ALPHA] of the azure, and the new one's [EMPHASIS_EDGE_ALPHA].
+ * Every card but one is graphite: [liftedFill] and an edge of [NEUTRAL_EDGE_ALPHA] of the muted ink, so it is lighter than
+ * the page and its edge is seen without being a colour. The one that is lit is the live channels': by [HERO_TINT_HUE], then
+ * [HERO_TINT_VIOLET] and [HERO_TINT_FOOT] of the violet, with an edge of [HERO_EDGE_ALPHA] of its hue and the glow under it
+ * [TILE_GLOW_ALPHA]; its watermark used to be drawn at 0.18, which on a television in a lit room was not seen at all.
+ * Home had a colour for each section, the rail and the facts (`home-vivid-ar.html`); the owner found it too many.
  */
-private const val TILE_TINT_TOP = 0.34f
-private const val TILE_TINT_BOTTOM = 0.10f
-private const val TILE_EDGE_ALPHA = 0.70f
+private const val NEUTRAL_EDGE_ALPHA = 0.34f
 private const val TILE_GLOW_ALPHA = 0.40f
-private const val ICON_PLATE_ALPHA = 0.28f
 private const val HERO_TINT_HUE = 0.40f
 private const val HERO_TINT_VIOLET = 0.26f
 private const val HERO_TINT_FOOT = 0.12f
 private const val HERO_EDGE_ALPHA = 0.75f
-private const val UTILITY_EDGE_ALPHA = 0.45f
-private const val EMPHASIS_EDGE_ALPHA = 0.90f
 private const val ARRIVED_FILL_TOP = 0.13f
 private const val ARRIVED_FILL_BOTTOM = 0.04f
 

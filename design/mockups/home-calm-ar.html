@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<!-- Home, with the colour taken back. Three frames at the phone geometry, 833x385dp (one px per dp; rendered at 2x to match a
+     device screenshot), the same layout and the same words, differing only in how much colour the surfaces carry.
+     Not the app: a drawing of how the screen is meant to look, to be chosen from.
+       Why: the tinted surfaces (violet films, green series, amber radio, a blue hero, a green and a blue badge, violet icons)
+       read as a palette rather than as a product. A calmer Home keeps one accent and lets the surfaces be graphite:
+       every card is lighter than the page and has an edge that can be seen, so it is not the dull Home it replaced, but none of
+       them is a colour of its own.
+         A  -- graphite everywhere; the one accent is the hero's edge and its figure.
+         B  -- as A, and each section keeps its hue in the small plate of its icon only.
+         C  -- as A, and the hero alone is lit: the live channels are what Castivio is for. -->
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>Home — بلا ألوان كثيرة</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#05040E;color:#fff;font-family:"Inter","DejaVu Sans",system-ui,sans-serif;width:833px;display:flex;flex-direction:column;gap:6px;padding-bottom:6px}
+.tag{font-size:12px;color:#cfd0ea;padding:6px 10px;direction:rtl}
+.tag b{display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;margin-left:6px}
+.screen{position:relative;width:833px;height:385px;overflow:hidden;
+  background:radial-gradient(70% 90% at 10% 112%,rgba(110,75,216,.16),transparent 62%),radial-gradient(60% 80% at 92% -10%,rgba(46,107,255,.14),transparent 60%),linear-gradient(160deg,#0a0a22 0%,#0f102b 55%,#0b1229 100%);
+  /* the surfaces */
+  --card:rgba(255,255,255,.075);--card2:rgba(255,255,255,.045);--edge:rgba(172,180,214,.34);
+  --ic:#c9cdf5;--plate:rgba(255,255,255,.09);--st:#a9acd0;
+  --hero-bg:rgba(255,255,255,.07);--hero-edge:rgba(111,178,255,.62);--num:#dbe8ff;--glyph:#c9d6ff}
+.abs{position:absolute}
+svg{fill:none;stroke:currentColor;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round;flex:none}
+/* top bar */
+.logo{left:72px;top:18px;direction:ltr;display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px;letter-spacing:.24em;color:#e6e8ff}
+.logo i{display:block;width:24px;height:24px;border-radius:50%;background:conic-gradient(#e0407a,#6a4cff,#2c9cff,#e0407a)}
+.chip{top:12px;width:162px;height:40px;border-radius:9px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;font-size:10px;color:var(--st);background:var(--card);border:1px solid var(--edge)}
+.chip b{display:block;font-size:15px;font-weight:700;margin-top:1px;color:#fff}
+.chip.ok svg{color:#3dd68c}
+.chip.lic svg{color:#8FC0FF}
+.clock{left:590px;top:14px;font-size:20px;font-weight:700;text-align:center;direction:ltr}
+.clock small{display:block;font-size:10px;font-weight:400;color:var(--st);margin-top:1px}
+.round{width:32px;height:32px;border-radius:50%;background:var(--card);border:1px solid var(--edge);top:17px;display:flex;align-items:center;justify-content:center;color:var(--ic)}
+.lang{left:707px;top:17px;height:32px;width:55px;border-radius:16px;background:var(--card);border:1px solid var(--edge);display:flex;align-items:center;justify-content:center;font-size:9px;gap:4px;color:#e6e8ff}
+/* rail */
+.rail{left:648px;top:73px;width:113px;display:flex;flex-direction:column;gap:6px}
+.btn{height:39px;border-radius:9px;display:flex;align-items:center;gap:8px;padding:0 11px;font-size:11px;color:#eceafb;background:var(--card);border:1px solid var(--edge)}
+.btn svg{color:var(--ic)}
+/* tiles */
+.tile{left:410px;width:222px;height:66px;border-radius:12px;display:flex;align-items:center;gap:12px;padding:0 14px;background:var(--card);border:1px solid var(--edge)}
+.tile .ic{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex:none;background:var(--plate);color:var(--ic)}
+.tile .nm{font-size:14px;font-weight:700}.tile .st{font-size:10.5px;margin-top:3px;color:var(--st)}
+.t1{top:73px}.t2{top:152px}.t3{top:231px}
+/* the hero */
+.hero{left:72px;top:73px;width:321px;height:224px;border-radius:14px;background:var(--hero-bg);border:1.2px solid var(--hero-edge)}
+.hero .tv{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);width:150px;height:130px;color:var(--glyph);stroke-width:5}
+.hero .t{position:absolute;right:16px;bottom:44px;font-size:14px;font-weight:700}
+.hero .n{position:absolute;right:16px;bottom:10px;font-size:30px;font-weight:800;color:var(--num);direction:rtl}
+/* footer */
+.fchip{top:316px;height:32px;width:223px;border-radius:9px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:10px;color:#d6d3e8;background:var(--card2);border:1px solid var(--edge)}
+.fchip svg{color:var(--ic)}
+.note{left:0;right:0;top:359px;text-align:center;font-size:9.5px;color:#b3b2d2}
+
+/* B: each section keeps its hue in the plate of its icon, and nowhere else */
+.B .t1 .ic{background:rgba(155,107,255,.24);color:#c7a9ff}
+.B .t2 .ic{background:rgba(47,191,159,.22);color:#7fe3c8}
+.B .t3 .ic{background:rgba(255,176,32,.20);color:#ffd27f}
+/* C: the hero alone is lit */
+.C{--hero-bg:linear-gradient(150deg,rgba(46,107,255,.40) 0%,rgba(110,75,216,.30) 55%,rgba(110,75,216,.14) 100%);--hero-edge:rgba(111,178,255,.80);--num:#8fc0ff;--glyph:#cfe4ff}
+.C .hero{box-shadow:0 10px 26px rgba(30,60,160,.35),inset 0 1px 0 rgba(255,255,255,.14)}
+</style></head><body>
+<template id="home">
+  <div class="abs logo"><i></i>CASTIVIO</div>
+  <div class="abs chip ok" style="left:214px"><svg width="19" height="19" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/></svg><span>الاشتراك<b>8-4-2027</b></span></div>
+  <div class="abs chip lic" style="left:402px"><svg width="19" height="19" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.500-7-10V6z"/></svg><span>رخصة Castivio<b>11-11-2026</b></span></div>
+  <div class="abs clock">21:24<small>4-11-2026</small></div>
+  <div class="abs round" style="left:660px"><svg width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.500 1.500M17.500 17.500L19 19M19 5l-1.500 1.500M6.500 17.500L5 19"/></svg></div>
+  <div class="abs lang">اللغة <svg width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></div>
+  <div class="abs rail">
+    <div class="btn"><svg width="17" height="17" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.600-5.900M20 4v5h-5"/></svg>تحديث</div>
+    <div class="btn"><svg width="17" height="17" viewBox="0 0 24 24"><path d="M4 7h12M4 12h8M4 17h8M17 13v6M14 16h6"/></svg>تبديل القائمة</div>
+    <div class="btn"><svg width="17" height="17" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.500-5.800M4 4v5h5M12 8v4l3 2"/></svg>ما فاتك</div>
+    <div class="btn"><svg width="17" height="17" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.600 5.600l2.100 2.100M16.300 16.300l2.100 2.100M18.400 5.600l-2.100 2.100M7.700 16.300l-2.100 2.100"/></svg>الإعدادات</div>
+    <div class="btn"><svg width="17" height="17" viewBox="0 0 24 24"><path d="M12 3v8M6.500 6.500a8 8 0 1 0 11 0"/></svg>خروج</div>
+  </div>
+  <div class="abs tile t1"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M3 8l3-4 3 4M9 8l3-4 3 4M15 8l3-4 3 4"/></svg></span><span><div class="nm">الأفلام</div><div class="st">لم يُحمَّل بعد</div></span></div>
+  <div class="abs tile t2"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M9 21h6M12 17v4"/></svg></span><span><div class="nm">المسلسلات</div><div class="st">لم يُحمَّل بعد</div></span></div>
+  <div class="abs tile t3"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="12" rx="2"/><circle cx="9" cy="14" r="2.500"/><path d="M14 12h4M14 16h4M7 8l10-4"/></svg></span><span><div class="nm">الراديو</div><div class="st">لم يُحمَّل بعد</div></span></div>
+  <div class="abs hero"><svg class="tv" viewBox="0 0 150 130"><path d="M45 18L75 42L105 18"/><rect x="10" y="40" width="130" height="84" rx="14"/><path d="M62 62v40l34-20z"/></svg><div class="t">البث المباشر</div><div class="n">54,295 قناة</div></div>
+  <div class="abs fchip" style="left:72px"><svg width="17" height="17" viewBox="0 0 24 24"><circle cx="8" cy="12" r="4"/><path d="M12 12h9M18 12v4M21 12v3"/></svg> مفتاح الجهاز: 116822</div>
+  <div class="abs fchip" style="left:305px"><svg width="17" height="17" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3"/></svg> ماك: FE:F8:4D:83:78:9F</div>
+  <div class="abs fchip" style="left:538px"><svg width="17" height="17" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0"/></svg> الجهاز: مفعَّل</div>
+  <div class="abs note">Castivio مشغّل وسائط. لا يوفّر قنوات ولا أفلامًا ولا اشتراكات — أنت من يضيفها.</div>
+</template>
+<div class="tag"><b>أ</b>رمادي هادئ — لون واحد: حافة البث المباشر ورقمه</div>
+<div class="screen A" id="fa"></div>
+<div class="tag"><b>ب</b>رمادي هادئ — وكل قسم يحتفظ بلونه في لوحة أيقونته فقط</div>
+<div class="screen B" id="fb"></div>
+<div class="tag"><b>ج</b>رمادي هادئ — والبث المباشر وحده مضاء</div>
+<div class="screen C" id="fc"></div>
+<script>
+for (const id of ['fa','fb','fc']) document.getElementById(id).appendChild(document.getElementById('home').content.cloneNode(true));
+</script>
+</body></html>
