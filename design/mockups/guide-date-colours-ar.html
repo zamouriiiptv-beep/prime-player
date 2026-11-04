@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<!-- The guide's day headings (the date that begins each day's programmes), in four colours: drawn to be chosen from, one strip each.
+     Not the app: a drawing of how the list is meant to look. The programme rows are the guide's own and do not change.
+     Geometry is the phone's 833x385dp, one px per dp, rendered at 2x to match a device screenshot.
+       Each heading is the date in a colour, in the heading weight, with a hairline of the same colour after it, so that a day's start
+       is found at a glance while the list is scrolled -- the rows between two headings stay the quiet grey they are. -->
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>الدليل — لون تاريخ اليوم</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#05040E;color:#fff;font-family:"Inter","DejaVu Sans",system-ui,sans-serif;width:833px}
+.screen{position:relative;width:833px;height:385px;overflow:hidden;background:linear-gradient(135deg,#141031 0%,#1B1038 46%,#0A1E3D 100%);padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+.strip{flex:1;display:flex;align-items:stretch;gap:12px;direction:rtl;min-height:0}
+.lab{flex:none;width:84px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;color:#cfd0ea;text-align:center}
+.lab b{font-size:20px;color:#fff;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center}
+.list{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;direction:ltr;min-width:0;padding:6px 10px;border-radius:9px;background:rgba(27,25,70,.62);border:1px solid rgba(172,180,214,.22)}
+.row{display:flex;flex-direction:column;gap:1px;padding:4px 9px;border-radius:7px;background:rgba(255,255,255,.065);border:1px solid rgba(172,180,214,.16)}
+.row .t{font-size:11.5px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .m{display:flex;justify-content:space-between;font-size:10.5px;color:#a8a6c8;font-variant-numeric:tabular-nums}
+.day{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.01em;margin:3px 0 1px;font-variant-numeric:tabular-nums}
+.day i{flex:1;height:1px;display:block}
+.day.base{color:#a8a6c8;font-weight:600}
+.day.base i{background:rgba(172,180,214,.18)}
+</style></head><body><div class="screen" id="f1">
+<div class="strip"><div class="lab"><b>الآن</b><span>كما هو</span></div><div class="list">
+  <div class="row"><div class="t">Les Disparus des Argonnes</div><div class="m"><span>22:45</span><span>23:30</span></div></div>
+  <div class="day base">7-11-2026<i></i></div>
+  <div class="row"><div class="t">Journal Météo climat outre-mer</div><div class="m"><span>00:20</span><span>00:25</span></div></div>
+</div></div>
+<div class="strip"><div class="lab"><b>أ</b><span>أزرق سماوي</span></div><div class="list">
+  <div class="row"><div class="t">Les Disparus des Argonnes</div><div class="m"><span>22:45</span><span>23:30</span></div></div>
+  <div class="day" style="color:#8FC0FF">7-11-2026<i style="background:rgba(143,192,255,.38)"></i></div>
+  <div class="row"><div class="t">Journal Météo climat outre-mer</div><div class="m"><span>00:20</span><span>00:25</span></div></div>
+</div></div>
+<div class="strip"><div class="lab"><b>ب</b><span>كهرماني</span></div><div class="list">
+  <div class="row"><div class="t">Les Disparus des Argonnes</div><div class="m"><span>22:45</span><span>23:30</span></div></div>
+  <div class="day" style="color:#FFC85C">7-11-2026<i style="background:rgba(255,200,92,.38)"></i></div>
+  <div class="row"><div class="t">Journal Météo climat outre-mer</div><div class="m"><span>00:20</span><span>00:25</span></div></div>
+</div></div>
+<div class="strip"><div class="lab"><b>ج</b><span>لافندر</span></div><div class="list">
+  <div class="row"><div class="t">Les Disparus des Argonnes</div><div class="m"><span>22:45</span><span>23:30</span></div></div>
+  <div class="day" style="color:#C7A9FF">7-11-2026<i style="background:rgba(199,169,255,.38)"></i></div>
+  <div class="row"><div class="t">Journal Météo climat outre-mer</div><div class="m"><span>00:20</span><span>00:25</span></div></div>
+</div></div>
+</div></body></html>

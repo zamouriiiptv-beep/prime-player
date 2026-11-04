@@ -85,6 +85,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -3522,18 +3523,37 @@ private fun LiveBadge(m: ChannelsMetrics) {
  * a provider actually holds. Today and tomorrow are named rather than dated — a viewer
  * reading "today" places it instantly and reads a date twice as slowly — and every day
  * after them carries its own date in the device's own format.
+ *
+ * **In amber, with a hairline of it after the date**, so that where a day begins is found at a glance while the list is
+ * scrolled, and the programmes of a later day are told from today's. Amber because the guide's other colours are taken --
+ * green is the programme on now, blue and violet the selection -- and nothing else on this list is amber; it is the guide's
+ * `hueAmber` lifted [DAY_INK_LIFT] of the way to white, as the sky blue of Catch-up's counts is lifted from its azure. The
+ * rows between two headings stay the quiet grey they were. Drawn first in `design/mockups/guide-date-colours-ar.html`.
  */
 @Composable
 private fun DayHeading(startOfDayMs: Long, m: ChannelsMetrics) {
     val colors = CastivioTheme.colors
-    Text(
-        text = dayLabel(startOfDayMs),
-        style = castivioChipStyle(m.frame.fsBody),
-        color = colors.onBackgroundMuted,
-        maxLines = 1,
+    val ink = lerp(colors.hueAmber, colors.onBackgroundStrong, DAY_INK_LIFT)
+    Row(
         modifier = Modifier.fillMaxWidth().padding(top = m.guideGap, bottom = m.badgePadV),
-    )
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(m.guideGap),
+    ) {
+        Text(
+            text = dayLabel(startOfDayMs),
+            style = castivioChipStyle(m.frame.fsBody),
+            color = ink,
+            maxLines = 1,
+        )
+        Box(Modifier.weight(1f).height(1.dp).background(ink.copy(alpha = DAY_RULE_ALPHA)))
+    }
 }
+
+/** How far the day headings' amber is lifted toward white: the mockup's `#FFC85C` against the token's `#FFB020`. */
+private const val DAY_INK_LIFT = 0.28f
+
+/** The hairline after a day heading, in the heading's own colour. */
+private const val DAY_RULE_ALPHA = 0.38f
 
 /**
  * One programme in the guide: what it is, what it is about, and when it runs.
