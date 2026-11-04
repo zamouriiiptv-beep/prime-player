@@ -1116,8 +1116,8 @@ private fun Section.ink(): Color {
  * A small glyph at the top and two lines at the bottom left a third of the largest
  * object on the screen as nothing — the void the owner pointed at on a device. The
  * fix is not to centre the words, which only moves the hole; it is to spend the room.
- * The section's own glyph is drawn again at [HERO_GLYPH_SHARE] of the panel's height,
- * faded to [HERO_GLYPH_ALPHA], filling the upper half as a watermark with the words
+ * The section's own glyph is drawn again at [HERO_GLYPH_SHARE] of the panel's height
+ * and [HERO_GLYPH_ALPHA] of its strength, filling the upper half with the words
  * resting on the floor beneath it.
  *
  * It is ornament, and that is the point: it says nothing the panel does not already
@@ -1144,8 +1144,12 @@ private fun HeroCard(
         shape = RoundedCornerShape(frame.radius),
         // Just loaded: a breath of the success green on the glass and its edge, for the
         // few seconds the card says so. Focus still draws its own ring over it.
-        fill = if (arrived) arrivedFill() else colors.glassFillBrush,
-        restBorder = if (arrived) colors.success.copy(alpha = ARRIVED_EDGE_ALPHA) else null,
+        //
+        // Otherwise the panel is lit in its own hue, edge and glow too: a flat grey film is what
+        // a glossy panel in a bright room turns into a mirror (see [litFill]).
+        fill = if (arrived) arrivedFill() else litFill(section.hue),
+        restBorder = if (arrived) colors.success.copy(alpha = ARRIVED_EDGE_ALPHA) else section.hue.copy(alpha = HERO_EDGE_ALPHA),
+        restGlow = section.hue.copy(alpha = TILE_GLOW_ALPHA),
     ) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             // **Filled with a gradient, not a tint, and placed dead centre.** It hung
@@ -1282,21 +1286,31 @@ private fun SectionLine(
         onClick = onClick,
         modifier = modifier,
         shape = RoundedCornerShape(frame.radius / 2),
-        // The panel's few seconds of success green, on a line as on the panel.
-        fill = if (arrived) arrivedFill() else colors.glassFillBrush,
-        restBorder = if (arrived) colors.success.copy(alpha = ARRIVED_EDGE_ALPHA) else null,
+        // The panel's few seconds of success green, on a line as on the panel -- and otherwise the line's own hue.
+        fill = if (arrived) arrivedFill() else tintFill(section.hue),
+        restBorder = if (arrived) colors.success.copy(alpha = ARRIVED_EDGE_ALPHA) else section.hue.copy(alpha = TILE_EDGE_ALPHA),
+        restGlow = section.hue.copy(alpha = TILE_GLOW_ALPHA),
     ) {
         Row(
             Modifier.fillMaxSize().padding(horizontal = frame.chipPad),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(frame.chipPad),
         ) {
-            Icon(
-                imageVector = section.icon,
-                contentDescription = null,
-                tint = colors.discGlyph(section.hue),
-                modifier = Modifier.size(Sizing.iconMd),
-            )
+            // The glyph on a plate of the hue, so the colour of the line has a place to start from.
+            Box(
+                Modifier
+                    .size(Sizing.iconMd + frame.chipPad)
+                    .clip(RoundedCornerShape(frame.radius / 3))
+                    .background(section.hue.copy(alpha = ICON_PLATE_ALPHA)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = section.icon,
+                    contentDescription = null,
+                    tint = colors.discGlyph(section.hue),
+                    modifier = Modifier.size(Sizing.iconMd),
+                )
+            }
             Column(Modifier.weight(1f)) {
                 Text(
                     text = stringResource(section.name),
@@ -1510,6 +1524,39 @@ private fun loadSeconds(load: CardLoad.Arrived): String? {
     return if (instrumented) stringResource(R.string.home_load_seconds, seconds.toInt()) else null
 }
 
+/**
+ * A card in the hue of what it holds: the hue at [TILE_TINT_TOP] in one corner running to [TILE_TINT_BOTTOM] in the
+ * other, over the page.
+ *
+ * It was white at a few per cent -- "glass" -- which on a dark page is a grey film: a card a hair's breadth from the page
+ * it stands on (contrast 1.0 to 1.45, measured on two screenshots), with no colour in it and an edge as quiet as its fill.
+ * On a glossy television in a bright room that is the worst thing a surface can be: a flat, mid-tone field is exactly
+ * where a reflection of the room shows as if it were drawn there. A tint of the card's own hue, an edge of the same hue
+ * and a glow under it are what make the page read as colour first and glass second.
+ */
+@Composable
+private fun tintFill(hue: Color): Brush =
+    Brush.linearGradient(listOf(hue.copy(alpha = TILE_TINT_TOP), hue.copy(alpha = TILE_TINT_BOTTOM)))
+
+/**
+ * The hero's fill: its hue, then the violet the wordmark and the backdrop share, running out to a quieter violet --
+ * a lit panel and not a tinted one, because it is the largest surface on the screen and the one a bare grey film hurt most.
+ */
+@Composable
+private fun litFill(hue: Color): Brush {
+    val violet = CastivioTheme.colors.hueViolet
+    return Brush.linearGradient(
+        listOf(hue.copy(alpha = HERO_TINT_HUE), violet.copy(alpha = HERO_TINT_VIOLET), violet.copy(alpha = HERO_TINT_FOOT)),
+    )
+}
+
+/** The lift a plain control stands on -- the glass's two rungs as a ramp -- where it has no hue of its own to be tinted with. */
+@Composable
+private fun liftedFill(): Brush {
+    val colors = CastivioTheme.colors
+    return Brush.linearGradient(listOf(colors.glassFillStrong, colors.glassFill))
+}
+
 /** The success green on the glass, for the moments a card says it has just loaded. */
 @Composable
 private fun arrivedFill(): Brush {
@@ -1608,7 +1655,7 @@ private fun UtilityRail(
             onAdd = onAddPlaylist,
             onManage = onManageSources,
         )
-        Utility(CastivioIcons.ReplayArc, stringResource(R.string.catchup_title), frame, onCatchUp)
+        Utility(CastivioIcons.ReplayArc, stringResource(R.string.catchup_title), frame, onCatchUp, emphasis = true)
         Utility(Icons.Rounded.Settings, stringResource(R.string.home_settings), frame, onSettings)
         Utility(Icons.Rounded.PowerSettingsNew, stringResource(R.string.home_exit), frame, onExit)
     }
@@ -2251,8 +2298,10 @@ private fun ColumnScope.Utility(
     label: String,
     frame: CastivioMetrics,
     onClick: () -> Unit,
+    /** The one thing new on the rail, drawn in the primary azure until it is old news. */
+    emphasis: Boolean = false,
 ) {
-    UtilityCard(icon, label, frame, onClick, Modifier.fillMaxWidth().weight(1f))
+    UtilityCard(icon, label, frame, onClick, Modifier.fillMaxWidth().weight(1f), emphasis)
 }
 
 /**
@@ -2269,12 +2318,15 @@ private fun UtilityCard(
     frame: CastivioMetrics,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    emphasis: Boolean = false,
 ) {
     val colors = CastivioTheme.colors
     InteractiveGlassCard(
         onClick = onClick,
         modifier = modifier,
         shape = RoundedCornerShape(frame.radius / 2),
+        fill = if (emphasis) tintFill(colors.hueAzure) else liftedFill(),
+        restBorder = colors.hueAzure.copy(alpha = if (emphasis) EMPHASIS_EDGE_ALPHA else UTILITY_EDGE_ALPHA),
     ) {
         Row(
             Modifier.fillMaxSize().padding(horizontal = frame.chipPad),
@@ -2284,7 +2336,7 @@ private fun UtilityCard(
             Icon(
                 icon,
                 contentDescription = null,
-                tint = colors.hueViolet,
+                tint = if (emphasis) colors.onBackgroundStrong else colors.hueViolet,
                 modifier = Modifier.size(Sizing.iconSm),
             )
             Text(
@@ -2464,8 +2516,8 @@ private fun Fact(
         modifier
             .height(frame.chip)
             .clip(shape)
-            .background(colors.glassFill)
-            .border(BorderStroke(1.dp, colors.edgeQuiet), shape)
+            .background(liftedFill())
+            .border(BorderStroke(1.dp, colors.hueAzure.copy(alpha = UTILITY_EDGE_ALPHA)), shape)
             .padding(horizontal = frame.chipPad),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2, Alignment.CenterHorizontally),
@@ -2556,15 +2608,16 @@ private const val HERO_SHARE = 0.472f
  *
  * Just under two thirds of the height and centred, so the panel has a subject rather
  * than a corner with something in it, and the glyph still ends above the words at the
- * floor. Eighteen per cent because it is a *gradient* now, not a flat tint: a ramp at
- * a tenth reads as grey on this ground and loses the only reason to have coloured it.
+ * floor.
  *
- * It stays a watermark at this strength, which the count proves — set in the title
- * step and in the section's full hue, the number sits a long way clear of a ramp at
- * 18%. Any stronger and the panel has two subjects.
+ * **Eighty per cent, and it was eighteen.** At eighteen it was a watermark, and on a television in a lit room it
+ * was not seen at all: a photograph of a showroom screen showed the largest object on the page as an empty grey
+ * rectangle with a smudge in it, which the room's reflections then filled in. The drawing the owner approved
+ * (`design/mockups/home-vivid-ar.html`) has the glyph as the panel's subject, lit, with the count under it; the
+ * count is still the larger figure and in the hue's full ink, so the glyph is the picture and the count is the fact.
  */
 private const val HERO_GLYPH_SHARE = 0.64f
-private const val HERO_GLYPH_ALPHA = 0.18f
+private const val HERO_GLYPH_ALPHA = 0.8f
 
 /**
  * How much larger the hero's count is than the screen's title step.
@@ -2591,6 +2644,27 @@ private const val SEGMENT_REST = 0.375f
 
 /** The success green a just-loaded card wears: on its edge, and fading down its glass. */
 private const val ARRIVED_EDGE_ALPHA = 0.55f
+
+/**
+ * What the surfaces of Home are drawn with -- the drawing is `design/mockups/home-vivid-ar.html`.
+ *
+ * A section's tint runs from [TILE_TINT_TOP] to [TILE_TINT_BOTTOM] of its hue, its edge is [TILE_EDGE_ALPHA] of it and the
+ * glow under it [TILE_GLOW_ALPHA]; the glyph's plate is [ICON_PLATE_ALPHA]. The hero is lit by [HERO_TINT_HUE], then
+ * [HERO_TINT_VIOLET] and [HERO_TINT_FOOT] of the violet, with an edge of [HERO_EDGE_ALPHA]; its watermark used to be
+ * drawn at 0.18, which on a television in a lit room was not seen at all. The plain controls' edge is
+ * [UTILITY_EDGE_ALPHA] of the azure, and the new one's [EMPHASIS_EDGE_ALPHA].
+ */
+private const val TILE_TINT_TOP = 0.34f
+private const val TILE_TINT_BOTTOM = 0.10f
+private const val TILE_EDGE_ALPHA = 0.70f
+private const val TILE_GLOW_ALPHA = 0.40f
+private const val ICON_PLATE_ALPHA = 0.28f
+private const val HERO_TINT_HUE = 0.40f
+private const val HERO_TINT_VIOLET = 0.26f
+private const val HERO_TINT_FOOT = 0.12f
+private const val HERO_EDGE_ALPHA = 0.75f
+private const val UTILITY_EDGE_ALPHA = 0.45f
+private const val EMPHASIS_EDGE_ALPHA = 0.90f
 private const val ARRIVED_FILL_TOP = 0.13f
 private const val ARRIVED_FILL_BOTTOM = 0.04f
 
