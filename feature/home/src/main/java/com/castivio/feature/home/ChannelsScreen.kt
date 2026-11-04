@@ -3449,19 +3449,27 @@ private fun ChannelGuideOverlay(
                     modifier = Modifier.weight(1f),
                 )
                 // After the channel's name, as the approved drawing has it, and only where there is an archive to open.
+                //
+                // **The header's two controls are one family.** The same pill, the same type and the same height, told
+                // apart only by their mark: the replay arc opens the archive, the cross leaves. The close was bare
+                // muted text at body size beside a chip at the default size -- two sizes for two controls of equal
+                // standing -- and it was not a control at all, with nothing for a remote or a finger to land on.
                 if (onCatchUp != null) {
-                    CastivioChip(
+                    GuideHeaderChip(
                         text = stringResource(R.string.catchup_button),
-                        onClick = onCatchUp,
                         icon = CastivioIcons.ReplayArc,
+                        m = m,
+                        onClick = onCatchUp,
+                        // The one action the header offers, so the one that is drawn to be seen; the close stays glass.
+                        lead = true,
                     )
                     Spacer(Modifier.width(m.controlPadH))
                 }
-                Text(
+                GuideHeaderChip(
                     text = stringResource(R.string.channels_guide_close),
-                    style = castivioBodyStyle(m.frame.fsBody),
-                    color = colors.onBackgroundMuted,
-                    maxLines = 1,
+                    icon = CastivioIcons.Close,
+                    m = m,
+                    onClick = onClose,
                 )
             }
 
@@ -3502,6 +3510,34 @@ private fun ChannelGuideOverlay(
             }
         }
     }
+}
+
+/**
+ * A control in the guide's header: the chip the other lists' headers use, sized from the same metrics.
+ *
+ * Both of the header's controls are made here so that they cannot differ: the type, the padding and therefore the
+ * height are one decision, and the floor under it is the chip's own touch target.
+ */
+@Composable
+private fun GuideHeaderChip(
+    text: String,
+    icon: ImageVector,
+    m: ChannelsMetrics,
+    onClick: () -> Unit,
+    /** The header's one action to take: painted in the azure every primary action in the app has. */
+    lead: Boolean = false,
+) {
+    val colors = CastivioTheme.colors
+    CastivioChip(
+        text = text,
+        onClick = onClick,
+        icon = icon,
+        labelStyle = castivioChipStyle(m.frame.fsChip),
+        padH = m.controlPadH,
+        padV = m.badgePadV,
+        fill = if (lead) colors.primaryBrush else null,
+        ink = if (lead) colors.onBackgroundStrong else null,
+    )
 }
 
 /** The reference's red `LIVE` chip, at the head of the on-screen display. */
