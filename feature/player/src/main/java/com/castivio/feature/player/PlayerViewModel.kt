@@ -10,6 +10,7 @@ import com.castivio.playback.api.EngineId
 import com.castivio.playback.api.EngineMemory
 import com.castivio.playback.api.FallbackPolicy
 import com.castivio.playback.api.MediaRequest
+import com.castivio.playback.api.OpenAttempts
 import com.castivio.playback.api.OpeningMarks
 import com.castivio.playback.api.PlaybackEngine
 import com.castivio.playback.api.PlaybackDiagnosis
@@ -137,6 +138,13 @@ class PlayerViewModel @Inject constructor(
     private var backupTried = false
 
     /**
+     * Whether a catch-up programme's other address has been opened for this request. **Once, and never again**: set before
+     * anything is released, so that a failure arriving from the first address while the second starts cannot start a third.
+     * Only a request that carries [PlayerRequest.alternateUrl] -- a catch-up programme -- ever sets it.
+     */
+    private var alternateTried = false
+
+    /**
      * Why the primary gave this source up, and how far it had got, once it has. Null for an open the
      * primary did not give up: one that opened on it, or that the memory sent straight to the backup.
      *
@@ -261,6 +269,7 @@ class PlayerViewModel @Inject constructor(
         timeFrom(pressOf(request, openedAt), openedAt, releasedAt = System.nanoTime())
 
         backupTried = false
+        alternateTried = false
         handover = null
         timedOut = false
         reopenOnReturn = false
@@ -601,6 +610,10 @@ class PlayerViewModel @Inject constructor(
             is PlaybackState.Paused -> Picture.Paused
             is PlaybackState.Ended -> Picture.Ended
             is PlaybackState.Failed -> {
+                // A catch-up programme the server answered "not found" at its first address is opened at its other one, once.
+                // Nothing else carries a second address, so for a channel, a film or an episode this is a line that is
+                // never true.
+                if (playback.reason == PlaybackError.NOT_FOUND && openAlternateAddress(settled)) return
                 // Automatic only where the evidence is specific. `decideAutomatically`
                 // deliberately excludes UNKNOWN: spending the single fallback attempt on a
                 // failure that did not identify itself is a guess, and it was that guess
@@ -658,6 +671,7 @@ class PlayerViewModel @Inject constructor(
             "first frame on $engineId ${timing.firstFrameMs}ms after the press" +
                 (if (backupTried) " (after the fallback)" else "") + ": ${timing.render()}",
         )
+        if (alternateTried) traceCatchUpForm("query form", "played: first frame ${timing.firstFrameMs}ms after the press")
         // What the picture proves about the *stream* is what is written down. The backup drawing it after the
         // primary ran out of time proves the primary was slow, not that it cannot decode it: see
         // [FallbackPolicy.shouldRemember]. Left out, the source is simply given to the primary again next time.
@@ -733,6 +747,56 @@ class PlayerViewModel @Inject constructor(
         start(current.request, EngineId.BACKUP)
         // After a picture the viewer waits again, and that wait is an opening of its own; during one it is the same.
         if (hadPicture) diagnose(OpeningCase.FALLBACK)
+    }
+
+    /**
+     * **A catch-up programme's second address, asked for once.** True when it was opened, and the caller returns.
+     *
+     * A provider may serve its archive at either of two addresses and does not say which, and a "not found" at the first is
+     * the server saying it does not know that address, not that the programme is not there. So when the programme carries
+     * another ([PlayerRequest.alternateUrl]) and it has not been opened yet, the same engine opens it: the path of
+     * [retry], with the other address, and the request on the state is left as the viewer made it. If that fails as well
+     * the card is the one the first would have shown, with the report of the last attempt.
+     *
+     * Both outcomes are written to the development log -- the form, what it came to, how many tries and the status the
+     * server gave -- by [traceCatchUpForm], which never writes an address.
+     */
+    private fun openAlternateAddress(current: PlayerState): Boolean {
+        val alternate = current.request.alternateUrl?.takeIf { it.isNotBlank() } ?: return false
+        if (alternateTried || frameAtNanos != null) return false
+        alternateTried = true
+        traceCatchUpForm("path form", "answered ${PlaybackError.NOT_FOUND}; opening the query form once")
+        val on = engineId
+        val spent = backupTried
+        val pressed = System.nanoTime()
+        stopEngine()
+        timeFrom(pressed, pressed, releasedAt = System.nanoTime())
+        backupTried = spent
+        _state.value = current.copy(
+            picture = Picture.Opening,
+            engine = on,
+            switching = false,
+            attempt = beginWait(since = pressed),
+            longWait = false,
+        )
+        start(current.request.copy(url = alternate, alternateUrl = null), on)
+        diagnose(OpeningCase.AFTER_FAILURE)
+        return true
+    }
+
+    /**
+     * **Development builds only.** One line in the log about one address form of a catch-up programme.
+     *
+     * The form's name, what it came to, how many tries the engine made at it and the last try's failure -- the status the
+     * server answered with, or the name of the exception, which the engine already records without a message. Read from the
+     * engine that made the tries, so it is called before that engine is let go. **Never an address, an account or a
+     * password:** nothing here is built from the request.
+     */
+    private fun traceCatchUpForm(form: String, result: String) {
+        if (!OpeningDiagnostics.enabled) return
+        val tries = engine?.openingMarks()?.attempts ?: OpenAttempts.NONE
+        val last = tries.tries.lastOrNull()?.failure ?: "-"
+        Log.i(TAG, "catch-up address: $form $result | tries=${tries.count} last=$last")
     }
 
     /**
@@ -1714,6 +1778,8 @@ class PlayerViewModel @Inject constructor(
         if (OpeningDiagnostics.enabled && failedAtNanos == null) failedAtNanos = System.nanoTime()
         val timing = timing().also { opening = it }
         Log.w(TAG, "no picture on $engineId: $reason | ${timing.render()}")
+        // The second address of a catch-up programme has failed too: written beside the first's line, once.
+        if (alternateTried) traceCatchUpForm("query form", "failed $reason")
     }
 
     private fun startTicker() {

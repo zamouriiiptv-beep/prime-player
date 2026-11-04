@@ -220,13 +220,14 @@ internal fun CatchUpOverlay(
                                             .height(cardHeight)
                                             .then(if (index == 0) Modifier.focusRequester(first) else Modifier),
                                         onClick = {
-                                            model.choose(card) { address, channelTitle ->
+                                            model.choose(card) { address, alternate, channelTitle ->
                                                 onPlay(
                                                     CatalogSelection(
                                                         url = address,
                                                         title = card.title,
                                                         live = false,
                                                         subtitle = "$channelTitle · ${card.timeText}",
+                                                        alternateUrl = alternate,
                                                     ),
                                                 )
                                                 onClose()

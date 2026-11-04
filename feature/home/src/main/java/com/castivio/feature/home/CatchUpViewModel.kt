@@ -13,6 +13,7 @@ import com.castivio.domain.CatchUpProgramme
 import com.castivio.domain.Channel
 import com.castivio.domain.time.TrustedTime
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -116,15 +117,24 @@ class CatchUpViewModel @Inject constructor(
      * Nothing is asked of the provider here -- see [CatchUpGateway.playbackUrl] -- and a second press while the first is
      * being resolved is ignored rather than started twice.
      */
-    fun choose(card: CatchUpCard, onAddress: (address: String, channelTitle: String) -> Unit) {
+    fun choose(card: CatchUpCard, onAddress: (address: String, alternate: String?, channelTitle: String) -> Unit) {
         val request = target ?: return
         if (_state.value.opening) return
         _state.update { it.copy(opening = true, openFailed = false) }
         opening = viewModelScope.launch {
             when (val result = gateway.playbackUrl(request, card.programme)) {
                 is Outcome.Success -> {
+                    // The other way the provider may be addressed, made now and tried by the player only if this one is
+                    // answered "not found". Never a reason to fail: a programme that has only the one address plays on it.
+                    val alternate = try {
+                        gateway.alternateUrl(request, card.programme)
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (_: Exception) {
+                        null
+                    }
                     _state.update { it.copy(opening = false) }
-                    onAddress(result.value, request.title)
+                    onAddress(result.value, alternate, request.title)
                 }
 
                 is Outcome.Failure -> _state.update { it.copy(opening = false, openFailed = true) }

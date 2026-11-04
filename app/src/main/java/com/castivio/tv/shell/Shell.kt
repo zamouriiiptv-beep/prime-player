@@ -861,6 +861,7 @@ private fun CatalogSelection.asPlayerRequest() = PlayerRequest(
     subtitle = subtitle,
     channelNumber = channelNumber,
     catchUpHours = catchUpHours,
+    alternateUrl = alternateUrl,
 )
 
 /** Which rail entry a section belongs to, so Home's "see all" lands somewhere real. */

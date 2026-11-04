@@ -49,6 +49,15 @@ data class PlayerRequest(
     val headers: Map<String, String> = emptyMap(),
     /** Not filled today either; see [headers]. */
     val userAgent: String? = null,
+    /**
+     * **A catch-up programme's other address**, tried once if [url] is answered "not found", and null for everything else.
+     *
+     * A provider may serve its archive at either of two addresses and does not say which. The player opens [url]; if
+     * the server answers 404 it opens this once, and whatever that comes to is the result. It is the only thing that
+     * can make the player open a second address, and a channel, a film or an episode never carries one -- so none of
+     * their openings is touched by it.
+     */
+    val alternateUrl: String? = null,
 ) {
 
     /**

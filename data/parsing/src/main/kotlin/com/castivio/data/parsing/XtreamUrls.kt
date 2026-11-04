@@ -142,6 +142,61 @@ object XtreamUrls {
         }
     }
 
+    /**
+     * The same archived programme as [timeshift], addressed the other way Xtream panels accept:
+     * `http://host:port/streaming/timeshift.php?username=&password=&stream=&start=&duration=`.
+     *
+     * **Asked for only after the path form answered 404, and once** -- see the player's catch-up fallback. Which of the
+     * two a panel serves is not something it says; some serve one, some both. The parameter names are the ones community
+     * documentation lists for this endpoint -- not an official specification, and not yet tried against a live panel --
+     * with the same values as the path form: the stream is the stream id, the start is `YYYY-MM-DD:HH-MM` in the panel's
+     * own time zone, and the duration is in whole minutes.
+     *
+     * **Checked before it is built, and null for anything the panel would not read:**
+     * - the stream is made of letters, digits, `-` and `_` and is not empty -- what a panel's stream id is;
+     * - the duration is a whole number of minutes from 1 to [MAX_ARCHIVE_MINUTES];
+     * - the start is exactly `YYYY-MM-DD:HH-MM`: digits and its three separators, nothing else.
+     *
+     * The account is percent-encoded as it is in [timeshift]; the colon of the start is written as it is, which a query
+     * allows and a panel reads as written.
+     */
+    fun timeshiftQuery(
+        base: String,
+        username: String,
+        password: String,
+        streamId: String,
+        durationMinutes: Int,
+        start: String,
+    ): String? {
+        val stream = streamId.trim()
+        if (!isStreamId(stream) || durationMinutes !in 1..MAX_ARCHIVE_MINUTES || !isTimeshiftStart(start)) return null
+        return buildString {
+            append(normaliseBase(base)).append("/streaming/timeshift.php")
+            append("?username=").append(encode(username))
+            append("&password=").append(encode(password))
+            append("&stream=").append(stream)
+            append("&start=").append(start)
+            append("&duration=").append(durationMinutes)
+        }
+    }
+
+    /** The longest programme an archive address is built for: a day. Longer is not a programme, it is a gap in a guide. */
+    const val MAX_ARCHIVE_MINUTES = 24 * 60
+
+    /** Whether [text] is exactly `YYYY-MM-DD:HH-MM`: the form [timeshiftStart] makes and a panel reads. */
+    internal fun isTimeshiftStart(text: String): Boolean {
+        if (text.length != TIMESHIFT_START_LENGTH) return false
+        if (text[4] != '-' || text[7] != '-' || text[10] != ':' || text[13] != '-') return false
+        for (i in intArrayOf(0, 1, 2, 3, 5, 6, 8, 9, 11, 12, 14, 15)) if (text[i] !in '0'..'9') return false
+        return true
+    }
+
+    /** Whether [text] can be a stream id: not empty, and only ASCII letters, digits, `-` and `_`. */
+    internal fun isStreamId(text: String): Boolean =
+        text.isNotEmpty() && text.all { it in 'a'..'z' || it in 'A'..'Z' || it in '0'..'9' || it == '-' || it == '_' }
+
+    private const val TIMESHIFT_START_LENGTH = 16
+
     /** The alternate container for a stream, used by playback fallback. */
     fun alternateLiveFormat(url: String): String? = when {
         url.endsWith(".ts", ignoreCase = true) -> url.dropLast(3) + ".m3u8"

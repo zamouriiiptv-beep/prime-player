@@ -166,6 +166,12 @@ data class CatalogSelection(
      * channel found some other way -- a search result -- which is stepped through its own bouquet.
      */
     val listed: CatalogQuery? = null,
+    /**
+     * Another address for the same thing, for the player to try **once** if [url] is answered "not found". Only a
+     * catch-up programme has one: a channel, a film and an episode have the one address and leave this null, which is
+     * what keeps every other opening exactly as it was.
+     */
+    val alternateUrl: String? = null,
 )
 
 /**

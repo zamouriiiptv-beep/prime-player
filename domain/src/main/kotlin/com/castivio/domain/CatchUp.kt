@@ -89,6 +89,13 @@ interface CatchUpGateway {
     suspend fun playbackUrl(channel: CatchUpChannel, programme: CatchUpProgramme): Outcome<String>
 
     /**
+     * The same programme addressed another way, for the player to try **once** if the address from [playbackUrl] is
+     * answered "not found" -- or null where the provider has no other way. Made when a programme is chosen, beside
+     * [playbackUrl], and like it asks nothing of the network: the player is what tries it, and only after the first fails.
+     */
+    suspend fun alternateUrl(channel: CatchUpChannel, programme: CatchUpProgramme): String? = null
+
+    /**
      * Whether this channel was asked for and had nothing archived, a short while ago. Answered from memory: it is what
      * lets the button go away for a channel that has been found empty, without anything being asked of the network.
      */

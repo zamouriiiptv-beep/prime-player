@@ -127,6 +127,12 @@ class XtreamCatchUp(
         return Outcome.Success(url)
     }
 
+    override suspend fun alternateUrl(channel: CatchUpChannel, programme: CatchUpProgramme): String? {
+        val reference = channel.providerRef?.takeIf { it.isNotBlank() } ?: return null
+        val source = (sources.activeProvider() as? ActiveProvider.Xtream)?.source ?: return null
+        return apiFactory(client, source).archiveQueryUrl(reference, CatchUpPolicy.durationMinutes(programme), programme.locator)
+    }
+
     override fun knownEmpty(mediaId: String, nowMs: Long): Boolean = synchronized(lock) { memory.knownEmpty(mediaId, nowMs) }
 
     /** Null for an entry whose start cannot be written the way the archive path wants it: it cannot be addressed. */
@@ -153,6 +159,9 @@ class XtreamCatchUp(
                 override fun archiveListings(streamId: String) = api.archiveListings(streamId)
                 override fun archiveUrl(streamId: String, durationMinutes: Int, start: String) =
                     api.archiveUrl(streamId, durationMinutes, start)
+
+                override fun archiveQueryUrl(streamId: String, durationMinutes: Int, start: String) =
+                    api.archiveQueryUrl(streamId, durationMinutes, start)
             }
         }
     }
@@ -169,4 +178,10 @@ interface ArchiveSource {
 
     /** The address one of them plays from. Made, not asked: no request. */
     fun archiveUrl(streamId: String, durationMinutes: Int, start: String): String
+
+    /**
+     * The same programme addressed the other way the panel may accept, or null where it cannot be made. Made, not asked.
+     * Null by default, so a source that has only the one form is not asked to say so.
+     */
+    fun archiveQueryUrl(streamId: String, durationMinutes: Int, start: String): String? = null
 }
