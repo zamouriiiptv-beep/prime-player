@@ -72,5 +72,11 @@ internal fun matchingCards(cards: List<CatchUpCard>, term: String): List<CatchUp
 /** How long a search waits for the viewer to pause: the channels' board's own, and the same in every box of Catch-up. */
 internal const val CATCHUP_SEARCH_PAUSE_MS = 120L
 
-/** The search box of Catch-up against the channels' board's own: larger, because here it stands alone in a header. */
-internal const val CATCHUP_SEARCH_SCALE = 1.8f
+/**
+ * The search box of Catch-up against the channels' board's own: larger, because here it stands alone in a header -- but
+ * only a third larger. It was 1.8 and, on the owner's phone, was a third of the screen's width, which is what `m.search`
+ * (about a fifth of the width) times 1.8 comes to on every screen: the box is a share of the screen, not a size, so a
+ * television draws it in the same proportion and no larger. At 1.35 it is about three tenths of the width and a
+ * height that sits with the line of text beside it, and it is a tool and not the page's subject.
+ */
+internal const val CATCHUP_SEARCH_SCALE = 1.35f
