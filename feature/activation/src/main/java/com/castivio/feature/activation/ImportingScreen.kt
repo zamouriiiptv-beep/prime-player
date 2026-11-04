@@ -18,6 +18,7 @@ import com.castivio.core.design.components.ButtonWeight
 import com.castivio.core.design.components.CastivioButton
 import com.castivio.core.design.components.DelayedSpinner
 import com.castivio.core.design.components.ErrorState
+import com.castivio.core.design.components.ltrToken
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Spacing
@@ -127,6 +128,11 @@ internal fun ActivationFailureScreen(
     onRetry: () -> Unit,
     onEdit: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * A development build's line about what the refused portal's addresses answered -- see `PortalTrace` -- or null. Numbers
+     * only, never in a release build, and said under the failure's own words, not instead of them.
+     */
+    diagnostic: String? = null,
 ) {
     val wording = failed.reason.wording()
     val progress = if (failed.itemsFound > 0) {
@@ -138,7 +144,10 @@ internal fun ActivationFailureScreen(
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         ErrorState(
             title = wording.title,
-            detail = listOfNotNull(wording.detail, progress).joinToString(" "),
+            detail = listOfNotNull(
+                listOfNotNull(wording.detail, progress).joinToString(" "),
+                diagnostic?.let { ltrToken(it) },
+            ).joinToString("\n"),
             actionLabel = if (failed.retryable) {
                 stringResource(R.string.failure_retry)
             } else {

@@ -129,6 +129,9 @@ class XtreamCatchUp(
 
     override fun knownEmpty(mediaId: String, nowMs: Long): Boolean = synchronized(lock) { memory.knownEmpty(mediaId, nowMs) }
 
+    /** A panel, or an M3U link that names a panel account: the two readings that carry an archive. */
+    override suspend fun supported(): Boolean = sources.activeProvider() is ActiveProvider.Xtream
+
     /** Null for an entry whose start cannot be written the way the archive path wants it: it cannot be addressed. */
     private fun XtreamArchiveEntry.toProgramme(): CatchUpProgramme? {
         val locator = XtreamUrls.timeshiftStart(serverStart) ?: return null

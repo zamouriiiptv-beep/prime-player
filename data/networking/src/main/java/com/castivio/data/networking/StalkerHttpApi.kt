@@ -3,6 +3,7 @@ package com.castivio.data.networking
 import com.castivio.core.common.AppError
 import com.castivio.core.common.Outcome
 import com.castivio.core.platform.PerformanceLog
+import com.castivio.core.platform.PortalTrace
 import com.castivio.data.parsing.JsonFormatException
 import com.castivio.data.parsing.PortalUrls
 import com.castivio.data.parsing.StalkerChannel
@@ -70,6 +71,7 @@ class StalkerHttpApi(
     fun handshake(): Outcome<StalkerSession> {
         val endpoints = PortalUrls.endpoints(portalUrl)
         if (endpoints.isEmpty()) return Outcome.Failure(AppError.NOT_CONFIGURED)
+        PortalTrace.begin()
 
         var lastFailure: Outcome.Failure? = null
         for (endpoint in endpoints) {
@@ -171,16 +173,31 @@ class StalkerHttpApi(
     private fun tokenFrom(endpoint: String): Outcome<String> = try {
         open(PortalUrls.call(endpoint, type = "stb", action = "handshake"), token = null).use { reader ->
             StalkerParser.parseHandshake(reader)
-                ?.let { Outcome.Success(it) }
+                ?.let {
+                    PortalTrace.record(PortalTrace.Answer.Portal)
+                    Outcome.Success(it)
+                }
                 // Answered, and not as a portal: a web server's index page, or an
                 // installation at a different path. Not found rather than malformed,
                 // because the caller's next move is to try somewhere else.
-                ?: Outcome.Failure(AppError.NOT_FOUND)
+                ?: run {
+                    PortalTrace.record(PortalTrace.Answer.NotAPortal)
+                    Outcome.Failure(AppError.NOT_FOUND)
+                }
         }
     } catch (e: JsonFormatException) {
+        PortalTrace.record(PortalTrace.Answer.NotAPortal)
         Outcome.Failure(AppError.NOT_FOUND, e)
     } catch (e: Exception) {
+        PortalTrace.record(traceOf(e))
         failureFor(e)
+    }
+
+    /** What a failed handshake attempt says to [PortalTrace]: a status, or the kind of failure, never an address. */
+    private fun traceOf(e: Exception): PortalTrace.Answer = when (e) {
+        is HttpStatusException -> PortalTrace.Answer.Status(e.statusCode)
+        is SocketTimeoutException, is InterruptedIOException -> PortalTrace.Answer.TimedOut
+        else -> PortalTrace.Answer.Unreachable
     }
 
     private fun <T> call(
@@ -225,10 +242,16 @@ class StalkerHttpApi(
      * that has already ended being replayed as if it had not.
      */
     private fun open(url: String, token: String?): Reader {
+        // **A set-top box's own headers.** A portal is written for the box and asks it who it is twice: by the cookie, and by
+        // the two agent headers every MAG sends. A panel that checks them -- and a refusal of a client without them looks
+        // like "nothing here", not like a refusal -- answers a request with neither as if it had no portal at all. The
+        // subscription's own agent still wins where the provider gave one.
         val builder = Request.Builder().url(url).get()
+            .header("User-Agent", userAgent ?: SET_TOP_USER_AGENT)
+            .header("X-User-Agent", SET_TOP_MODEL)
+            .header("Accept", "*/*")
             .header("Cookie", "mac=$mac; stb_lang=en; timezone=Europe/London")
             .header("Cache-Control", "no-cache")
-        if (userAgent != null) builder.header("User-Agent", userAgent)
         if (token != null) builder.header("Authorization", "Bearer $token")
 
         // Counted like the panel's calls, by the portal's own names for them, so a
@@ -269,6 +292,13 @@ class StalkerHttpApi(
 
     private companion object {
         const val READ_BUFFER = 16 * 1024
+
+        /** What a MAG box says it is, as its own firmware writes it: the agent every portal installation is tested with. */
+        const val SET_TOP_USER_AGENT =
+            "Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG250 stbapp ver: 2 rev: 250 Safari/533.3"
+
+        /** The second line a box sends beside it: its model and how it is connected. */
+        const val SET_TOP_MODEL = "Model: MAG250; Link: WiFi"
     }
 }
 

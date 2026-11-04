@@ -112,6 +112,7 @@ fun CatchUpHubScreen(
     val stage by hub.stage.collectAsStateWithLifecycle()
     val groups by hub.groups.collectAsStateWithLifecycle()
     val matches by hub.matches.collectAsStateWithLifecycle()
+    val supported by hub.supported.collectAsStateWithLifecycle()
     val searchText by hub.searchText.collectAsStateWithLifecycle()
     val channels = hub.channels.collectAsLazyPagingItems()
     // Whether the cursor is in the search box: a list that arrives while the viewer types must not take it away.
@@ -177,6 +178,7 @@ fun CatchUpHubScreen(
                             groups = groups,
                             m = m,
                             autoFocus = !searchFocused,
+                            supported = supported,
                             onOpen = hub::openGroup,
                         )
                         onFirstPage && found != null -> SearchResults(
@@ -331,14 +333,22 @@ private fun ColumnScope.HubPanel(
 
 /** The categories that keep an archive, and "all" first, in the azure of the one thing a first press does. */
 @Composable
-private fun GroupsPage(groups: HubGroups?, m: ChannelsMetrics, autoFocus: Boolean, onOpen: (ArchiveGroup?) -> Unit) {
+private fun GroupsPage(
+    groups: HubGroups?,
+    m: ChannelsMetrics,
+    autoFocus: Boolean,
+    supported: Boolean,
+    onOpen: (ArchiveGroup?) -> Unit,
+) {
     val first = remember { FocusRequester() }
     LaunchedEffect(groups?.groups?.isNotEmpty(), autoFocus) {
         if (autoFocus && groups?.groups?.isNotEmpty() == true) runCatching { first.requestFocus() }
     }
     when {
         groups == null -> Waiting(m)
-        groups.groups.isEmpty() -> Empty(m)
+        // A subscription of a kind with no archive says so, which is a statement about the subscription; one that has the
+        // kind and no channel with an archive says that, which is a statement about the provider.
+        groups.groups.isEmpty() -> Empty(m, if (supported) R.string.catchup_hub_empty else R.string.catchup_unsupported)
         else -> LazyVerticalGrid(
             columns = GridCells.Adaptive(GROUP_MIN_WIDTH),
             modifier = Modifier.fillMaxSize(),

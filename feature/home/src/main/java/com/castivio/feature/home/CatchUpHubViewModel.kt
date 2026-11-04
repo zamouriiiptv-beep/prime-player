@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -99,6 +100,14 @@ class CatchUpHubViewModel @Inject constructor(
     val groups: StateFlow<HubGroups?> = catalog.archiveGroups()
         .map { HubGroups(it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_MS), null)
+
+    /**
+     * Whether the active subscription is of a kind that has an archive -- see [CatchUpGateway.supported]. True until it is
+     * known, so the page never says a subscription offers nothing before it has asked. Read again each time the page is
+     * shown, since the active subscription can be another one.
+     */
+    val supported: StateFlow<Boolean> = flow { emit(gateway.supported()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_MS), true)
 
     /** What the search box holds, exactly as typed: read straight off the flow, so the field never lags the keys. */
     private val typed = MutableStateFlow("")

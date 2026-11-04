@@ -93,6 +93,14 @@ interface CatchUpGateway {
      * lets the button go away for a channel that has been found empty, without anything being asked of the network.
      */
     fun knownEmpty(mediaId: String, nowMs: Long): Boolean
+
+    /**
+     * Whether the active subscription is of a kind whose archive Castivio has been taught: a panel's, and an M3U link that names
+     * a panel account. False for a playlist file, a portal and a link with no account, for which the page says that the
+     * subscription does not offer catch-up -- rather than that no channel in it keeps an archive, which would be a claim about
+     * the provider. Defaulted so a fake that does not ask need not answer.
+     */
+    suspend fun supported(): Boolean = true
 }
 
 /** One day of an archive, as the viewer's own calendar draws it. */

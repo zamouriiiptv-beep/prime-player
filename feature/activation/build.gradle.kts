@@ -43,6 +43,7 @@ dependencies {
     implementation(project(":domain"))
     implementation(project(":core:design"))
     implementation(project(":core:navigation"))
+    implementation(project(":core:platform"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

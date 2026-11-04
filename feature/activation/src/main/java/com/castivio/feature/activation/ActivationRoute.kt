@@ -46,6 +46,7 @@ import com.castivio.core.design.theme.Motion
 import com.castivio.core.design.theme.MotionLevel
 import com.castivio.core.design.theme.castivioStage
 import com.castivio.core.design.theme.rememberMetrics
+import com.castivio.core.platform.PortalTrace
 import com.castivio.domain.activation.ActivationForm
 import com.castivio.domain.activation.ActivationPhase
 import com.castivio.domain.activation.ActivationUiState
@@ -353,6 +354,8 @@ fun ActivationRoute(
                 failed = phase,
                 onRetry = activation::retry,
                 onEdit = activation::dismissFailure,
+                // Only for a portal, whose refusal says one sentence for four different causes: what each address answered.
+                diagnostic = if (state.form is ActivationForm.Portal) PortalTrace.line() else null,
             )
 
             else -> Steps(
