@@ -21,4 +21,6 @@
     <string name="catchup_section_groups">বিভাগ</string>
     <string name="catchup_section_channels">চ্যানেল</string>
     <string name="catchup_search_none">আপনার অনুসন্ধানের সাথে কিছু মেলেনি</string>
+    <!-- The line under the feature's name in the top band: one short word, because its cell is about 90dp. -->
+    <string name="catchup_band">আর্কাইভ</string>
 </resources>

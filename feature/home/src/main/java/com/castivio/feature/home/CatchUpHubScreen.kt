@@ -132,8 +132,10 @@ fun CatchUpHubScreen(
             ) {
                 BoardBand(
                     section = stringResource(R.string.catchup_title),
+                    // Short, because the cell it stands in is a fixed 90dp or so: the sentence that says what this page is
+                    // is the panel's header's, and said twice it was cut off here.
                     list = when (val at = stage) {
-                        HubStage.Groups -> stringResource(R.string.catchup_hub_subtitle)
+                        HubStage.Groups -> stringResource(R.string.catchup_band)
                         is HubStage.Channels -> at.group?.name ?: stringResource(R.string.catchup_all)
                         is HubStage.Programmes -> at.channel.title
                     },
@@ -233,44 +235,56 @@ private fun ColumnScope.HubPanel(
     ) {
         // The header follows the language, as a page of this kind does: Back at the start -- the right in Arabic, and
         // pointing the way Back goes there -- then what this is, and at the end the one search box, which looks for
-        // categories and channels together. The pages under it are the board's, drawn left to right in every language,
-        // so the box keeps its own mark at its left.
+        // categories and channels together. The room that is left once those are placed is shared equally between the
+        // three gaps -- Back and the title, the title and the box, the box and the panel's edge -- so none is tighter
+        // than another. The pages under it are the board's, drawn left to right in every language, so the box keeps
+        // its own mark at its left.
         CompositionLocalProvider(LocalLayoutDirection provides direction) {
-            Row(
-                Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(m.controlPadH),
-            ) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 CastivioIconButton(
                     icon = CastivioIcons.ArrowBack,
                     contentDescription = stringResource(R.string.catchup_back),
                     onClick = onBack,
                     modifier = if (direction == LayoutDirection.Rtl) Modifier.graphicsLayer(scaleX = -1f) else Modifier,
                 )
-                Text(
-                    text = title,
-                    style = castivioTitleStyle(m.frame.fsLabel),
-                    color = colors.onBackgroundStrong,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = hint,
-                    style = castivioBodyStyle(m.frame.fsBody),
-                    color = colors.onBackgroundMuted,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                    HeaderSearchField(
-                        text = searchText,
-                        m = m,
-                        onType = onSearch,
-                        onFocusChange = onSearchFocus,
-                        hint = stringResource(R.string.catchup_search_hint),
-                        markAsButton = true,
-                    )
+                Row(
+                    Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    // What gives, on a narrow screen, is the line under the title: it ends in an ellipsis, and the box stays whole.
+                    Row(
+                        Modifier.weight(1f, fill = false),
+                        horizontalArrangement = Arrangement.spacedBy(m.controlPadH),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = title,
+                            style = castivioTitleStyle(m.frame.fsLabel),
+                            color = colors.onBackgroundStrong,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = hint,
+                            style = castivioBodyStyle(m.frame.fsBody * HINT_SCALE),
+                            color = colors.onBackgroundMuted,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false),
+                        )
+                    }
+                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                        HeaderSearchField(
+                            text = searchText,
+                            m = m,
+                            onType = onSearch,
+                            onFocusChange = onSearchFocus,
+                            hint = stringResource(R.string.catchup_search_hint),
+                            markAsButton = true,
+                            scale = SEARCH_BOX_SCALE,
+                        )
+                    }
                 }
             }
         }
@@ -573,6 +587,12 @@ private fun Empty(m: ChannelsMetrics, @StringRes message: Int = R.string.catchup
         )
     }
 }
+
+/** The line under the title a little larger than a body line: it is what the page says it is for. */
+private const val HINT_SCALE = 1.2f
+
+/** The search box against the channels' board's own: larger, because here it stands alone in a header. */
+private const val SEARCH_BOX_SCALE = 1.8f
 
 /** A category's card is at least this wide: three in a row on a television's board, fewer on a phone. */
 private val GROUP_MIN_WIDTH = 150.dp

@@ -21,4 +21,6 @@
     <string name="catchup_section_groups">Danh mục</string>
     <string name="catchup_section_channels">Kênh</string>
     <string name="catchup_search_none">Không có kết quả khớp với tìm kiếm</string>
+    <!-- The line under the feature's name in the top band: one short word, because its cell is about 90dp. -->
+    <string name="catchup_band">Lưu trữ</string>
 </resources>

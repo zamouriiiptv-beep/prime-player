@@ -21,4 +21,6 @@
     <string name="catchup_section_groups">Kategorya</string>
     <string name="catchup_section_channels">Mga channel</string>
     <string name="catchup_search_none">Walang tumugma sa hinahanap mo</string>
+    <!-- The line under the feature's name in the top band: one short word, because its cell is about 90dp. -->
+    <string name="catchup_band">Archive</string>
 </resources>

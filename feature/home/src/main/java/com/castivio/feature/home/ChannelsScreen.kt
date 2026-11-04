@@ -917,6 +917,11 @@ internal fun HeaderSearchField(
      * plain glyph. For a field that stands alone in a header, where the viewer should see what to press.
      */
     markAsButton: Boolean = false,
+    /**
+     * How much larger than the band's field this one is, in both directions alike. A field that stands alone in a panel's
+     * header has room the band's does not, and is the thing to find there.
+     */
+    scale: Float = 1f,
 ) {
     val colors = CastivioTheme.colors
     val (focused, focusModifier) = rememberFocusFlag()
@@ -929,8 +934,8 @@ internal fun HeaderSearchField(
 
     Row(
         modifier
-            .width(m.search)
-            .height(m.header * FIELD_OF_HEADER)
+            .width(m.search * scale)
+            .height(m.header * FIELD_OF_HEADER * scale)
             .clip(shape)
             .background(colors.glassFill)
             .border(1.dp, if (focused) colors.focusRing else colors.glassBorderSoft, shape)
@@ -939,7 +944,7 @@ internal fun HeaderSearchField(
         horizontalArrangement = Arrangement.spacedBy(m.factGap),
     ) {
         if (markAsButton) {
-            val plate = m.header * FIELD_OF_HEADER * MARK_OF_FIELD
+            val plate = m.header * FIELD_OF_HEADER * scale * MARK_OF_FIELD
             Box(
                 Modifier
                     .size(plate)

@@ -21,4 +21,6 @@
     <string name="catchup_section_groups">Categorii</string>
     <string name="catchup_section_channels">Canale</string>
     <string name="catchup_search_none">Nimic nu se potrivește căutării</string>
+    <!-- The line under the feature's name in the top band: one short word, because its cell is about 90dp. -->
+    <string name="catchup_band">Arhivă</string>
 </resources>

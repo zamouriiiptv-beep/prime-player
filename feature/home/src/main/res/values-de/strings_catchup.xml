@@ -21,4 +21,6 @@
     <string name="catchup_section_groups">Kategorien</string>
     <string name="catchup_section_channels">Sender</string>
     <string name="catchup_search_none">Nichts passt zu deiner Suche</string>
+    <!-- The line under the feature's name in the top band: one short word, because its cell is about 90dp. -->
+    <string name="catchup_band">Archiv</string>
 </resources>

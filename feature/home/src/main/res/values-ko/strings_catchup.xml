@@ -21,4 +21,6 @@
     <string name="catchup_section_groups">카테고리</string>
     <string name="catchup_section_channels">채널</string>
     <string name="catchup_search_none">검색과 일치하는 항목이 없습니다</string>
+    <!-- The line under the feature's name in the top band: one short word, because its cell is about 90dp. -->
+    <string name="catchup_band">아카이브</string>
 </resources>

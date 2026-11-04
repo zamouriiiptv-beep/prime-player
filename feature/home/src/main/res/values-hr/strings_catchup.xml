@@ -21,4 +21,6 @@
     <string name="catchup_section_groups">Kategorije</string>
     <string name="catchup_section_channels">Kanali</string>
     <string name="catchup_search_none">Ništa ne odgovara pretrazi</string>
+    <!-- The line under the feature's name in the top band: one short word, because its cell is about 90dp. -->
+    <string name="catchup_band">Arhiva</string>
 </resources>

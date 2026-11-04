@@ -21,4 +21,6 @@
     <string name="catchup_section_groups">分类</string>
     <string name="catchup_section_channels">频道</string>
     <string name="catchup_search_none">没有符合搜索的结果</string>
+    <!-- The line under the feature's name in the top band: one short word, because its cell is about 90dp. -->
+    <string name="catchup_band">存档</string>
 </resources>

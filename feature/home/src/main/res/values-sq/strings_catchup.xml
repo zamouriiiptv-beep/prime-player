@@ -21,4 +21,6 @@
     <string name="catchup_section_groups">Kategori</string>
     <string name="catchup_section_channels">Kanale</string>
     <string name="catchup_search_none">Asgjë nuk përputhet me kërkimin</string>
+    <!-- The line under the feature's name in the top band: one short word, because its cell is about 90dp. -->
+    <string name="catchup_band">Arkivi</string>
 </resources>

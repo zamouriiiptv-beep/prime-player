@@ -21,4 +21,6 @@
     <string name="catchup_section_groups">Категории</string>
     <string name="catchup_section_channels">Каналы</string>
     <string name="catchup_search_none">Ничего не найдено</string>
+    <!-- The line under the feature's name in the top band: one short word, because its cell is about 90dp. -->
+    <string name="catchup_band">Записи</string>
 </resources>

@@ -21,4 +21,6 @@
     <string name="catchup_section_groups">Categorieën</string>
     <string name="catchup_section_channels">Zenders</string>
     <string name="catchup_search_none">Niets komt overeen met je zoekopdracht</string>
+    <!-- The line under the feature's name in the top band: one short word, because its cell is about 90dp. -->
+    <string name="catchup_band">Archief</string>
 </resources>

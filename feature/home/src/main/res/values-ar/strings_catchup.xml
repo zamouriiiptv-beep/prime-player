@@ -21,4 +21,6 @@
     <string name="catchup_section_groups">الباقات</string>
     <string name="catchup_section_channels">القنوات</string>
     <string name="catchup_search_none">لا شيء يطابق بحثك</string>
+    <!-- The line under the feature's name in the top band: one short word, because its cell is about 90dp. -->
+    <string name="catchup_band">أرشيف البرامج</string>
 </resources>

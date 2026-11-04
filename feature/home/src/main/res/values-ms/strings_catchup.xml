@@ -21,4 +21,6 @@
     <string name="catchup_section_groups">Kategori</string>
     <string name="catchup_section_channels">Saluran</string>
     <string name="catchup_search_none">Tiada yang sepadan dengan carian anda</string>
+    <!-- The line under the feature's name in the top band: one short word, because its cell is about 90dp. -->
+    <string name="catchup_band">Arkib</string>
 </resources>

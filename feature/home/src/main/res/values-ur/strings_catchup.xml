@@ -21,4 +21,6 @@
     <string name="catchup_section_groups">زمرے</string>
     <string name="catchup_section_channels">چینلز</string>
     <string name="catchup_search_none">آپ کی تلاش سے کچھ نہیں ملا</string>
+    <!-- The line under the feature's name in the top band: one short word, because its cell is about 90dp. -->
+    <string name="catchup_band">آرکائیو</string>
 </resources>
