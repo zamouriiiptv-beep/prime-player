@@ -4,11 +4,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.castivio.core.design.components.DelayedSpinner
+import com.castivio.core.platform.DevDiagnostics
 import com.castivio.domain.entitlement.StartDestination
 import com.castivio.feature.activation.ActivationRoute
 import com.castivio.tv.locale.LocalLocaleController
@@ -33,6 +36,12 @@ internal fun SplashGate(
     home: @Composable () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // The development instruments are switched on here too, and not only by the shell: the first-run activation screen is
+    // drawn by this gate before any shell exists, and a refused portal's line of numbers -- see `PortalTrace` -- is kept
+    // only while they are on. Idempotent: the shell asks again and is told the same.
+    val applicationContext = LocalContext.current.applicationContext
+    remember(applicationContext) { DevDiagnostics.enableIn(applicationContext) }
+
     val model: SplashViewModel = hiltViewModel()
     val state by model.state.collectAsStateWithLifecycle()
 
