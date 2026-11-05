@@ -152,7 +152,7 @@
     <string name="movie_favorite_add">加入收藏</string>
     <string name="movie_favorite_remove">取消收藏</string>
     <string name="hide_title">隐藏分组和频道</string>
-    <string name="hide_hint">勾选要隐藏的内容，然后按“隐藏所选”。不会删除任何内容，可在设置中恢复。</string>
+    <string name="hide_hint">勾选要隐藏的内容。不会删除任何内容，可在设置中恢复。</string>
     <string name="hide_confirm">隐藏所选</string>
     <string name="settings_hidden_section">已隐藏的项目</string>
     <string name="settings_hidden_detail">已隐藏的频道包和频道仍保留在您的订阅中。按下即可全部恢复。</string>

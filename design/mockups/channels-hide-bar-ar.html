@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<!-- The channels board while it is choosing what to hide: the band over it, as it is, and as it is meant to be -- the same treatment
+     the reorder band got (`channels-arrange-bar-ar.html`). Phone geometry, 833x385dp, one px per dp; rendered at 2x.
+       **Only the band changes.** The board under it is drawn as the owner's photograph shows it.
+       What the band is now: the word "إخفاء الباقات والقنوات" (violet), then the hint in two lines -- 59dp, of which the buttons are 47.
+       What it is to be:
+         - one row: the word (amber, like the reorder band's), a hairline, one line of hint, Cancel, Hide selected;
+         - the hint is shortened to what is not already said by the button beside it: the press that hides is the button's, so the
+           sentence says what to do (put a mark) and what is safe (nothing is deleted; Settings brings it back);
+         - the buttons keep their size, so the band is their height and a hair more: 56dp instead of 59. There is no height to win
+           here as there was in the reorder band; what is won is one line instead of three, and one look for the two modes.
+       `?frame=sheet` is the default. -->
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>الإخفاء — الشريط في سطر واحد</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#05040E;color:#fff;font-family:"Inter","DejaVu Sans",system-ui,sans-serif;width:833px}
+.cap{padding:14px 20px 8px;font-size:13px;line-height:1.7;color:#cfd0ea;direction:rtl}
+.cap b{color:#fff}
+.cap em{font-style:normal;color:#9b8cff}
+.screen{position:relative;width:833px;height:385px;overflow:hidden;direction:ltr;
+  background:linear-gradient(140deg,#1c1a41 0%,#141a3b 55%,#0f1d3b 100%)}
+.abs{position:absolute}
+svg{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ar{direction:rtl;unicode-bidi:plaintext}
+/* the band over the board */
+.top{left:0;top:0;width:833px;height:42px;background:rgba(6,9,20,.78)}
+.logo{left:58px;top:10px;display:flex;align-items:center;gap:6px;font-weight:700;font-size:17px}
+.logo i{display:block;width:22px;height:22px;border-radius:50%;background:conic-gradient(#e0407a,#6a4cff,#2c9cff,#e0407a)}
+.crumb{left:233px;top:6px;font-size:11px;color:#a58cff;direction:rtl}
+.crumb span{display:block;color:#d6d7ee;margin-top:1px;font-size:11px}
+.search{left:380px;top:11px;width:179px;height:21px;border-radius:11px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:space-between;padding:0 8px;font-size:9.5px;color:#aeb0cc}
+.clock{right:21px;top:6px;text-align:center;font-weight:700;font-size:19px;line-height:1}
+.clock small{display:block;font-size:9.5px;font-weight:400;color:#c3c4e2;margin-top:2px}
+.frame{left:44px;top:42px;width:781px;height:335px;border-radius:10px;border:1px solid rgba(110,100,170,.45);background:rgba(255,255,255,.012)}
+/* the arrange band */
+.bar{left:48px;width:773px;border-radius:9px;background:rgba(255,255,255,.085);border:1.3px solid #5a4a8c;display:flex;align-items:center}
+.bar .txt{flex:1;min-width:0;direction:ltr}
+.bar .txt .ar{text-align:left}
+.bar .lab{font-size:11.5px;color:#a58cff;font-weight:700}
+.bar .one .lab{color:#ffc15a}
+.bar .hint{font-size:12.5px;color:#fff;line-height:1.35}
+.bar .hint.m{color:#aeb0cc}
+.bar .hint.d{color:#ff6b7a}
+.bar .one{display:flex;align-items:center;gap:9px;white-space:nowrap;overflow:hidden}
+.bar .one .hint{overflow:hidden;text-overflow:ellipsis}
+.bar .one .sep{width:1px;height:16px;background:rgba(255,255,255,.22);flex:none}
+.btn{height:47px;width:71px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex:none}
+.btn.c{background:#445171;border:1px solid #546183;color:#fff}
+.btn.s{background:linear-gradient(135deg,#2e6bff,#4c9bff);color:#fff}
+.btn.w{width:96px}
+.btn.s.off{background:linear-gradient(135deg,#2a4f9e,#3a68b4);color:#7f93bd;opacity:.85}
+.ck{display:block;border-radius:50%;border:1.6px solid #a3a5bf;flex:none}
+.bar .lab.t{font-size:11.5px}
+/* the board under it */
+.rail{left:52px;width:167px;overflow:hidden}
+.rr{height:35px;display:flex;align-items:center;justify-content:space-between;padding:0 3px 0 2px}
+.rr .n{font-size:13.5px;font-weight:700;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
+.rr small{display:block;font-size:10.5px;color:#c4c5de;margin-top:1px;font-weight:400}
+.rr .h{width:12px;height:2px;border-top:2px solid #b9bad4;border-bottom:2px solid #b9bad4;height:7px;opacity:.85;flex:none}
+.list{left:239px;width:297px;overflow:hidden;border-radius:10px;background:rgba(35,35,61,.75);border:1px solid #393651}
+.list .hd{text-align:center;font-weight:700;font-size:13.5px;letter-spacing:.02em;color:#e6e6f6;position:absolute;left:0;right:0;top:11px}
+.lr{position:absolute;left:12px;right:12px;height:27px;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700}
+.lr .no{width:30px;height:17px;border-radius:3px;background:rgba(255,255,255,.06);border:1px solid #4a4764;font-size:12px;text-align:center;line-height:15px;font-weight:700;flex:none}
+.lr .lg{width:14px;height:14px;border-radius:50%;flex:none}
+.lr .pl{margin-left:auto;width:17px;height:17px;border-radius:50%;background:#1fc89a;display:flex;align-items:center;justify-content:center}
+.pv{left:626px;width:111px;height:62px;border-radius:6px;background:#a8a7ad;overflow:hidden}
+.pv i{position:absolute;inset:0;background:radial-gradient(40% 50% at 55% 40%,#2b2830,transparent 60%),linear-gradient(120deg,#8c8a93,#b8b4ba 60%,#8f8d95)}
+.pv b{position:absolute;left:6px;bottom:4px;background:#26b88c;color:#fff;font-size:9px;border-radius:7px;padding:1px 6px;font-weight:700}
+.info{left:543px;width:277px;height:97px;border-radius:9px;background:rgba(255,255,255,.04);border:1px solid #2f3952;padding:5px 6px}
+.info .t{display:flex;align-items:center;gap:6px;font-weight:700;font-size:11px;height:22px;border-bottom:1px solid rgba(255,255,255,.14);margin-bottom:3px}
+.info .t i{width:19px;height:19px;border-radius:50%;background:linear-gradient(90deg,#e2362c,#1b49c4)}
+.info .pn{font-size:11.5px;font-weight:700;margin:3px 0}
+.info .nw{display:flex;align-items:center;gap:6px;font-size:10.5px;color:#d8d9ee;margin-bottom:3px}
+.info .nw u{flex:1;height:2.5px;background:linear-gradient(90deg,#1fc89a 92%,#3a4358 92%);border-radius:2px;text-decoration:none}
+.info .nw span:first-child{color:#1fc89a}
+.info .nx{font-size:10.5px;color:#d8d9ee;white-space:nowrap}
+.acts{left:543px;width:277px;height:48px;display:flex;gap:5px}
+.acts div{flex:1;border-radius:7px;background:#2b334a;border:1px solid #3a4560;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:8.5px;color:#aeb1ca}
+.acts div svg{color:#d6d8ea}
+.acts div.on{background:#1b1038;border-color:#5a4a8c;color:#d6c9ff}
+.acts div.on svg{color:#e6dcff}
+.tag{position:absolute;left:6px;top:4px;font-size:9px;background:#ff5b6b;color:#fff;border-radius:4px;padding:1px 5px;direction:rtl;z-index:5}
+.tag.ok{background:#1fc89a;color:#052018}
+.strip{padding:6px 24px 0;direction:ltr}
+.strip .nm{font-size:11px;color:#cfd0ea;direction:rtl;margin:8px 0 5px;line-height:1.5}
+.strip .nm b{color:#fff}
+.strip .bar{position:relative;left:auto;width:785px;height:56px;padding:0 8px 0 11px;gap:8px}
+</style></head><body>
+<script>
+/* One board, drawn twice: only the band's height differs. */
+const RAIL=[["FR| FRANCE 4K",28],["FR| FRANCE VIP RAW",214],["FR| FRANCE SPORT VI…",143],["FR| FRANCE FHD",173],["FR| FRANCE HD",200],["FR| FRANCE LQ",122],["FR| DOCUMENTAIRE HD",96],["FR| ENFANTS",71]];
+const LIST=[[2,"FR| TF1 4K","#2e56d6",1],[3,"FR| FRANCE 2 4K","#e23a4a"],[4,"FR| FRANCE 3 4K","#3a86ff"],[5,"FR| FRANCE 4 4K","#a35bff"],[6,"FR| FRANCE 5 4K","#2ecb7a"],[7,"FR| M6 4K","#f0f0f0"],[8,"FR| ARTE 4K","#ff8a3c"],[9,"FR| W9 4K","#3a86ff"],[10,"FR| TMC 4K","#ffcf3a"]];
+const ICON={cal:'<svg width="17" height="17" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>',star:'<svg width="17" height="17" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1.1 5.8L12 16.8 6.7 19.6l1.1-5.8L3.5 9.7l5.9-.8z"/></svg>',lock:'<svg width="17" height="17" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',eye:'<svg width="17" height="17" viewBox="0 0 24 24"><path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"/><circle cx="12" cy="12" r="2.6"/><path d="M4 20L20 4"/></svg>',sort:'<svg width="17" height="17" viewBox="0 0 24 24"><path d="M8 20V5M4 9l4-4 4 4M16 4v15M12 15l4 4 4-4"/></svg>'};
+
+function bar(top,hint,kind,off){ // the band as it is meant to be: one row
+  return `<div class="abs bar" style="top:${top}px;height:56px;padding:0 8px 0 11px;gap:8px">
+    <div class="txt"><div class="one"><span class="lab ar">إخفاء الباقات والقنوات</span><span class="sep"></span><span class="hint ${kind||''} ar">${hint}</span></div></div>
+    <div class="btn c ar">إلغاء</div><div class="btn s w ${off?'off':''} ar">إخفاء المحدد</div></div>`;
+}
+function oldBar(){ // the band as it is: the word, then two lines
+  return `<div class="abs bar" style="top:46px;height:59px;padding:0 5px 0 12px;gap:8px">
+    <div class="txt" style="width:420px;flex:none">
+      <div class="lab ar" style="font-size:12.5px">إخفاء الباقات والقنوات</div>
+      <div class="hint ar" style="font-size:12.5px;line-height:1.3">ضع علامة على ما تريد إخفاءه ثم اضغط «إخفاء المحدد». لا يُحذف شيء، وتعيده الإعدادات.</div>
+    </div><div style="flex:1"></div>
+    <div class="btn c ar">إلغاء</div><div class="btn s w off ar">إخفاء المحدد</div></div>`;
+}
+function board(top, h){
+  const y0=top;
+  let r='';
+  const rows=Math.floor((h-4)/35);
+  for(let i=0;i<Math.min(RAIL.length,rows+1);i++){const [n,c]=RAIL[i];r+=`<div class="rr" style="position:absolute;left:0;right:0;top:${i*35}px"><div><div class="n">${n}</div><small class="ar">المجموع: ${c}</small></div><i class="ck" style="width:21px;height:21px"></i></div>`;}
+  const lrows=Math.floor((h-36)/27.5);
+  let l=`<div class="hd">##### FRANCE 4K #####</div><i class="ck" style="position:absolute;right:12px;top:15px;width:11px;height:11px"></i>`;
+  for(let i=0;i<Math.min(LIST.length,lrows+1);i++){const [no,nm,col]=LIST[i];l+=`<div class="lr" style="top:${36+i*27.5}px"><span class="no">${no}</span><i class="lg" style="background:${col}"></i><span>${nm}</span>${i===1?'<span style="margin-left:auto;font-size:9.5px;color:#9b6bff;font-weight:700">FHD</span><i class="ck" style="width:11px;height:11px"></i>':'<i class="ck" style="margin-left:auto;width:11px;height:11px"></i>'}</div>`;}
+  const bottom=y0+h, acts=bottom-48, info=acts-5-97;
+  return `<div class="abs rail" style="top:${y0}px;height:${h}px">${r}</div>
+  <div class="abs list" style="top:${y0}px;height:${h}px">${l}</div>
+  <div class="abs" style="left:582px;width:200px;top:${y0}px;height:112px;border-radius:9px;background:#150c2e;border:1px solid #2a2150;display:flex;align-items:center;justify-content:center;font-size:44px;font-weight:800;color:#2a2438;direction:ltr"><span style="color:#ee2b47;font-size:34px;margin-right:6px">●</span>2</div>
+  <div class="abs info" style="top:${info}px"><div class="t"><i style="background:#150c2e;color:#ee2b47;font-size:9px;display:flex;align-items:center;justify-content:center;font-style:normal">●2</i><span>FR| FRANCE 2 4K</span><b style="margin-left:auto;font-size:9px;color:#9b6bff;background:rgba(155,107,255,.18);border-radius:8px;padding:1px 6px">FHD</b></div><div class="pn">Live: Télématin, la suite</div>
+    <div class="nw"><span class="ar">الآن</span><span>08:20 – 09:40</span><u style="background:linear-gradient(90deg,#1fc89a 40%,#3a4358 40%)"></u></div><div class="nx"><span class="ar">التالي</span> 09:40 – 09:50 Journal Météo Climat</div></div>
+  <div class="abs acts" style="top:${acts}px"><div>${ICON.cal}<span class="ar">الدليل</span></div><div>${ICON.star}<span class="ar">المفضلة</span></div><div>${ICON.lock}<span class="ar">قفل</span></div><div class="on">${ICON.eye}<span class="ar">إخفاء</span></div><div>${ICON.sort}<span class="ar">ترتيب</span></div></div>`;
+}
+function head(){return `<div class="abs top"></div><div class="abs logo"><i></i>Castivio</div><div class="abs crumb ar">البث المباشر<span>كل القنوات</span></div>
+  <div class="abs search"><svg width="11" height="11" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span class="ar">ابحث في القنوات</span></div>
+  <div class="abs clock">08:59<small>5-11-2026</small></div><div class="abs frame"></div>`;}
+
+const HINT={
+  none:'ضع علامة على ما تريد إخفاءه. لا يُحذف شيء، وتعيده الإعدادات.',
+  some:'ضع علامة على ما تريد إخفاءه. لا يُحذف شيء، وتعيده الإعدادات.'
+};
+const q=new URLSearchParams(location.search);
+const frame=q.get('frame')||'sheet';
+let html='';
+const A=`<div class="screen">${head()}${oldBar()}${board(110,267)}<span class="tag">الآن · 59dp</span></div>`;
+const B=`<div class="screen">${head()}${bar(46,HINT.none,'',true)}${board(107,270)}<span class="tag ok">المقترح · 56dp</span></div>`;
+if(frame==='now')html=A; else if(frame==='new')html=B; else{
+ html+=`<div class="cap"><b>١ — الآن:</b> الكلمة بالبنفسجي ثم الجملة في سطرين: ٥٩dp، منها ٤٧dp للزرّين.</div>`+A;
+ html+=`<div class="cap"><b>٢ — المقترح:</b> صف واحد بالمعمار نفسه الذي أخذه شريط الترتيب: الكلمة <em>بالكهرماني</em>، ثم خط رفيع، ثم جملة واحدة، ثم الزرّان بحجمهما. الارتفاع ٥٦dp: <b>لا مكسب هنا في الارتفاع</b> (الزرّان هما الأرضية)، والمكسب سطر بدل ثلاثة ومظهر واحد للشريطين. الجملة اختُصرت: «ثم اضغط إخفاء المحدد» حُذفت لأن الزرّ أمام العين.</div>`+B;
+ html+=`<div class="cap"><b>٣ — الحالتان:</b> الجملة نفسها في الحالتين؛ الذي يتغيّر هو الزرّ: خافت حتى يُوضع أول علامة (كما هو الآن)، ثم مضيء.</div><div class="strip">`;
+ [['لم تُوضع علامة بعد — «إخفاء المحدد» خافت',true],['وُضعت علامة على شيء — «إخفاء المحدد» مضيء',false]].forEach(([c,off])=>{
+   html+=`<div class="nm ar"><b>${c}</b></div><div style="position:relative">${bar(0,HINT.none,'',off).replace('abs bar" style="top:0px;height:56px;padding:0 8px 0 11px;gap:8px"','bar" style="position:relative;width:785px;height:56px;padding:0 8px 0 11px;gap:8px"')}</div>`;});
+ html+='</div><div style="height:14px"></div>';
+}
+document.write(html);
+</script>
+</body></html>

@@ -152,7 +152,7 @@
     <string name="movie_favorite_add">В избранное</string>
     <string name="movie_favorite_remove">Убрать из избранного</string>
     <string name="hide_title">Скрыть пакеты и каналы</string>
-    <string name="hide_hint">Отметьте, что скрыть, и нажмите «Скрыть выбранное». Ничего не удаляется; вернуть можно в настройках.</string>
+    <string name="hide_hint">Отметьте, что скрыть. Ничего не удаляется; вернуть можно в настройках.</string>
     <string name="hide_confirm">Скрыть выбранное</string>
     <string name="settings_hidden_section">Скрытые элементы</string>
     <string name="settings_hidden_detail">Скрытые пакеты и каналы остаются в вашей подписке. Нажмите, чтобы вернуть все.</string>

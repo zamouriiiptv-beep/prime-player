@@ -152,7 +152,7 @@
     <string name="movie_favorite_add">Lägg till i favoriter</string>
     <string name="movie_favorite_remove">Ta bort från favoriter</string>
     <string name="hide_title">Dölj buketter och kanaler</string>
-    <string name="hide_hint">Markera vad du vill dölja och tryck på Dölj valda. Inget raderas; Inställningar återställer det.</string>
+    <string name="hide_hint">Markera vad du vill dölja. Inget raderas; Inställningar återställer det.</string>
     <string name="hide_confirm">Dölj valda</string>
     <string name="settings_hidden_section">Dolda objekt</string>
     <string name="settings_hidden_detail">Dolda paket och kanaler finns kvar i din prenumeration. Tryck för att återställa alla.</string>

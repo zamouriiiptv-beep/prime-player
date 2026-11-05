@@ -152,7 +152,7 @@
     <string name="movie_favorite_add">Aggiungi ai preferiti</string>
     <string name="movie_favorite_remove">Rimuovi dai preferiti</string>
     <string name="hide_title">Nascondi bouquet e canali</string>
-    <string name="hide_hint">Seleziona ciò che vuoi nascondere, poi premi Nascondi selezione. Non viene eliminato nulla; le Impostazioni lo ripristinano.</string>
+    <string name="hide_hint">Seleziona ciò che vuoi nascondere. Non viene eliminato nulla; le Impostazioni lo ripristinano.</string>
     <string name="hide_confirm">Nascondi selezione</string>
     <string name="settings_hidden_section">Elementi nascosti</string>
     <string name="settings_hidden_detail">I bouquet e i canali nascosti restano nel tuo abbonamento. Premi per ripristinarli tutti.</string>

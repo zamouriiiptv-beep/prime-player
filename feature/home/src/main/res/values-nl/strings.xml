@@ -152,7 +152,7 @@
     <string name="movie_favorite_add">Toevoegen aan favorieten</string>
     <string name="movie_favorite_remove">Verwijderen uit favorieten</string>
     <string name="hide_title">Boeketten en zenders verbergen</string>
-    <string name="hide_hint">Vink aan wat je wilt verbergen en druk op Selectie verbergen. Er wordt niets verwijderd; Instellingen zet het terug.</string>
+    <string name="hide_hint">Vink aan wat je wilt verbergen. Er wordt niets verwijderd; Instellingen zet het terug.</string>
     <string name="hide_confirm">Selectie verbergen</string>
     <string name="settings_hidden_section">Verborgen items</string>
     <string name="settings_hidden_detail">Verborgen boeketten en zenders blijven in je abonnement. Druk om ze allemaal terug te zetten.</string>

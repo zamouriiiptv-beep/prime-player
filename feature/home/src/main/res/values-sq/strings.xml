@@ -152,7 +152,7 @@
     <string name="movie_favorite_add">Shto te të parapëlqyerat</string>
     <string name="movie_favorite_remove">Hiq nga të parapëlqyerat</string>
     <string name="hide_title">Fshih paketat dhe kanalet</string>
-    <string name="hide_hint">Shëno çfarë do të fshihet, pastaj shtyp Fshih të zgjedhurat. Asgjë nuk fshihet përgjithmonë; Cilësimet e rikthejnë.</string>
+    <string name="hide_hint">Shëno çfarë do të fshihet. Asgjë nuk fshihet përgjithmonë; Cilësimet e rikthejnë.</string>
     <string name="hide_confirm">Fshih të zgjedhurat</string>
     <string name="settings_hidden_section">Elementet e fshehura</string>
     <string name="settings_hidden_detail">Paketat dhe kanalet e fshehura mbeten në abonimin tënd. Shtyp për t’i rikthyer të gjitha.</string>

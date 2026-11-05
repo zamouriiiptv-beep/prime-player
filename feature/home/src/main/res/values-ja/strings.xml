@@ -152,7 +152,7 @@
     <string name="movie_favorite_add">お気に入りに追加</string>
     <string name="movie_favorite_remove">お気に入りから削除</string>
     <string name="hide_title">ブーケとチャンネルを非表示</string>
-    <string name="hide_hint">非表示にするものにチェックを付けて、「選択を非表示」を押してください。何も削除されず、設定から元に戻せます。</string>
+    <string name="hide_hint">非表示にするものにチェックを付けてください。何も削除されず、設定から元に戻せます。</string>
     <string name="hide_confirm">選択を非表示</string>
     <string name="settings_hidden_section">非表示の項目</string>
     <string name="settings_hidden_detail">非表示にしたパッケージやチャンネルは契約内に残ります。押すとすべて元に戻します。</string>

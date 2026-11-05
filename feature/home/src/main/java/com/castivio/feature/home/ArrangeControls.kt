@@ -1,54 +1,39 @@
 package com.castivio.feature.home
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.castivio.core.design.components.ButtonWeight
 import com.castivio.core.design.components.CastivioButton
-import com.castivio.core.design.components.castivioBodyStyle
-import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Sizing
 
@@ -183,23 +168,12 @@ internal suspend fun LazyListState.keepInView(index: Int) {
 }
 
 /**
- * The band over the board while it is in reorder mode: what the mode is, the one thing to do now, and the two ways out -- on
- * one row.
+ * The band over the board while it is in reorder mode: the word, [hint]'s one sentence for the state, and Cancel and Save --
+ * all of it [ModeBand]'s, which the hide mode's band is too.
  *
  * It said everything that was true in five lines, 109dp of a 385dp screen, and the board under it lost two channels and a
- * bouquet for the sake of sentences that were mostly not about the viewer's next press. Now it says one -- [hint] chooses it --
- * and cuts it with an ellipsis rather than wrapping it. Save and Cancel keep the size they have: a touch target does not
- * shrink to make a band shorter, so the band is their height and a hair more.
- *
- * The word that names the mode is amber, the board's one amber (see [AMBER_INK_LIFT]) and not the violet of "Live TV" above it:
- * two words of one colour, one over the other, read as a single label. Drawn first in
- * `design/mockups/channels-arrange-bar-ar.html`.
- *
- * **Laid out left to right in every language, like the band above it and the columns under it.** It sits between the two, and
- * it used to follow the reader's direction while they did not: in Arabic the buttons went to the far left, over the bouquets,
- * and the hint to the right, over the picture -- the one strip of the board that moved when the language did. Now nothing
- * moves; the hint is shaped by its own script inside its cell, as every other line on the board is, and Save and Cancel stay
- * at the trailing end, over the list and the picture they act on.
+ * bouquet for the sake of sentences that were mostly not about the viewer's next press. Now it says one, and a failed save is
+ * that one, in the colour of a failure, in the place the eye already is. Save and Cancel keep the size they have.
  */
 @Composable
 internal fun ReorderBar(
@@ -210,70 +184,38 @@ internal fun ReorderBar(
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
-    val shape = RoundedCornerShape(m.previewRadius)
-    val label = lerp(colors.hueAmber, colors.onBackgroundStrong, AMBER_INK_LIFT)
     val hint = mode.hint()
 
-    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-        Row(
-            modifier
-                .fillMaxWidth()
-                .padding(bottom = m.headerGap)
-                .clip(shape)
-                .background(colors.glassFill)
-                .border(1.dp, colors.selectedBorder, shape)
-                .padding(horizontal = m.controlPadH, vertical = m.badgePadV * 2),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(m.factGap),
-        ) {
-            Row(
-                Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(m.factGap),
-            ) {
-                Text(
-                    text = stringResource(R.string.reorder_entry),
-                    style = castivioChipStyle(m.frame.fsLabel),
-                    color = label,
-                    maxLines = 1,
-                )
-                Box(Modifier.width(1.dp).height(m.frame.fsBody * HINT_RULE_OF_BODY).background(colors.glassBorder))
-                Text(
-                    text = when (hint) {
-                        ReorderHint.Failed -> stringResource(R.string.reorder_failed)
-                        ReorderHint.Move -> stringResource(R.string.reorder_hint_move)
-                        is ReorderHint.Marked -> stringResource(R.string.reorder_hint_marked, hint.count)
-                        ReorderHint.AllOpen -> stringResource(R.string.reorder_hint_all)
-                        ReorderHint.Pick -> stringResource(R.string.reorder_hint_pick)
-                    },
-                    style = castivioBodyStyle(m.frame.fsBody),
-                    color = when (hint) {
-                        ReorderHint.Failed -> colors.danger
-                        ReorderHint.AllOpen -> colors.onBackgroundMuted
-                        else -> colors.onBackground
-                    },
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-            CastivioButton(
-                text = stringResource(R.string.reorder_cancel),
-                onClick = onCancel,
-                enabled = !mode.saving,
-            )
-            CastivioButton(
-                text = stringResource(R.string.reorder_save),
-                onClick = onSave,
-                weight = ButtonWeight.Primary,
-                busy = mode.saving,
-            )
-        }
+    ModeBand(
+        label = stringResource(R.string.reorder_entry),
+        hint = when (hint) {
+            ReorderHint.Failed -> stringResource(R.string.reorder_failed)
+            ReorderHint.Move -> stringResource(R.string.reorder_hint_move)
+            is ReorderHint.Marked -> stringResource(R.string.reorder_hint_marked, hint.count)
+            ReorderHint.AllOpen -> stringResource(R.string.reorder_hint_all)
+            ReorderHint.Pick -> stringResource(R.string.reorder_hint_pick)
+        },
+        hintInk = when (hint) {
+            ReorderHint.Failed -> colors.danger
+            ReorderHint.AllOpen -> colors.onBackgroundMuted
+            else -> colors.onBackground
+        },
+        m = m,
+        modifier = modifier,
+    ) {
+        CastivioButton(
+            text = stringResource(R.string.reorder_cancel),
+            onClick = onCancel,
+            enabled = !mode.saving,
+        )
+        CastivioButton(
+            text = stringResource(R.string.reorder_save),
+            onClick = onSave,
+            weight = ButtonWeight.Primary,
+            busy = mode.saving,
+        )
     }
 }
-
-/** The rule between the band's word and its hint, as a share of the hint's type size: a little taller than a line of it. */
-private const val HINT_RULE_OF_BODY = 1.3f
 
 /** A tap on a held row, as a share of the row: big enough for a thumb, small enough to stay inside it. */
 internal const val ARROW_OF_ROW = 0.8f

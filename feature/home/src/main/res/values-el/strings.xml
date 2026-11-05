@@ -152,7 +152,7 @@
     <string name="movie_favorite_add">Προσθήκη στα αγαπημένα</string>
     <string name="movie_favorite_remove">Αφαίρεση από τα αγαπημένα</string>
     <string name="hide_title">Απόκρυψη πακέτων και καναλιών</string>
-    <string name="hide_hint">Επιλέξτε τι θα κρύψετε και πατήστε Απόκρυψη επιλεγμένων. Δεν διαγράφεται τίποτα· οι Ρυθμίσεις τα επαναφέρουν.</string>
+    <string name="hide_hint">Επιλέξτε τι θα κρύψετε. Δεν διαγράφεται τίποτα· οι Ρυθμίσεις τα επαναφέρουν.</string>
     <string name="hide_confirm">Απόκρυψη επιλεγμένων</string>
     <string name="settings_hidden_section">Κρυφά στοιχεία</string>
     <string name="settings_hidden_detail">Τα πακέτα και τα κανάλια που κρύψατε παραμένουν στη συνδρομή σας. Πατήστε για επαναφορά όλων.</string>

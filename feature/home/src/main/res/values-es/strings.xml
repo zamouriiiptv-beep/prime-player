@@ -152,7 +152,7 @@
     <string name="movie_favorite_add">Añadir a favoritos</string>
     <string name="movie_favorite_remove">Quitar de favoritos</string>
     <string name="hide_title">Ocultar paquetes y canales</string>
-    <string name="hide_hint">Marca lo que quieras ocultar y pulsa Ocultar selección. No se borra nada; Ajustes lo restaura.</string>
+    <string name="hide_hint">Marca lo que quieras ocultar. No se borra nada; Ajustes lo restaura.</string>
     <string name="hide_confirm">Ocultar selección</string>
     <string name="settings_hidden_section">Elementos ocultos</string>
     <string name="settings_hidden_detail">Los paquetes y canales que ocultaste siguen en tu suscripción. Pulsa para restaurarlos todos.</string>

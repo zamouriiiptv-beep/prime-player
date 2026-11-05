@@ -152,7 +152,7 @@
     <string name="movie_favorite_add">Přidat k oblíbeným</string>
     <string name="movie_favorite_remove">Odebrat z oblíbených</string>
     <string name="hide_title">Skrýt balíčky a kanály</string>
-    <string name="hide_hint">Zaškrtněte, co chcete skrýt, a stiskněte Skrýt vybrané. Nic se nemaže; Nastavení to vrátí.</string>
+    <string name="hide_hint">Zaškrtněte, co chcete skrýt. Nic se nemaže; Nastavení to vrátí.</string>
     <string name="hide_confirm">Skrýt vybrané</string>
     <string name="settings_hidden_section">Skryté položky</string>
     <string name="settings_hidden_detail">Skryté balíčky a kanály zůstávají ve vašem předplatném. Stiskem je všechny obnovíte.</string>

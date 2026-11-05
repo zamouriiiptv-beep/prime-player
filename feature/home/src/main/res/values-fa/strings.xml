@@ -152,7 +152,7 @@
     <string name="movie_favorite_add">افزودن به برگزیده‌ها</string>
     <string name="movie_favorite_remove">حذف از برگزیده‌ها</string>
     <string name="hide_title">پنهان کردن بسته‌ها و کانال‌ها</string>
-    <string name="hide_hint">مواردی را که می‌خواهید پنهان شوند علامت بزنید و «پنهان‌کردن انتخاب‌شده‌ها» را بزنید. چیزی حذف نمی‌شود و از تنظیمات برمی‌گردد.</string>
+    <string name="hide_hint">مواردی را که می‌خواهید پنهان شوند علامت بزنید. چیزی حذف نمی‌شود و از تنظیمات برمی‌گردد.</string>
     <string name="hide_confirm">پنهان‌کردن انتخاب‌شده‌ها</string>
     <string name="settings_hidden_section">موارد پنهان</string>
     <string name="settings_hidden_detail">بسته‌ها و کانال‌های پنهان‌شده در اشتراک شما می‌مانند. برای بازگرداندن همه فشار دهید.</string>

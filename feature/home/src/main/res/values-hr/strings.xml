@@ -152,7 +152,7 @@
     <string name="movie_favorite_add">Dodaj u favorite</string>
     <string name="movie_favorite_remove">Ukloni iz favorita</string>
     <string name="hide_title">Sakrij pakete i kanale</string>
-    <string name="hide_hint">Označite što želite sakriti, pa pritisnite Sakrij odabrano. Ništa se ne briše; postavke to vraćaju.</string>
+    <string name="hide_hint">Označite što želite sakriti. Ništa se ne briše; postavke to vraćaju.</string>
     <string name="hide_confirm">Sakrij odabrano</string>
     <string name="settings_hidden_section">Skrivene stavke</string>
     <string name="settings_hidden_detail">Skriveni paketi i kanali ostaju u vašoj pretplati. Pritisnite za vraćanje svih.</string>

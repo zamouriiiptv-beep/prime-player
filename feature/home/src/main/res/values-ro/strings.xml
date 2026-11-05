@@ -152,7 +152,7 @@
     <string name="movie_favorite_add">Adaugă la favorite</string>
     <string name="movie_favorite_remove">Elimină din favorite</string>
     <string name="hide_title">Ascunde pachete și canale</string>
-    <string name="hide_hint">Bifați ce doriți să ascundeți, apoi apăsați Ascunde selecția. Nu se șterge nimic; Setările le readuc.</string>
+    <string name="hide_hint">Bifați ce doriți să ascundeți. Nu se șterge nimic; Setările le readuc.</string>
     <string name="hide_confirm">Ascunde selecția</string>
     <string name="settings_hidden_section">Elemente ascunse</string>
     <string name="settings_hidden_detail">Pachetele și canalele ascunse rămân în abonamentul dvs. Apăsați pentru a le restabili pe toate.</string>

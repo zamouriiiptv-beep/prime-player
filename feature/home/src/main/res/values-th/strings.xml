@@ -152,7 +152,7 @@
     <string name="movie_favorite_add">เพิ่มรายการโปรด</string>
     <string name="movie_favorite_remove">ลบออกจากรายการโปรด</string>
     <string name="hide_title">ซ่อนแพ็กเกจและช่อง</string>
-    <string name="hide_hint">ทำเครื่องหมายสิ่งที่ต้องการซ่อน แล้วกด “ซ่อนที่เลือก” ระบบจะไม่ลบอะไร และคืนค่าได้ในการตั้งค่า</string>
+    <string name="hide_hint">ทำเครื่องหมายสิ่งที่ต้องการซ่อน ระบบจะไม่ลบอะไร และคืนค่าได้ในการตั้งค่า</string>
     <string name="hide_confirm">ซ่อนที่เลือก</string>
     <string name="settings_hidden_section">รายการที่ซ่อน</string>
     <string name="settings_hidden_detail">แพ็กเกจและช่องที่ซ่อนจะยังอยู่ในการสมัครของคุณ กดเพื่อกู้คืนทั้งหมด</string>

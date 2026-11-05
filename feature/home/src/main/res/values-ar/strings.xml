@@ -231,7 +231,7 @@
     </plurals>
     <string name="movie_plot_close">إغلاق</string>
     <string name="hide_title">إخفاء الباقات والقنوات</string>
-    <string name="hide_hint">ضع علامة على ما تريد إخفاءه ثم اضغط «إخفاء المحدد». لا يُحذف شيء، وتعيده الإعدادات.</string>
+    <string name="hide_hint">ضع علامة على ما تريد إخفاءه. لا يُحذف شيء، وتعيده الإعدادات.</string>
     <string name="hide_confirm">إخفاء المحدد</string>
     <string name="settings_hidden_section">العناصر المخفية</string>
     <string name="settings_hidden_detail">الباقات والقنوات التي أخفيتها تبقى في اشتراكك. اضغط لإعادتها كلها.</string>

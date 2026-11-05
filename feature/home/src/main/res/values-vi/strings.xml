@@ -152,7 +152,7 @@
     <string name="movie_favorite_add">Thêm vào yêu thích</string>
     <string name="movie_favorite_remove">Xóa khỏi yêu thích</string>
     <string name="hide_title">Ẩn gói và kênh</string>
-    <string name="hide_hint">Đánh dấu mục cần ẩn rồi nhấn “Ẩn mục đã chọn”. Không có gì bị xóa; Cài đặt sẽ khôi phục.</string>
+    <string name="hide_hint">Đánh dấu mục cần ẩn. Không có gì bị xóa; Cài đặt sẽ khôi phục.</string>
     <string name="hide_confirm">Ẩn mục đã chọn</string>
     <string name="settings_hidden_section">Mục đã ẩn</string>
     <string name="settings_hidden_detail">Gói kênh và kênh đã ẩn vẫn nằm trong gói đăng ký của bạn. Nhấn để khôi phục tất cả.</string>

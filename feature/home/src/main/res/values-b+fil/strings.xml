@@ -152,7 +152,7 @@
     <string name="movie_favorite_add">Idagdag sa mga paborito</string>
     <string name="movie_favorite_remove">Alisin sa mga paborito</string>
     <string name="hide_title">Itago ang mga bouquet at channel</string>
-    <string name="hide_hint">Lagyan ng tsek ang itatago, saka pindutin ang Itago ang napili. Walang buburahin; maibabalik ito sa Mga Setting.</string>
+    <string name="hide_hint">Lagyan ng tsek ang itatago. Walang buburahin; maibabalik ito sa Mga Setting.</string>
     <string name="hide_confirm">Itago ang napili</string>
     <string name="settings_hidden_section">Mga nakatagong item</string>
     <string name="settings_hidden_detail">Mananatili sa subscription mo ang mga nakatagong package at channel. Pindutin para maibalik lahat.</string>

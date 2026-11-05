@@ -152,7 +152,7 @@
     <string name="movie_favorite_add">В обране</string>
     <string name="movie_favorite_remove">Прибрати з обраного</string>
     <string name="hide_title">Приховати пакети й канали</string>
-    <string name="hide_hint">Позначте, що приховати, і натисніть «Приховати вибране». Нічого не видаляється; повернути можна в налаштуваннях.</string>
+    <string name="hide_hint">Позначте, що приховати. Нічого не видаляється; повернути можна в налаштуваннях.</string>
     <string name="hide_confirm">Приховати вибране</string>
     <string name="settings_hidden_section">Приховані елементи</string>
     <string name="settings_hidden_detail">Приховані пакети й канали залишаються у вашій підписці. Натисніть, щоб повернути всі.</string>

@@ -152,7 +152,7 @@
     <string name="movie_favorite_add">Ajouter aux favoris</string>
     <string name="movie_favorite_remove">Retirer des favoris</string>
     <string name="hide_title">Masquer des bouquets et des chaînes</string>
-    <string name="hide_hint">Cochez ce que vous voulez masquer, puis appuyez sur Masquer la sélection. Rien n’est supprimé ; les Réglages le rétablissent.</string>
+    <string name="hide_hint">Cochez ce que vous voulez masquer. Rien n’est supprimé ; les Réglages le rétablissent.</string>
     <string name="hide_confirm">Masquer la sélection</string>
     <string name="settings_hidden_section">Éléments masqués</string>
     <string name="settings_hidden_detail">Les bouquets et chaînes que vous avez masqués restent dans votre abonnement. Appuyez pour tous les rétablir.</string>

@@ -319,7 +319,7 @@
     <string name="movie_favorite_add">Add to favourites</string>
     <string name="movie_favorite_remove">Remove from favourites</string>
     <string name="hide_title">Hide bouquets and channels</string>
-    <string name="hide_hint">Tick what to hide, then press Hide selected. Nothing is deleted; Settings brings it back.</string>
+    <string name="hide_hint">Tick what to hide. Nothing is deleted; Settings brings it back.</string>
     <string name="hide_confirm">Hide selected</string>
     <string name="settings_hidden_section">Hidden items</string>
     <string name="settings_hidden_detail">Bouquets and channels you hid stay in your subscription. Press to bring them all back.</string>

@@ -1,29 +1,11 @@
 package com.castivio.feature.home
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.dp
 import com.castivio.core.design.components.ButtonWeight
 import com.castivio.core.design.components.CastivioButton
-import com.castivio.core.design.components.castivioBodyStyle
-import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.theme.CastivioTheme
 
 /**
@@ -79,14 +61,12 @@ internal class HidingUi(
 }
 
 /**
- * The band over the board while it is choosing what to hide: what the mode is, what to press, and the
- * two ways out.
+ * The band over the board while it is choosing what to hide: the word, one line saying what to do and that nothing is lost, and
+ * Cancel and Hide selected -- all of it [ModeBand]'s, which the reorder mode's band is too.
  *
- * It is [ReorderBar]'s own shape -- the same band between the header and the columns, the same pair of
- * the system's buttons at its trailing end -- because it does the same job for a different mode: says
- * which mode the board is in, and keeps the way out one press from anywhere. Hide selected is dark until
- * something is ticked, so a press that would change nothing is not offered. Laid out left to right in
- * every language, like the band above it and the columns under it.
+ * Hide selected is dark until something is ticked, so a press that would change nothing is not offered. The hint does not say
+ * to press it: the button is beside the sentence, and a sentence that says what the eye is already on is a sentence cut with an
+ * ellipsis for nothing.
  */
 @Composable
 internal fun HideBar(
@@ -96,47 +76,22 @@ internal fun HideBar(
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val colors = CastivioTheme.colors
-    val shape = RoundedCornerShape(m.previewRadius)
-
-    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-        Row(
-            modifier
-                .fillMaxWidth()
-                .padding(bottom = m.headerGap)
-                .clip(shape)
-                .background(colors.glassFill)
-                .border(1.dp, colors.selectedBorder, shape)
-                .padding(horizontal = m.controlPadH, vertical = m.badgePadV * 2),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(m.factGap),
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.hide_title),
-                    style = castivioChipStyle(m.frame.fsLabel),
-                    color = colors.secondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = stringResource(R.string.hide_hint),
-                    style = castivioBodyStyle(m.frame.fsBody),
-                    color = colors.onBackground,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            CastivioButton(
-                text = stringResource(R.string.reorder_cancel),
-                onClick = onCancel,
-            )
-            CastivioButton(
-                text = stringResource(R.string.hide_confirm),
-                onClick = onConfirm,
-                weight = ButtonWeight.Primary,
-                enabled = hiding.any,
-            )
-        }
+    ModeBand(
+        label = stringResource(R.string.hide_title),
+        hint = stringResource(R.string.hide_hint),
+        hintInk = CastivioTheme.colors.onBackground,
+        m = m,
+        modifier = modifier,
+    ) {
+        CastivioButton(
+            text = stringResource(R.string.reorder_cancel),
+            onClick = onCancel,
+        )
+        CastivioButton(
+            text = stringResource(R.string.hide_confirm),
+            onClick = onConfirm,
+            weight = ButtonWeight.Primary,
+            enabled = hiding.any,
+        )
     }
 }

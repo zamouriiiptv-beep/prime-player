@@ -152,7 +152,7 @@
     <string name="movie_favorite_add">Dodaj do ulubionych</string>
     <string name="movie_favorite_remove">Usuń z ulubionych</string>
     <string name="hide_title">Ukryj pakiety i kanały</string>
-    <string name="hide_hint">Zaznacz, co ukryć, i naciśnij Ukryj zaznaczone. Nic nie jest usuwane; Ustawienia to przywracają.</string>
+    <string name="hide_hint">Zaznacz, co ukryć. Nic nie jest usuwane; Ustawienia to przywracają.</string>
     <string name="hide_confirm">Ukryj zaznaczone</string>
     <string name="settings_hidden_section">Ukryte elementy</string>
     <string name="settings_hidden_detail">Ukryte pakiety i kanały pozostają w Twojej subskrypcji. Naciśnij, aby przywrócić wszystkie.</string>

@@ -152,7 +152,7 @@
     <string name="movie_favorite_add">Към любими</string>
     <string name="movie_favorite_remove">Премахване от любими</string>
     <string name="hide_title">Скриване на пакети и канали</string>
-    <string name="hide_hint">Отбележете какво да скриете и натиснете „Скрий избраните“. Нищо не се изтрива; настройките го връщат.</string>
+    <string name="hide_hint">Отбележете какво да скриете. Нищо не се изтрива; настройките го връщат.</string>
     <string name="hide_confirm">Скрий избраните</string>
     <string name="settings_hidden_section">Скрити елементи</string>
     <string name="settings_hidden_detail">Скритите пакети и канали остават във вашия абонамент. Натиснете, за да върнете всички.</string>

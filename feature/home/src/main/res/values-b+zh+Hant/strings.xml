@@ -152,7 +152,7 @@
     <string name="movie_favorite_add">加入最愛</string>
     <string name="movie_favorite_remove">移除最愛</string>
     <string name="hide_title">隱藏分組和頻道</string>
-    <string name="hide_hint">勾選要隱藏的項目，然後按「隱藏所選」。不會刪除任何內容，可在設定中還原。</string>
+    <string name="hide_hint">勾選要隱藏的項目。不會刪除任何內容，可在設定中還原。</string>
     <string name="hide_confirm">隱藏所選</string>
     <string name="settings_hidden_section">已隱藏的項目</string>
     <string name="settings_hidden_detail">已隱藏的頻道包和頻道仍保留在您的訂閱中。按下即可全部還原。</string>

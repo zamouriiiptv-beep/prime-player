@@ -152,7 +152,7 @@
     <string name="movie_favorite_add">즐겨찾기 추가</string>
     <string name="movie_favorite_remove">즐겨찾기 삭제</string>
     <string name="hide_title">부케 및 채널 숨기기</string>
-    <string name="hide_hint">숨길 항목을 체크한 다음 ‘선택 항목 숨기기’를 누르세요. 아무것도 삭제되지 않으며 설정에서 되돌릴 수 있습니다.</string>
+    <string name="hide_hint">숨길 항목을 체크하세요. 아무것도 삭제되지 않으며 설정에서 되돌릴 수 있습니다.</string>
     <string name="hide_confirm">선택 항목 숨기기</string>
     <string name="settings_hidden_section">숨긴 항목</string>
     <string name="settings_hidden_detail">숨긴 패키지와 채널은 구독에 그대로 남아 있습니다. 눌러서 모두 복원하세요.</string>

@@ -152,7 +152,7 @@
     <string name="movie_favorite_add">Favorilere ekle</string>
     <string name="movie_favorite_remove">Favorilerden kaldır</string>
     <string name="hide_title">Paketleri ve kanalları gizle</string>
-    <string name="hide_hint">Gizlemek istediklerinizi işaretleyin, ardından Seçilenleri gizle düğmesine basın. Hiçbir şey silinmez; Ayarlar geri getirir.</string>
+    <string name="hide_hint">Gizlemek istediklerinizi işaretleyin. Hiçbir şey silinmez; Ayarlar geri getirir.</string>
     <string name="hide_confirm">Seçilenleri gizle</string>
     <string name="settings_hidden_section">Gizli öğeler</string>
     <string name="settings_hidden_detail">Gizlediğiniz paketler ve kanallar aboneliğinizde kalır. Hepsini geri getirmek için basın.</string>

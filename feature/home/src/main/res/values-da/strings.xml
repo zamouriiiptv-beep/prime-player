@@ -152,7 +152,7 @@
     <string name="movie_favorite_add">Føj til favoritter</string>
     <string name="movie_favorite_remove">Fjern fra favoritter</string>
     <string name="hide_title">Skjul buketter og kanaler</string>
-    <string name="hide_hint">Markér, hvad du vil skjule, og tryk på Skjul valgte. Intet slettes; Indstillinger henter det tilbage.</string>
+    <string name="hide_hint">Markér, hvad du vil skjule. Intet slettes; Indstillinger henter det tilbage.</string>
     <string name="hide_confirm">Skjul valgte</string>
     <string name="settings_hidden_section">Skjulte elementer</string>
     <string name="settings_hidden_detail">Skjulte pakker og kanaler bliver i dit abonnement. Tryk for at gendanne alle.</string>

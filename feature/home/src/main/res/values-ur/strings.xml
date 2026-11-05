@@ -152,7 +152,7 @@
     <string name="movie_favorite_add">پسندیدہ بنائیں</string>
     <string name="movie_favorite_remove">پسندیدہ سے ہٹائیں</string>
     <string name="hide_title">بوکے اور چینل چھپائیں</string>
-    <string name="hide_hint">جو چھپانا ہو اس پر نشان لگائیں، پھر «منتخب چھپائیں» دبائیں۔ کچھ حذف نہیں ہوتا؛ ترتیبات میں واپس لایا جا سکتا ہے۔</string>
+    <string name="hide_hint">جو چھپانا ہو اس پر نشان لگائیں۔ کچھ حذف نہیں ہوتا؛ ترتیبات میں واپس لایا جا سکتا ہے۔</string>
     <string name="hide_confirm">منتخب چھپائیں</string>
     <string name="settings_hidden_section">چھپے ہوئے آئٹمز</string>
     <string name="settings_hidden_detail">چھپائے گئے پیکیجز اور چینلز آپ کی رکنیت میں رہتے ہیں۔ سب واپس لانے کے لیے دبائیں۔</string>

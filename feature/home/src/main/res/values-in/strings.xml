@@ -152,7 +152,7 @@
     <string name="movie_favorite_add">Tambahkan ke favorit</string>
     <string name="movie_favorite_remove">Hapus dari favorit</string>
     <string name="hide_title">Sembunyikan buket dan saluran</string>
-    <string name="hide_hint">Centang yang ingin disembunyikan, lalu tekan Sembunyikan terpilih. Tidak ada yang dihapus; Pengaturan mengembalikannya.</string>
+    <string name="hide_hint">Centang yang ingin disembunyikan. Tidak ada yang dihapus; Pengaturan mengembalikannya.</string>
     <string name="hide_confirm">Sembunyikan terpilih</string>
     <string name="settings_hidden_section">Item tersembunyi</string>
     <string name="settings_hidden_detail">Paket dan saluran yang disembunyikan tetap ada di langganan Anda. Tekan untuk memulihkan semuanya.</string>

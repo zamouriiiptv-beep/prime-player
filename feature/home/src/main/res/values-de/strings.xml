@@ -152,7 +152,7 @@
     <string name="movie_favorite_add">Zu Favoriten hinzufügen</string>
     <string name="movie_favorite_remove">Aus Favoriten entfernen</string>
     <string name="hide_title">Bouquets und Sender ausblenden</string>
-    <string name="hide_hint">Markiere, was du ausblenden möchtest, und drücke dann Auswahl ausblenden. Nichts wird gelöscht; die Einstellungen stellen es wieder her.</string>
+    <string name="hide_hint">Markiere, was du ausblenden möchtest. Nichts wird gelöscht; die Einstellungen stellen es wieder her.</string>
     <string name="hide_confirm">Auswahl ausblenden</string>
     <string name="settings_hidden_section">Ausgeblendete Elemente</string>
     <string name="settings_hidden_detail">Ausgeblendete Bouquets und Sender bleiben in deinem Abo. Drücke, um alle wiederherzustellen.</string>

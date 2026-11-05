@@ -152,7 +152,7 @@
     <string name="movie_favorite_add">Hozzáadás a kedvencekhez</string>
     <string name="movie_favorite_remove">Eltávolítás a kedvencek közül</string>
     <string name="hide_title">Csomagok és csatornák elrejtése</string>
-    <string name="hide_hint">Jelöld be, amit el szeretnél rejteni, majd nyomd meg a Kijelöltek elrejtése gombot. Semmi nem törlődik; a Beállítások visszahozza.</string>
+    <string name="hide_hint">Jelöld be, amit el szeretnél rejteni. Semmi nem törlődik; a Beállítások visszahozza.</string>
     <string name="hide_confirm">Kijelöltek elrejtése</string>
     <string name="settings_hidden_section">Elrejtett elemek</string>
     <string name="settings_hidden_detail">Az elrejtett csomagok és csatornák az előfizetésedben maradnak. Nyomd meg az összes visszaállításához.</string>
