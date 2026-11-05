@@ -104,7 +104,7 @@ class WorldRadioScreenTest {
 
         compose.onNodeWithText("Radio").assertIsDisplayed()
         compose.onNodeWithText("World · Most listened").assertExists()
-        compose.onNodeWithText("Search the world's stations").assertIsDisplayed()
+        compose.onNodeWithText("Search stations").assertIsDisplayed()
     }
 
     @Test

@@ -12,7 +12,6 @@
     <string name="radio_world_results">Results for “%1$s”</string>
     <string name="radio_world_countries">Countries</string>
     <string name="radio_world_genres">Genres</string>
-    <string name="radio_world_search_hint">Search the world\'s stations</string>
     <string name="radio_world_search_countries">Search countries</string>
     <string name="radio_world_search_genres">Search genres</string>
     <string name="radio_world_saved_list">From the saved list</string>

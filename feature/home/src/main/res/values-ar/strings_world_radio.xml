@@ -12,7 +12,6 @@
     <string name="radio_world_results">نتائج «%1$s»</string>
     <string name="radio_world_countries">الدول</string>
     <string name="radio_world_genres">الأنواع</string>
-    <string name="radio_world_search_hint">البحث في محطات العالم</string>
     <string name="radio_world_search_countries">البحث في الدول</string>
     <string name="radio_world_search_genres">البحث في الأنواع</string>
     <string name="radio_world_saved_list">من القائمة المحفوظة</string>

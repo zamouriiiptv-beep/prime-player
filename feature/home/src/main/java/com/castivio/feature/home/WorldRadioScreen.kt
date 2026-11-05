@@ -192,7 +192,9 @@ fun WorldRadioScreen(
                 searchText = typed,
                 onSearch = model::search,
                 onSearchFocus = {},
-                hint = stringResource(R.string.radio_world_search_hint),
+                // The radio's own words, short: the band says "World" and the rail's switch is on it, and a field of this width holds about twenty
+                // letters -- "Search the world's stations" was cut at "stati…". The hint cannot wrap, so what it says has to be short in every language.
+                hint = stringResource(R.string.radio_search_hint),
             )
 
             Spacer(Modifier.height(m.headerGap))
