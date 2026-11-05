@@ -655,11 +655,18 @@ private fun Empty(m: ChannelsMetrics, @StringRes message: Int = R.string.catchup
 /** The line under the title a little larger than a body line: it is what the page says it is for. */
 private const val HINT_SCALE = 1.2f
 
-/** A category's card is at least this wide: three in a row on a television's board, fewer on a phone. */
-private val GROUP_MIN_WIDTH = 150.dp
+/**
+ * A category's card is at least this wide: four in a row on a handset's board (770dp wide, 4dp between the cards: 188dp a card), and still
+ * four on a television's, which is the grid's own rule -- as many as fit.
+ *
+ * It was 150, which put five in a row, and a name has the room a card leaves it after the figure and the arrow: 71dp, about ten
+ * letters, so `FR| FRANCE` ended in an ellipsis. Four give each card 38dp more and a name of fifteen letters its whole width; a long name
+ * still ends in one, and that is the next thing to find an answer for. If four are not enough, the number is the one to raise again.
+ */
+internal val GROUP_MIN_WIDTH = 184.dp
 
 /** A channel's entry is at least this wide: two in a row on the board. */
-private val CHANNEL_MIN_WIDTH = 220.dp
+internal val CHANNEL_MIN_WIDTH = 220.dp
 
 /** The channel's logo in an entry, about two lines of the label's own size. */
 private const val LOGO_IN_ENTRY = 1.8f

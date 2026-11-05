@@ -105,6 +105,25 @@ class CatchUpSearchTest {
     }
 
     @Test
+    fun `a handset's board has four categories in a row, where five cut their names`() {
+        // The board's inside is 770dp on a handset, with 4dp between the cards (the screenshot that asked for it): 150 gave 5, 184 gives 4.
+        val now = searchColumns(widthDp = 770f, gapDp = 4f, groupMinDp = GROUP_MIN_WIDTH.value, channelMinDp = CHANNEL_MIN_WIDTH.value)
+        val before = searchColumns(widthDp = 770f, gapDp = 4f, groupMinDp = 150f, channelMinDp = CHANNEL_MIN_WIDTH.value)
+
+        assertEquals(4, now.groups)
+        assertEquals("the old minimum drew five", 5, before.groups)
+    }
+
+    @Test
+    fun `a television's board has no more than four, and a narrow handset fewer`() {
+        val tv = searchColumns(widthDp = 900f, gapDp = 11f, groupMinDp = GROUP_MIN_WIDTH.value, channelMinDp = CHANNEL_MIN_WIDTH.value)
+        val narrow = searchColumns(widthDp = 540f, gapDp = 4f, groupMinDp = GROUP_MIN_WIDTH.value, channelMinDp = CHANNEL_MIN_WIDTH.value)
+
+        assertEquals(4, tv.groups)
+        assertEquals(2, narrow.groups)
+    }
+
+    @Test
     fun `the shared grid has a column for every pair, and each card takes the other section's count`() {
         val c = SearchColumns(groups = 5, channels = 3)
         assertEquals(15, c.total)
