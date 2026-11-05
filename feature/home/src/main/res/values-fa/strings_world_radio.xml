@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- The world radio: translations of strings_world_radio.xml. Labels of the source switch stay within ten letters and the two
+         rail hints within eighteen: a half of the switch and the rail's field cannot wrap. See check-invariants.sh. -->
+    <string name="radio_source_subscription">اشتراک</string>
+    <string name="radio_source_world">جهان</string>
+    <string name="radio_source_label">منبع رادیو</string>
+    <string name="radio_world_in">جهان · %1$s</string>
+    <string name="radio_world_top">پرشنیده‌ترین</string>
+    <string name="radio_world_results">نتایج برای «%1$s»</string>
+    <string name="radio_world_countries">کشورها</string>
+    <string name="radio_world_genres">ژانرها</string>
+    <string name="radio_world_search_countries">جستجوی کشور</string>
+    <string name="radio_world_search_genres">جستجوی ژانر</string>
+    <string name="radio_world_saved_list">از فهرست ذخیره‌شده</string>
+    <string name="radio_world_loading">در حال بارگیری…</string>
+    <string name="radio_world_empty">اینجا ایستگاهی نیست</string>
+    <string name="radio_world_no_results">نتیجه‌ای برای «%1$s» نیست</string>
+    <string name="radio_world_no_results_detail">حروف کمتر یا بخشی از نام را امتحان کنید.</string>
+    <string name="radio_world_offline_title">اتصال برقرار نیست</string>
+    <string name="radio_world_offline_detail">اتصال اینترنت را بررسی کنید و دوباره تلاش کنید.</string>
+    <string name="radio_world_down_title">فهرست پاسخ نمی‌دهد</string>
+    <string name="radio_world_down_detail">کمی بعد دوباره تلاش کنید.</string>
+    <string name="radio_world_kbps">%1$d kbps</string>
+    <string name="radio_world_resting">در استراحت: اخیراً ناموفق بود</string>
+    <string name="radio_world_more_failed">بارگیری بیشتر ممکن نشد — برای تلاش دوباره فشار دهید</string>
+</resources>

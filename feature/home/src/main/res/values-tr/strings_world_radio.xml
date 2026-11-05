@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- The world radio: translations of strings_world_radio.xml. Labels of the source switch stay within ten letters and the two
+         rail hints within eighteen: a half of the switch and the rail's field cannot wrap. See check-invariants.sh. -->
+    <string name="radio_source_subscription">Sağlayıcı</string>
+    <string name="radio_source_world">Dünya</string>
+    <string name="radio_source_label">Radyo kaynağı</string>
+    <string name="radio_world_in">Dünya · %1$s</string>
+    <string name="radio_world_top">En çok dinlenenler</string>
+    <string name="radio_world_results">“%1$s” için sonuçlar</string>
+    <string name="radio_world_countries">Ülkeler</string>
+    <string name="radio_world_genres">Türler</string>
+    <string name="radio_world_search_countries">Ülke ara</string>
+    <string name="radio_world_search_genres">Tür ara</string>
+    <string name="radio_world_saved_list">Kayıtlı listeden</string>
+    <string name="radio_world_loading">Yükleniyor…</string>
+    <string name="radio_world_empty">Burada istasyon yok</string>
+    <string name="radio_world_no_results">“%1$s” için sonuç yok</string>
+    <string name="radio_world_no_results_detail">Daha az harf veya adın bir kısmını deneyin.</string>
+    <string name="radio_world_offline_title">Bağlantı yok</string>
+    <string name="radio_world_offline_detail">İnternet bağlantınızı kontrol edip tekrar deneyin.</string>
+    <string name="radio_world_down_title">Dizin yanıt vermiyor</string>
+    <string name="radio_world_down_detail">Biraz sonra tekrar deneyin.</string>
+    <string name="radio_world_kbps">%1$d kbps</string>
+    <string name="radio_world_resting">Dinleniyor: yakın zamanda başarısız oldu</string>
+    <string name="radio_world_more_failed">Daha fazlası yüklenemedi — tekrar denemek için basın</string>
+</resources>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- The world radio: translations of strings_world_radio.xml. Labels of the source switch stay within ten letters and the two
+         rail hints within eighteen: a half of the switch and the rail's field cannot wrap. See check-invariants.sh. -->
+    <string name="radio_source_subscription">プロバイダ</string>
+    <string name="radio_source_world">世界</string>
+    <string name="radio_source_label">ラジオのソース</string>
+    <string name="radio_world_in">世界 · %1$s</string>
+    <string name="radio_world_top">よく聴かれている</string>
+    <string name="radio_world_results">「%1$s」の結果</string>
+    <string name="radio_world_countries">国</string>
+    <string name="radio_world_genres">ジャンル</string>
+    <string name="radio_world_search_countries">国を検索</string>
+    <string name="radio_world_search_genres">ジャンルを検索</string>
+    <string name="radio_world_saved_list">保存済みリストから</string>
+    <string name="radio_world_loading">読み込み中…</string>
+    <string name="radio_world_empty">ここには局がありません</string>
+    <string name="radio_world_no_results">「%1$s」の結果はありません</string>
+    <string name="radio_world_no_results_detail">文字数を減らすか、名前の一部で試してください。</string>
+    <string name="radio_world_offline_title">接続されていません</string>
+    <string name="radio_world_offline_detail">インターネット接続を確認して、もう一度お試しください。</string>
+    <string name="radio_world_down_title">ディレクトリが応答しません</string>
+    <string name="radio_world_down_detail">しばらくしてからもう一度お試しください。</string>
+    <string name="radio_world_kbps">%1$d kbps</string>
+    <string name="radio_world_resting">休止中：最近失敗しました</string>
+    <string name="radio_world_more_failed">これ以上読み込めません — 押して再試行</string>
+</resources>

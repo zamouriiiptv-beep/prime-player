@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- The world radio: translations of strings_world_radio.xml. Labels of the source switch stay within ten letters and the two
+         rail hints within eighteen: a half of the switch and the rail's field cannot wrap. See check-invariants.sh. -->
+    <string name="radio_source_subscription">Aanbieder</string>
+    <string name="radio_source_world">Wereld</string>
+    <string name="radio_source_label">Radiobron</string>
+    <string name="radio_world_in">Wereld · %1$s</string>
+    <string name="radio_world_top">Meest beluisterd</string>
+    <string name="radio_world_results">Resultaten voor “%1$s”</string>
+    <string name="radio_world_countries">Landen</string>
+    <string name="radio_world_genres">Genres</string>
+    <string name="radio_world_search_countries">Landen zoeken</string>
+    <string name="radio_world_search_genres">Genres zoeken</string>
+    <string name="radio_world_saved_list">Uit de opgeslagen lijst</string>
+    <string name="radio_world_loading">Laden…</string>
+    <string name="radio_world_empty">Hier staan geen zenders</string>
+    <string name="radio_world_no_results">Geen resultaten voor “%1$s”</string>
+    <string name="radio_world_no_results_detail">Probeer minder letters of een deel van de naam.</string>
+    <string name="radio_world_offline_title">Geen verbinding</string>
+    <string name="radio_world_offline_detail">Controleer je internetverbinding en probeer het opnieuw.</string>
+    <string name="radio_world_down_title">De zendergids reageert niet</string>
+    <string name="radio_world_down_detail">Probeer het zo meteen opnieuw.</string>
+    <string name="radio_world_kbps">%1$d kbps</string>
+    <string name="radio_world_resting">In rust: onlangs mislukt</string>
+    <string name="radio_world_more_failed">Meer laden is niet gelukt — druk om opnieuw te proberen</string>
+</resources>

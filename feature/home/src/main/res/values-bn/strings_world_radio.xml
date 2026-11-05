@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- The world radio: translations of strings_world_radio.xml. Labels of the source switch stay within ten letters and the two
+         rail hints within eighteen: a half of the switch and the rail's field cannot wrap. See check-invariants.sh. -->
+    <string name="radio_source_subscription">প্রদানকারী</string>
+    <string name="radio_source_world">বিশ্ব</string>
+    <string name="radio_source_label">রেডিওর উৎস</string>
+    <string name="radio_world_in">বিশ্ব · %1$s</string>
+    <string name="radio_world_top">সবচেয়ে বেশি শোনা</string>
+    <string name="radio_world_results">“%1$s”-এর ফলাফল</string>
+    <string name="radio_world_countries">দেশ</string>
+    <string name="radio_world_genres">ধরন</string>
+    <string name="radio_world_search_countries">দেশ খুঁজুন</string>
+    <string name="radio_world_search_genres">ধরন খুঁজুন</string>
+    <string name="radio_world_saved_list">সংরক্ষিত তালিকা থেকে</string>
+    <string name="radio_world_loading">লোড হচ্ছে…</string>
+    <string name="radio_world_empty">এখানে কোনো স্টেশন নেই</string>
+    <string name="radio_world_no_results">“%1$s”-এর কোনো ফলাফল নেই</string>
+    <string name="radio_world_no_results_detail">কম অক্ষর বা নামের একটি অংশ দিয়ে চেষ্টা করুন।</string>
+    <string name="radio_world_offline_title">সংযোগ নেই</string>
+    <string name="radio_world_offline_detail">আপনার ইন্টারনেট সংযোগ দেখে আবার চেষ্টা করুন।</string>
+    <string name="radio_world_down_title">ডিরেক্টরি সাড়া দিচ্ছে না</string>
+    <string name="radio_world_down_detail">একটু পরে আবার চেষ্টা করুন।</string>
+    <string name="radio_world_kbps">%1$d kbps</string>
+    <string name="radio_world_resting">বিশ্রামে: সম্প্রতি ব্যর্থ হয়েছে</string>
+    <string name="radio_world_more_failed">আর লোড করা গেল না — আবার চেষ্টা করতে চাপুন</string>
+</resources>

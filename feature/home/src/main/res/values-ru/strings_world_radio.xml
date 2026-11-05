@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- The world radio: translations of strings_world_radio.xml. Labels of the source switch stay within ten letters and the two
+         rail hints within eighteen: a half of the switch and the rail's field cannot wrap. See check-invariants.sh. -->
+    <string name="radio_source_subscription">Провайдер</string>
+    <string name="radio_source_world">Мир</string>
+    <string name="radio_source_label">Источник радио</string>
+    <string name="radio_world_in">Мир · %1$s</string>
+    <string name="radio_world_top">Самые слушаемые</string>
+    <string name="radio_world_results">Результаты по запросу «%1$s»</string>
+    <string name="radio_world_countries">Страны</string>
+    <string name="radio_world_genres">Жанры</string>
+    <string name="radio_world_search_countries">Поиск стран</string>
+    <string name="radio_world_search_genres">Поиск жанров</string>
+    <string name="radio_world_saved_list">Из сохранённого списка</string>
+    <string name="radio_world_loading">Загрузка…</string>
+    <string name="radio_world_empty">Здесь нет станций</string>
+    <string name="radio_world_no_results">Ничего не найдено по запросу «%1$s»</string>
+    <string name="radio_world_no_results_detail">Попробуйте меньше букв или часть названия.</string>
+    <string name="radio_world_offline_title">Нет подключения</string>
+    <string name="radio_world_offline_detail">Проверьте подключение к интернету и повторите попытку.</string>
+    <string name="radio_world_down_title">Каталог не отвечает</string>
+    <string name="radio_world_down_detail">Повторите попытку через минуту.</string>
+    <string name="radio_world_kbps">%1$d кбит/с</string>
+    <string name="radio_world_resting">Отдыхает: недавно не сработала</string>
+    <string name="radio_world_more_failed">Не удалось загрузить ещё — нажмите, чтобы повторить</string>
+</resources>

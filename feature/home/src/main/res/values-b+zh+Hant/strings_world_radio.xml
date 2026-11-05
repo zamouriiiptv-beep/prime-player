@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- The world radio: translations of strings_world_radio.xml. Labels of the source switch stay within ten letters and the two
+         rail hints within eighteen: a half of the switch and the rail's field cannot wrap. See check-invariants.sh. -->
+    <string name="radio_source_subscription">服務商</string>
+    <string name="radio_source_world">全球</string>
+    <string name="radio_source_label">電台來源</string>
+    <string name="radio_world_in">全球 · %1$s</string>
+    <string name="radio_world_top">收聽最多</string>
+    <string name="radio_world_results">「%1$s」的結果</string>
+    <string name="radio_world_countries">國家與地區</string>
+    <string name="radio_world_genres">類型</string>
+    <string name="radio_world_search_countries">搜尋國家</string>
+    <string name="radio_world_search_genres">搜尋類型</string>
+    <string name="radio_world_saved_list">來自已儲存的清單</string>
+    <string name="radio_world_loading">載入中…</string>
+    <string name="radio_world_empty">這裡沒有電台</string>
+    <string name="radio_world_no_results">沒有「%1$s」的結果</string>
+    <string name="radio_world_no_results_detail">請嘗試更少的字，或名稱的一部分。</string>
+    <string name="radio_world_offline_title">沒有網路連線</string>
+    <string name="radio_world_offline_detail">請檢查網路連線後再試一次。</string>
+    <string name="radio_world_down_title">目錄沒有回應</string>
+    <string name="radio_world_down_detail">請稍後再試。</string>
+    <string name="radio_world_kbps">%1$d kbps</string>
+    <string name="radio_world_resting">休息中：最近失敗</string>
+    <string name="radio_world_more_failed">無法載入更多 — 按下以重試</string>
+</resources>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- The world radio: translations of strings_world_radio.xml. Labels of the source switch stay within ten letters and the two
+         rail hints within eighteen: a half of the switch and the rail's field cannot wrap. See check-invariants.sh. -->
+    <string name="radio_source_subscription">Penyedia</string>
+    <string name="radio_source_world">Dunia</string>
+    <string name="radio_source_label">Sumber radio</string>
+    <string name="radio_world_in">Dunia · %1$s</string>
+    <string name="radio_world_top">Paling banyak didengar</string>
+    <string name="radio_world_results">Hasil untuk “%1$s”</string>
+    <string name="radio_world_countries">Negara</string>
+    <string name="radio_world_genres">Genre</string>
+    <string name="radio_world_search_countries">Cari negara</string>
+    <string name="radio_world_search_genres">Cari genre</string>
+    <string name="radio_world_saved_list">Dari daftar tersimpan</string>
+    <string name="radio_world_loading">Memuat…</string>
+    <string name="radio_world_empty">Tidak ada stasiun di sini</string>
+    <string name="radio_world_no_results">Tidak ada hasil untuk “%1$s”</string>
+    <string name="radio_world_no_results_detail">Coba lebih sedikit huruf atau sebagian nama.</string>
+    <string name="radio_world_offline_title">Tidak ada koneksi</string>
+    <string name="radio_world_offline_detail">Periksa koneksi internet Anda lalu coba lagi.</string>
+    <string name="radio_world_down_title">Direktori tidak merespons</string>
+    <string name="radio_world_down_detail">Coba lagi sebentar lagi.</string>
+    <string name="radio_world_kbps">%1$d kbps</string>
+    <string name="radio_world_resting">Istirahat: baru-baru ini gagal</string>
+    <string name="radio_world_more_failed">Gagal memuat lebih banyak — tekan untuk mencoba lagi</string>
+</resources>

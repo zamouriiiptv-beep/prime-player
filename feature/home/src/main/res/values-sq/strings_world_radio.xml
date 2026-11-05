@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- The world radio: translations of strings_world_radio.xml. Labels of the source switch stay within ten letters and the two
+         rail hints within eighteen: a half of the switch and the rail's field cannot wrap. See check-invariants.sh. -->
+    <string name="radio_source_subscription">Ofruesi</string>
+    <string name="radio_source_world">Bota</string>
+    <string name="radio_source_label">Burimi i radios</string>
+    <string name="radio_world_in">Bota · %1$s</string>
+    <string name="radio_world_top">Më të dëgjuarat</string>
+    <string name="radio_world_results">Rezultate për «%1$s»</string>
+    <string name="radio_world_countries">Vendet</string>
+    <string name="radio_world_genres">Zhanret</string>
+    <string name="radio_world_search_countries">Kërko vende</string>
+    <string name="radio_world_search_genres">Kërko zhanre</string>
+    <string name="radio_world_saved_list">Nga lista e ruajtur</string>
+    <string name="radio_world_loading">Po ngarkohet…</string>
+    <string name="radio_world_empty">Nuk ka stacione këtu</string>
+    <string name="radio_world_no_results">Nuk ka rezultate për «%1$s»</string>
+    <string name="radio_world_no_results_detail">Provo më pak shkronja ose një pjesë të emrit.</string>
+    <string name="radio_world_offline_title">Pa lidhje</string>
+    <string name="radio_world_offline_detail">Kontrollo lidhjen me internetin dhe provo përsëri.</string>
+    <string name="radio_world_down_title">Drejtoria nuk po përgjigjet</string>
+    <string name="radio_world_down_detail">Provo përsëri pas pak.</string>
+    <string name="radio_world_kbps">%1$d kbps</string>
+    <string name="radio_world_resting">Në pushim: dështoi së fundi</string>
+    <string name="radio_world_more_failed">Nuk u ngarkuan më shumë — shtyp për të provuar përsëri</string>
+</resources>

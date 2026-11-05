@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- The world radio: translations of strings_world_radio.xml. Labels of the source switch stay within ten letters and the two
+         rail hints within eighteen: a half of the switch and the rail's field cannot wrap. See check-invariants.sh. -->
+    <string name="radio_source_subscription">Leverandør</string>
+    <string name="radio_source_world">Verden</string>
+    <string name="radio_source_label">Radiokilde</string>
+    <string name="radio_world_in">Verden · %1$s</string>
+    <string name="radio_world_top">Mest lyttet til</string>
+    <string name="radio_world_results">Resultater for «%1$s»</string>
+    <string name="radio_world_countries">Land</string>
+    <string name="radio_world_genres">Sjangere</string>
+    <string name="radio_world_search_countries">Søk etter land</string>
+    <string name="radio_world_search_genres">Søk etter sjanger</string>
+    <string name="radio_world_saved_list">Fra den lagrede listen</string>
+    <string name="radio_world_loading">Laster …</string>
+    <string name="radio_world_empty">Ingen stasjoner her</string>
+    <string name="radio_world_no_results">Ingen resultater for «%1$s»</string>
+    <string name="radio_world_no_results_detail">Prøv færre bokstaver eller en del av navnet.</string>
+    <string name="radio_world_offline_title">Ingen tilkobling</string>
+    <string name="radio_world_offline_detail">Sjekk internettforbindelsen og prøv igjen.</string>
+    <string name="radio_world_down_title">Katalogen svarer ikke</string>
+    <string name="radio_world_down_detail">Prøv igjen om litt.</string>
+    <string name="radio_world_kbps">%1$d kbps</string>
+    <string name="radio_world_resting">Hviler: feilet nylig</string>
+    <string name="radio_world_more_failed">Kunne ikke laste mer — trykk for å prøve igjen</string>
+</resources>

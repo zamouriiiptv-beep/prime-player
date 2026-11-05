@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- The world radio: translations of strings_world_radio.xml. Labels of the source switch stay within ten letters and the two
+         rail hints within eighteen: a half of the switch and the rail's field cannot wrap. See check-invariants.sh. -->
+    <string name="radio_source_subscription">Fornecedor</string>
+    <string name="radio_source_world">Mundo</string>
+    <string name="radio_source_label">Fonte da rádio</string>
+    <string name="radio_world_in">Mundo · %1$s</string>
+    <string name="radio_world_top">Mais ouvidas</string>
+    <string name="radio_world_results">Resultados para «%1$s»</string>
+    <string name="radio_world_countries">Países</string>
+    <string name="radio_world_genres">Géneros</string>
+    <string name="radio_world_search_countries">Pesquisar países</string>
+    <string name="radio_world_search_genres">Pesquisar géneros</string>
+    <string name="radio_world_saved_list">Da lista guardada</string>
+    <string name="radio_world_loading">A carregar…</string>
+    <string name="radio_world_empty">Não há estações aqui</string>
+    <string name="radio_world_no_results">Sem resultados para «%1$s»</string>
+    <string name="radio_world_no_results_detail">Experimente menos letras ou parte do nome.</string>
+    <string name="radio_world_offline_title">Sem ligação</string>
+    <string name="radio_world_offline_detail">Verifique a ligação à internet e tente novamente.</string>
+    <string name="radio_world_down_title">O diretório não responde</string>
+    <string name="radio_world_down_detail">Tente novamente daqui a pouco.</string>
+    <string name="radio_world_kbps">%1$d kbps</string>
+    <string name="radio_world_resting">Em descanso: falhou há pouco</string>
+    <string name="radio_world_more_failed">Não foi possível carregar mais — prima para tentar novamente</string>
+</resources>

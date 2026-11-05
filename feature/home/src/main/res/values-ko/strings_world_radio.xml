@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- The world radio: translations of strings_world_radio.xml. Labels of the source switch stay within ten letters and the two
+         rail hints within eighteen: a half of the switch and the rail's field cannot wrap. See check-invariants.sh. -->
+    <string name="radio_source_subscription">제공업체</string>
+    <string name="radio_source_world">전 세계</string>
+    <string name="radio_source_label">라디오 소스</string>
+    <string name="radio_world_in">전 세계 · %1$s</string>
+    <string name="radio_world_top">가장 많이 들은</string>
+    <string name="radio_world_results">“%1$s” 검색 결과</string>
+    <string name="radio_world_countries">국가</string>
+    <string name="radio_world_genres">장르</string>
+    <string name="radio_world_search_countries">국가 검색</string>
+    <string name="radio_world_search_genres">장르 검색</string>
+    <string name="radio_world_saved_list">저장된 목록에서</string>
+    <string name="radio_world_loading">불러오는 중…</string>
+    <string name="radio_world_empty">이곳에는 방송국이 없습니다</string>
+    <string name="radio_world_no_results">“%1$s”에 대한 결과가 없습니다</string>
+    <string name="radio_world_no_results_detail">글자 수를 줄이거나 이름의 일부로 시도해 보세요.</string>
+    <string name="radio_world_offline_title">연결 없음</string>
+    <string name="radio_world_offline_detail">인터넷 연결을 확인한 후 다시 시도하세요.</string>
+    <string name="radio_world_down_title">디렉터리가 응답하지 않습니다</string>
+    <string name="radio_world_down_detail">잠시 후 다시 시도하세요.</string>
+    <string name="radio_world_kbps">%1$d kbps</string>
+    <string name="radio_world_resting">휴식 중: 최근 실패</string>
+    <string name="radio_world_more_failed">더 불러오지 못했습니다 — 눌러서 다시 시도</string>
+</resources>

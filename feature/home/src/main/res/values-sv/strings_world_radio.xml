@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- The world radio: translations of strings_world_radio.xml. Labels of the source switch stay within ten letters and the two
+         rail hints within eighteen: a half of the switch and the rail's field cannot wrap. See check-invariants.sh. -->
+    <string name="radio_source_subscription">Leverantör</string>
+    <string name="radio_source_world">Världen</string>
+    <string name="radio_source_label">Radiokälla</string>
+    <string name="radio_world_in">Världen · %1$s</string>
+    <string name="radio_world_top">Mest lyssnade</string>
+    <string name="radio_world_results">Resultat för ”%1$s”</string>
+    <string name="radio_world_countries">Länder</string>
+    <string name="radio_world_genres">Genrer</string>
+    <string name="radio_world_search_countries">Sök länder</string>
+    <string name="radio_world_search_genres">Sök genrer</string>
+    <string name="radio_world_saved_list">Från den sparade listan</string>
+    <string name="radio_world_loading">Läser in …</string>
+    <string name="radio_world_empty">Inga stationer här</string>
+    <string name="radio_world_no_results">Inga resultat för ”%1$s”</string>
+    <string name="radio_world_no_results_detail">Prova färre bokstäver eller en del av namnet.</string>
+    <string name="radio_world_offline_title">Ingen anslutning</string>
+    <string name="radio_world_offline_detail">Kontrollera din internetanslutning och försök igen.</string>
+    <string name="radio_world_down_title">Katalogen svarar inte</string>
+    <string name="radio_world_down_detail">Försök igen om en stund.</string>
+    <string name="radio_world_kbps">%1$d kbit/s</string>
+    <string name="radio_world_resting">Vilar: misslyckades nyligen</string>
+    <string name="radio_world_more_failed">Det gick inte att läsa in fler — tryck för att försöka igen</string>
+</resources>

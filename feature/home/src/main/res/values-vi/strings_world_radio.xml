@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- The world radio: translations of strings_world_radio.xml. Labels of the source switch stay within ten letters and the two
+         rail hints within eighteen: a half of the switch and the rail's field cannot wrap. See check-invariants.sh. -->
+    <string name="radio_source_subscription">Đăng ký</string>
+    <string name="radio_source_world">Thế giới</string>
+    <string name="radio_source_label">Nguồn radio</string>
+    <string name="radio_world_in">Thế giới · %1$s</string>
+    <string name="radio_world_top">Nghe nhiều nhất</string>
+    <string name="radio_world_results">Kết quả cho “%1$s”</string>
+    <string name="radio_world_countries">Quốc gia</string>
+    <string name="radio_world_genres">Thể loại</string>
+    <string name="radio_world_search_countries">Tìm quốc gia</string>
+    <string name="radio_world_search_genres">Tìm thể loại</string>
+    <string name="radio_world_saved_list">Từ danh sách đã lưu</string>
+    <string name="radio_world_loading">Đang tải…</string>
+    <string name="radio_world_empty">Không có đài nào ở đây</string>
+    <string name="radio_world_no_results">Không có kết quả cho “%1$s”</string>
+    <string name="radio_world_no_results_detail">Hãy thử ít chữ hơn hoặc một phần của tên.</string>
+    <string name="radio_world_offline_title">Không có kết nối</string>
+    <string name="radio_world_offline_detail">Kiểm tra kết nối Internet rồi thử lại.</string>
+    <string name="radio_world_down_title">Danh bạ không phản hồi</string>
+    <string name="radio_world_down_detail">Hãy thử lại sau giây lát.</string>
+    <string name="radio_world_kbps">%1$d kbps</string>
+    <string name="radio_world_resting">Đang nghỉ: vừa lỗi gần đây</string>
+    <string name="radio_world_more_failed">Không tải thêm được — nhấn để thử lại</string>
+</resources>

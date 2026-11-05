@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- The world radio: translations of strings_world_radio.xml. Labels of the source switch stay within ten letters and the two
+         rail hints within eighteen: a half of the switch and the rail's field cannot wrap. See check-invariants.sh. -->
+    <string name="radio_source_subscription">Pružatelj</string>
+    <string name="radio_source_world">Svijet</string>
+    <string name="radio_source_label">Izvor radija</string>
+    <string name="radio_world_in">Svijet · %1$s</string>
+    <string name="radio_world_top">Najslušanije</string>
+    <string name="radio_world_results">Rezultati za „%1$s”</string>
+    <string name="radio_world_countries">Države</string>
+    <string name="radio_world_genres">Žanrovi</string>
+    <string name="radio_world_search_countries">Traži države</string>
+    <string name="radio_world_search_genres">Traži žanrove</string>
+    <string name="radio_world_saved_list">S spremljenog popisa</string>
+    <string name="radio_world_loading">Učitavanje…</string>
+    <string name="radio_world_empty">Ovdje nema postaja</string>
+    <string name="radio_world_no_results">Nema rezultata za „%1$s”</string>
+    <string name="radio_world_no_results_detail">Pokušajte s manje slova ili dijelom naziva.</string>
+    <string name="radio_world_offline_title">Nema veze</string>
+    <string name="radio_world_offline_detail">Provjerite internetsku vezu i pokušajte ponovno.</string>
+    <string name="radio_world_down_title">Imenik ne odgovara</string>
+    <string name="radio_world_down_detail">Pokušajte ponovno za trenutak.</string>
+    <string name="radio_world_kbps">%1$d kbps</string>
+    <string name="radio_world_resting">Odmara: nedavno nije radila</string>
+    <string name="radio_world_more_failed">Nije moguće učitati više — pritisnite za ponovni pokušaj</string>
+</resources>

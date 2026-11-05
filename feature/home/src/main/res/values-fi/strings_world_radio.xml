@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- The world radio: translations of strings_world_radio.xml. Labels of the source switch stay within ten letters and the two
+         rail hints within eighteen: a half of the switch and the rail's field cannot wrap. See check-invariants.sh. -->
+    <string name="radio_source_subscription">Tilaus</string>
+    <string name="radio_source_world">Maailma</string>
+    <string name="radio_source_label">Radion lähde</string>
+    <string name="radio_world_in">Maailma · %1$s</string>
+    <string name="radio_world_top">Kuunnelluimmat</string>
+    <string name="radio_world_results">Tulokset haulle ”%1$s”</string>
+    <string name="radio_world_countries">Maat</string>
+    <string name="radio_world_genres">Lajityypit</string>
+    <string name="radio_world_search_countries">Hae maita</string>
+    <string name="radio_world_search_genres">Hae lajityyppejä</string>
+    <string name="radio_world_saved_list">Tallennetusta luettelosta</string>
+    <string name="radio_world_loading">Ladataan…</string>
+    <string name="radio_world_empty">Ei asemia täällä</string>
+    <string name="radio_world_no_results">Ei tuloksia haulle ”%1$s”</string>
+    <string name="radio_world_no_results_detail">Kokeile vähemmän kirjaimia tai osaa nimestä.</string>
+    <string name="radio_world_offline_title">Ei yhteyttä</string>
+    <string name="radio_world_offline_detail">Tarkista internetyhteys ja yritä uudelleen.</string>
+    <string name="radio_world_down_title">Hakemisto ei vastaa</string>
+    <string name="radio_world_down_detail">Yritä hetken kuluttua uudelleen.</string>
+    <string name="radio_world_kbps">%1$d kbps</string>
+    <string name="radio_world_resting">Lepää: epäonnistui äskettäin</string>
+    <string name="radio_world_more_failed">Lisää ei voitu ladata — yritä uudelleen painamalla</string>
+</resources>

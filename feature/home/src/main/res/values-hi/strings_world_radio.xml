@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- The world radio: translations of strings_world_radio.xml. Labels of the source switch stay within ten letters and the two
+         rail hints within eighteen: a half of the switch and the rail's field cannot wrap. See check-invariants.sh. -->
+    <string name="radio_source_subscription">प्रदाता</string>
+    <string name="radio_source_world">दुनिया</string>
+    <string name="radio_source_label">रेडियो स्रोत</string>
+    <string name="radio_world_in">दुनिया · %1$s</string>
+    <string name="radio_world_top">सबसे ज़्यादा सुने गए</string>
+    <string name="radio_world_results">“%1$s” के नतीजे</string>
+    <string name="radio_world_countries">देश</string>
+    <string name="radio_world_genres">शैलियाँ</string>
+    <string name="radio_world_search_countries">देश खोजें</string>
+    <string name="radio_world_search_genres">शैली खोजें</string>
+    <string name="radio_world_saved_list">सहेजी गई सूची से</string>
+    <string name="radio_world_loading">लोड हो रहा है…</string>
+    <string name="radio_world_empty">यहाँ कोई स्टेशन नहीं है</string>
+    <string name="radio_world_no_results">“%1$s” के लिए कोई नतीजा नहीं</string>
+    <string name="radio_world_no_results_detail">कम अक्षर या नाम का कोई हिस्सा आज़माएँ।</string>
+    <string name="radio_world_offline_title">कनेक्शन नहीं है</string>
+    <string name="radio_world_offline_detail">अपना इंटरनेट कनेक्शन जाँचें और फिर कोशिश करें।</string>
+    <string name="radio_world_down_title">डायरेक्टरी जवाब नहीं दे रही</string>
+    <string name="radio_world_down_detail">थोड़ी देर में फिर कोशिश करें।</string>
+    <string name="radio_world_kbps">%1$d kbps</string>
+    <string name="radio_world_resting">आराम पर: हाल ही में विफल रहा</string>
+    <string name="radio_world_more_failed">और लोड नहीं हो सका — फिर कोशिश के लिए दबाएँ</string>
+</resources>

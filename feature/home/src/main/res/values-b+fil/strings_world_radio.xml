@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- The world radio: translations of strings_world_radio.xml. Labels of the source switch stay within ten letters and the two
+         rail hints within eighteen: a half of the switch and the rail's field cannot wrap. See check-invariants.sh. -->
+    <string name="radio_source_subscription">Provider</string>
+    <string name="radio_source_world">Mundo</string>
+    <string name="radio_source_label">Pinagmumulan ng radyo</string>
+    <string name="radio_world_in">Mundo · %1$s</string>
+    <string name="radio_world_top">Pinakapinakikinggan</string>
+    <string name="radio_world_results">Mga resulta para sa “%1$s”</string>
+    <string name="radio_world_countries">Mga bansa</string>
+    <string name="radio_world_genres">Mga genre</string>
+    <string name="radio_world_search_countries">Maghanap ng bansa</string>
+    <string name="radio_world_search_genres">Maghanap ng genre</string>
+    <string name="radio_world_saved_list">Mula sa naka-save na listahan</string>
+    <string name="radio_world_loading">Naglo-load…</string>
+    <string name="radio_world_empty">Walang istasyon dito</string>
+    <string name="radio_world_no_results">Walang resulta para sa “%1$s”</string>
+    <string name="radio_world_no_results_detail">Subukan ang mas kaunting letra o bahagi ng pangalan.</string>
+    <string name="radio_world_offline_title">Walang koneksyon</string>
+    <string name="radio_world_offline_detail">Tingnan ang iyong koneksyon sa internet at subukan muli.</string>
+    <string name="radio_world_down_title">Hindi sumasagot ang direktoryo</string>
+    <string name="radio_world_down_detail">Subukan muli sa ilang sandali.</string>
+    <string name="radio_world_kbps">%1$d kbps</string>
+    <string name="radio_world_resting">Nagpapahinga: kamakailan nag-fail</string>
+    <string name="radio_world_more_failed">Hindi makapag-load ng higit pa — pindutin para subukan muli</string>
+</resources>

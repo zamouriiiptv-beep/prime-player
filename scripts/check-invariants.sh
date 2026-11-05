@@ -878,30 +878,40 @@ if [ -n "$reach" ]; then
   subscription's favourites, its recently watched, its session or its database."
 fi
 
-# ------------------------------------------- the radio's source switch has room for ten letters
-# The switch between the subscription's radio and the world's is a pill of two halves in a rail about
-# 180dp wide: a half is about 80dp, and "Subscription" -- twelve letters -- was cut to "Subscripti…" on
-# the owner's phone, in every language that fell back to it. A label that does not fit does not wrap, so
-# what a translation says has to be short. The fitting (`CastivioFittedText`) is the guard for the word
-# that is a little over; this is the rule for the word that is a lot.
+# ------------------------------------------- the world radio's short strings stay short
+# Two places in the radio do not wrap: the switch between the subscription's radio and the world's -- a pill
+# of two halves in a rail about 180dp wide, each half about 80dp -- and the rail's own field. "Subscription",
+# twelve letters, was cut to "Subscripti…" on the owner's phone in every language that fell back to it, and
+# "Rechercher une catégorie" is cut in the same field. What a label or a hint says has to be short in every
+# language, so a translation is held to it here: ten letters for the switch's words, eighteen for the rail's
+# two hints. The fitting (`CastivioFittedText`) is the guard for the word that is a little over; this is the
+# rule for the word that is a lot.
 if command -v python3 >/dev/null 2>&1; then
   longlabel=$(python3 <<'PYSWITCH'
 import glob, io, re
-LIMIT = 10
+LIMITS = {
+    "radio_source_subscription": 10,
+    "radio_source_world": 10,
+    "radio_world_search_countries": 18,
+    "radio_world_search_genres": 18,
+}
 for f in sorted(glob.glob("feature/home/src/main/res/values*/strings_world_radio.xml")):
     text = io.open(f, encoding="utf-8").read()
-    for m in re.finditer(r'<string name="(radio_source_(?:subscription|world))"[^>]*>(.*?)</string>', text, re.S):
+    for m in re.finditer(r'<string name="([a-z_]+)"[^>]*>(.*?)</string>', text, re.S):
+        limit = LIMITS.get(m.group(1))
+        if limit is None:
+            continue
         value = re.sub(r"\\(.)", r"\1", m.group(2)).strip()
-        if len(value) > LIMIT:
-            print("  %s: %s is %d letters (%s)" % (f.split("/")[-2], m.group(1), len(value), value))
+        if len(value) > limit:
+            print("  %s: %s is %d letters, at most %d (%s)" % (f.split("/")[-2], m.group(1), len(value), limit, value))
 PYSWITCH
 )
   if [ -n "$longlabel" ]; then
-    fail "A label of the radio's source switch is too long to fit its half" \
+    fail "A short string of the world radio is too long for where it stands" \
          "$longlabel
 
-  The two halves of the switch are about 80dp each and a label cannot wrap: ten
-  letters at most, in every language. Choose a shorter word."
+  The switch's halves and the rail's field cannot wrap: ten letters for the
+  switch's two words and eighteen for the two hints, in every language."
   fi
 fi
 

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- The world radio: translations of strings_world_radio.xml. Labels of the source switch stay within ten letters and the two
+         rail hints within eighteen: a half of the switch and the rail's field cannot wrap. See check-invariants.sh. -->
+    <string name="radio_source_subscription">Furnizor</string>
+    <string name="radio_source_world">Lumea</string>
+    <string name="radio_source_label">Sursa radioului</string>
+    <string name="radio_world_in">Lumea · %1$s</string>
+    <string name="radio_world_top">Cele mai ascultate</string>
+    <string name="radio_world_results">Rezultate pentru „%1$s”</string>
+    <string name="radio_world_countries">Țări</string>
+    <string name="radio_world_genres">Genuri</string>
+    <string name="radio_world_search_countries">Caută țări</string>
+    <string name="radio_world_search_genres">Caută genuri</string>
+    <string name="radio_world_saved_list">Din lista salvată</string>
+    <string name="radio_world_loading">Se încarcă…</string>
+    <string name="radio_world_empty">Nicio stație aici</string>
+    <string name="radio_world_no_results">Niciun rezultat pentru „%1$s”</string>
+    <string name="radio_world_no_results_detail">Încearcă mai puține litere sau o parte din nume.</string>
+    <string name="radio_world_offline_title">Fără conexiune</string>
+    <string name="radio_world_offline_detail">Verifică conexiunea la internet și încearcă din nou.</string>
+    <string name="radio_world_down_title">Directorul nu răspunde</string>
+    <string name="radio_world_down_detail">Încearcă din nou peste puțin timp.</string>
+    <string name="radio_world_kbps">%1$d kbps</string>
+    <string name="radio_world_resting">Se odihnește: a eșuat recent</string>
+    <string name="radio_world_more_failed">Nu s-au mai putut încărca — apasă pentru a reîncerca</string>
+</resources>

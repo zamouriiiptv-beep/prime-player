@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- The world radio: translations of strings_world_radio.xml. Labels of the source switch stay within ten letters and the two
+         rail hints within eighteen: a half of the switch and the rail's field cannot wrap. See check-invariants.sh. -->
+    <string name="radio_source_subscription">Předplatné</string>
+    <string name="radio_source_world">Svět</string>
+    <string name="radio_source_label">Zdroj rádia</string>
+    <string name="radio_world_in">Svět · %1$s</string>
+    <string name="radio_world_top">Nejposlouchanější</string>
+    <string name="radio_world_results">Výsledky pro „%1$s“</string>
+    <string name="radio_world_countries">Země</string>
+    <string name="radio_world_genres">Žánry</string>
+    <string name="radio_world_search_countries">Hledat země</string>
+    <string name="radio_world_search_genres">Hledat žánry</string>
+    <string name="radio_world_saved_list">Z uloženého seznamu</string>
+    <string name="radio_world_loading">Načítání…</string>
+    <string name="radio_world_empty">Žádné stanice</string>
+    <string name="radio_world_no_results">Žádné výsledky pro „%1$s“</string>
+    <string name="radio_world_no_results_detail">Zkuste méně písmen nebo část názvu.</string>
+    <string name="radio_world_offline_title">Žádné připojení</string>
+    <string name="radio_world_offline_detail">Zkontrolujte připojení k internetu a zkuste to znovu.</string>
+    <string name="radio_world_down_title">Adresář neodpovídá</string>
+    <string name="radio_world_down_detail">Zkuste to znovu za chvíli.</string>
+    <string name="radio_world_kbps">%1$d kb/s</string>
+    <string name="radio_world_resting">Odpočívá: nedávno selhala</string>
+    <string name="radio_world_more_failed">Další se nepodařilo načíst — stisknutím to zkusíte znovu</string>
+</resources>

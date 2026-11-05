@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- The world radio: translations of strings_world_radio.xml. Labels of the source switch stay within ten letters and the two
+         rail hints within eighteen: a half of the switch and the rail's field cannot wrap. See check-invariants.sh. -->
+    <string name="radio_source_subscription">Πάροχος</string>
+    <string name="radio_source_world">Κόσμος</string>
+    <string name="radio_source_label">Πηγή ραδιοφώνου</string>
+    <string name="radio_world_in">Κόσμος · %1$s</string>
+    <string name="radio_world_top">Πιο δημοφιλή</string>
+    <string name="radio_world_results">Αποτελέσματα για «%1$s»</string>
+    <string name="radio_world_countries">Χώρες</string>
+    <string name="radio_world_genres">Είδη</string>
+    <string name="radio_world_search_countries">Αναζήτηση χωρών</string>
+    <string name="radio_world_search_genres">Αναζήτηση ειδών</string>
+    <string name="radio_world_saved_list">Από την αποθηκευμένη λίστα</string>
+    <string name="radio_world_loading">Φόρτωση…</string>
+    <string name="radio_world_empty">Δεν υπάρχουν σταθμοί εδώ</string>
+    <string name="radio_world_no_results">Κανένα αποτέλεσμα για «%1$s»</string>
+    <string name="radio_world_no_results_detail">Δοκιμάστε λιγότερα γράμματα ή μέρος του ονόματος.</string>
+    <string name="radio_world_offline_title">Χωρίς σύνδεση</string>
+    <string name="radio_world_offline_detail">Ελέγξτε τη σύνδεσή σας στο διαδίκτυο και δοκιμάστε ξανά.</string>
+    <string name="radio_world_down_title">Ο κατάλογος δεν ανταποκρίνεται</string>
+    <string name="radio_world_down_detail">Δοκιμάστε ξανά σε λίγο.</string>
+    <string name="radio_world_kbps">%1$d kbps</string>
+    <string name="radio_world_resting">Σε ανάπαυση: απέτυχε πρόσφατα</string>
+    <string name="radio_world_more_failed">Δεν ήταν δυνατή η φόρτωση περισσότερων — πατήστε για επανάληψη</string>
+</resources>

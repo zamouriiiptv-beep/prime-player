@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- The world radio: translations of strings_world_radio.xml. Labels of the source switch stay within ten letters and the two
+         rail hints within eighteen: a half of the switch and the rail's field cannot wrap. See check-invariants.sh. -->
+    <string name="radio_source_subscription">Előfizetés</string>
+    <string name="radio_source_world">Világ</string>
+    <string name="radio_source_label">Rádióforrás</string>
+    <string name="radio_world_in">Világ · %1$s</string>
+    <string name="radio_world_top">Legtöbbet hallgatott</string>
+    <string name="radio_world_results">Találatok: „%1$s”</string>
+    <string name="radio_world_countries">Országok</string>
+    <string name="radio_world_genres">Műfajok</string>
+    <string name="radio_world_search_countries">Országok keresése</string>
+    <string name="radio_world_search_genres">Műfajok keresése</string>
+    <string name="radio_world_saved_list">A mentett listából</string>
+    <string name="radio_world_loading">Betöltés…</string>
+    <string name="radio_world_empty">Itt nincs állomás</string>
+    <string name="radio_world_no_results">Nincs találat: „%1$s”</string>
+    <string name="radio_world_no_results_detail">Próbálj kevesebb betűt vagy a név egy részét.</string>
+    <string name="radio_world_offline_title">Nincs kapcsolat</string>
+    <string name="radio_world_offline_detail">Ellenőrizd az internetkapcsolatot, és próbáld újra.</string>
+    <string name="radio_world_down_title">A jegyzék nem válaszol</string>
+    <string name="radio_world_down_detail">Próbáld újra egy pillanat múlva.</string>
+    <string name="radio_world_kbps">%1$d kbps</string>
+    <string name="radio_world_resting">Pihen: nemrég hibázott</string>
+    <string name="radio_world_more_failed">Többet nem sikerült betölteni — nyomd meg az újrapróbáláshoz</string>
+</resources>

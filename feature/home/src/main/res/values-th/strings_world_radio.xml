@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- The world radio: translations of strings_world_radio.xml. Labels of the source switch stay within ten letters and the two
+         rail hints within eighteen: a half of the switch and the rail's field cannot wrap. See check-invariants.sh. -->
+    <string name="radio_source_subscription">สมาชิก</string>
+    <string name="radio_source_world">ทั่วโลก</string>
+    <string name="radio_source_label">แหล่งวิทยุ</string>
+    <string name="radio_world_in">ทั่วโลก · %1$s</string>
+    <string name="radio_world_top">ฟังมากที่สุด</string>
+    <string name="radio_world_results">ผลลัพธ์สำหรับ “%1$s”</string>
+    <string name="radio_world_countries">ประเทศ</string>
+    <string name="radio_world_genres">แนวเพลง</string>
+    <string name="radio_world_search_countries">ค้นหาประเทศ</string>
+    <string name="radio_world_search_genres">ค้นหาแนวเพลง</string>
+    <string name="radio_world_saved_list">จากรายการที่บันทึกไว้</string>
+    <string name="radio_world_loading">กำลังโหลด…</string>
+    <string name="radio_world_empty">ไม่มีสถานีที่นี่</string>
+    <string name="radio_world_no_results">ไม่พบผลลัพธ์สำหรับ “%1$s”</string>
+    <string name="radio_world_no_results_detail">ลองใช้ตัวอักษรน้อยลงหรือบางส่วนของชื่อ</string>
+    <string name="radio_world_offline_title">ไม่มีการเชื่อมต่อ</string>
+    <string name="radio_world_offline_detail">ตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วลองอีกครั้ง</string>
+    <string name="radio_world_down_title">ไดเรกทอรีไม่ตอบสนอง</string>
+    <string name="radio_world_down_detail">ลองอีกครั้งในอีกสักครู่</string>
+    <string name="radio_world_kbps">%1$d kbps</string>
+    <string name="radio_world_resting">พักอยู่: เพิ่งล้มเหลว</string>
+    <string name="radio_world_more_failed">โหลดเพิ่มไม่ได้ — กดเพื่อลองอีกครั้ง</string>
+</resources>
