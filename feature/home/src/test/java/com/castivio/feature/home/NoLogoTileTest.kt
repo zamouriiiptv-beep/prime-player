@@ -8,6 +8,8 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import com.castivio.core.design.components.NO_LOGO_TILE_TAG
 import com.castivio.core.design.components.ProviderArtwork
 import com.castivio.core.design.theme.CastivioTheme

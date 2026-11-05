@@ -4,6 +4,7 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -243,7 +244,7 @@ class HeaderSearchTest {
      * the ends -- the mark, then the gap, then the words, and the words' far end the same distance from the other. Measured
      * left to right, which is how the test runs; the language only decides which end the words start from.
      */
-    private fun assertClearOfTheEnds(hint: String, pill: () -> Unit) {
+    private fun assertClearOfTheEnds(hint: String, pill: @Composable () -> Unit) {
         val m = channelsMetricsFor(tv = true, width = 960.dp, height = 540.dp)
         compose.setContent {
             CastivioTheme {
@@ -274,6 +275,6 @@ class HeaderSearchTest {
     private companion object {
         const val ROW = "test.row"
         const val PILL = "test.pill"
-        const val TOLERANCE = 0.6
+        const val TOLERANCE = 0.6f
     }
 }

@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -27,6 +28,7 @@ import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.requestFocus
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
 import com.castivio.core.design.theme.CastivioTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -46,6 +48,7 @@ import org.robolectric.annotation.Config
  *
  * Run twice, in English and in Arabic ([BoardBandArabicTest]): the point of the arrow's place is that it is the same.
  */
+@OptIn(ExperimentalTestApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w960dp-h540dp-land")
 open class BoardBandTest {

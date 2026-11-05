@@ -9,6 +9,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
 import com.castivio.core.design.theme.CastivioTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

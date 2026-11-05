@@ -32,6 +32,7 @@ import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.requestFocus
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.domain.Channel
 import com.castivio.domain.MediaGroup
