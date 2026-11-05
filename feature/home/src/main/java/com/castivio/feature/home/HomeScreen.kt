@@ -141,6 +141,7 @@ import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.castivioBackdrop
 import com.castivio.core.design.theme.rememberMetrics
 import com.castivio.core.platform.PerformanceLog
+import com.castivio.domain.Channel
 import com.castivio.domain.MediaKind
 import com.castivio.domain.Recorded
 import com.castivio.domain.entitlement.EntitlementState
@@ -228,10 +229,11 @@ fun HomeScreen(
     onCatchUp: () -> Unit,
     /**
      * Carry on with the channel watched last: the live card's own press, once something was watched. The shell opens the
-     * channels' board with that channel playing in its picture -- asking for the password first, where it is locked, as any
-     * press on a channel does -- so the viewer lands where they were and the rest of the list is one press away.
+     * channels' board with that channel playing in its small player and named in its well -- asking for the password first,
+     * where it is locked, as any press on a channel does -- so the viewer lands where they were and the rest of the list is
+     * one press away.
      */
-    onResume: (CatalogSelection) -> Unit,
+    onResume: (Channel) -> Unit,
     /** Opens the language chooser. */
     onLanguage: () -> Unit,
     /** Ask to leave. The confirmation is the application's, not this screen's. */
@@ -390,7 +392,7 @@ fun HomeScreen(
                         onSeeSection = { section -> if (model.press(section)) onSeeSection(section) },
                         // The same press on the live section, and the same decision: what differs is where it goes -- on to the
                         // channel last watched, playing, and not to the board with nothing playing.
-                        onResume = { selection -> if (model.press(CatalogSection.Live)) onResume(selection) },
+                        onResume = { channel -> if (model.press(CatalogSection.Live)) onResume(channel) },
                         onRefresh = model::refresh,
                         onChoosePlaylist = model::choosePlaylist,
                         onAddPlaylist = onAddPlaylist,
@@ -982,7 +984,7 @@ private fun SectionBoard(
      */
     railFocus: FocusRequester,
     onSeeSection: (CatalogSection) -> Unit,
-    onResume: (CatalogSelection) -> Unit,
+    onResume: (Channel) -> Unit,
     onRefresh: () -> Unit,
     onChoosePlaylist: (String) -> Unit,
     onAddPlaylist: () -> Unit,
@@ -1179,7 +1181,7 @@ private fun HeroCard(
     frame: CastivioMetrics,
     resume: Resume?,
     onClick: () -> Unit,
-    onResume: (CatalogSelection) -> Unit,
+    onResume: (Channel) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
@@ -1190,11 +1192,11 @@ private fun HeroCard(
         load = section.load,
         resume = resume,
     )
-    // What watched last is carried on from, and the channel's own selection is what the shell starts: a channel that cannot be
-    // played from a card -- it has no selection -- leaves the press as it was, on the board.
-    val resumeSelection = if (face == HeroFace.Continue) resume?.channel?.asSelection() else null
+    // The channel watched last is carried on from: the shell opens the board with it in the small player. Every other face
+    // keeps the press it always had.
+    val resumeChannel = if (face == HeroFace.Continue) resume?.channel else null
     InteractiveGlassCard(
-        onClick = if (resumeSelection != null) ({ onResume(resumeSelection) }) else onClick,
+        onClick = if (resumeChannel != null) ({ onResume(resumeChannel) }) else onClick,
         modifier = modifier,
         shape = RoundedCornerShape(frame.radius),
         // Just loaded: a breath of the success green on the glass and its edge, for the
