@@ -667,7 +667,7 @@ class HomeViewModel @Inject constructor(
      * ends and once a minute for the bar -- see [resumeRefreshMs] -- and while nothing is on the card's channel, every few
      * minutes, since the channels' board may have fetched its guide in between. Collected only while Home is, like [state].
      */
-    private val resume: Flow<Resume?> = catalog.recentChannels(RESUME_READ).flatMapLatest { recent ->
+    private val resume: Flow<Resume?> = catalog.recentChannels(RESUME_READ).flatMapLatest<List<Channel>, Resume?> { recent ->
         val head = recent.firstOrNull()
         if (head == null) {
             flowOf(null)
