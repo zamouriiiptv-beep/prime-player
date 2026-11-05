@@ -7,8 +7,11 @@ import com.castivio.core.platform.NetworkState
 import com.castivio.domain.CatalogRepository
 import com.castivio.domain.CatchUpBackfill
 import com.castivio.domain.CatchUpBackfillSchedule
+import com.castivio.domain.Channel
+import com.castivio.domain.EpgRepository
 import com.castivio.domain.MediaKind
 import com.castivio.domain.PlaybackActivity
+import com.castivio.domain.Programme
 import com.castivio.domain.ProviderSource
 import com.castivio.domain.ProviderStatusCatalogue
 import com.castivio.domain.Recorded
@@ -35,10 +38,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -166,6 +171,11 @@ data class HomeState(
      * paid for until next year and a server that does not answer are both true at once.
      */
     val trouble: SubscriptionTrouble? = null,
+    /**
+     * What the live card offers to resume -- the channel watched last, what is on it, and the few before it -- or null when
+     * nothing was watched on this subscription. See [Resume]; a card that is loading or has failed ignores it, see [heroFace].
+     */
+    val resume: Resume? = null,
     val loading: Boolean = true,
 ) {
     /** True once a provider has been configured, whatever it did or did not carry. */
@@ -320,6 +330,8 @@ class HomeViewModel @Inject constructor(
     private val catchUpBackfill: CatchUpBackfill,
     /** Whether a stream is playing or opening: the backfill waits for it not to be. */
     private val playback: PlaybackActivity,
+    /** What is on the channel watched last: read from storage, never asked of the provider -- see [programmeOn]. */
+    private val epg: EpgRepository,
 ) : ViewModel() {
 
     private val mac: String = identity.current().macAddress.value
@@ -647,6 +659,49 @@ class HomeViewModel @Inject constructor(
         Library(active, all)
     }
 
+    /**
+     * What the live card offers to resume, as the watch record and the guide change.
+     *
+     * The record is [CatalogRepository.recentChannels]: a channel's picture showing moves it to the head and this is told, and so
+     * is a hide or a change of subscription. The programme is what the stored guide says is on the head now, read again as it
+     * ends and once a minute for the bar -- see [resumeRefreshMs] -- and while nothing is on the card's channel, every few
+     * minutes, since the channels' board may have fetched its guide in between. Collected only while Home is, like [state].
+     */
+    private val resume: Flow<Resume?> = catalog.recentChannels(RESUME_READ).flatMapLatest { recent ->
+        val head = recent.firstOrNull()
+        if (head == null) {
+            flowOf(null)
+        } else {
+            flow {
+                while (true) {
+                    val nowMs = clock.nowMs()
+                    val programme = programmeOn(head, nowMs)
+                    emit(resumeOf(recent, programme, nowMs))
+                    delay(resumeRefreshMs(programme, nowMs))
+                }
+            }
+        }
+        // A card's offer is a decoration of Home and never what keeps it from opening: a read that breaks offers nothing.
+    }.catch { emit(null) }
+
+    /**
+     * The programme on [channel] at [nowMs], from what is stored, or null: tried under the keys the guide's writer files it
+     * under -- see [guideKeys]. A read that fails says nothing, which is the same as a guide with nothing in it.
+     */
+    private suspend fun programmeOn(channel: Channel, nowMs: Long): Programme? {
+        for (key in guideKeys(channel)) {
+            val rows = try {
+                epg.programmes(key, nowMs, nowMs + 1_000L)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                emptyList()
+            }
+            rows.firstOrNull { it.isLiveAt(nowMs) }?.let { return it }
+        }
+        return null
+    }
+
     val state: StateFlow<HomeState> = combine(
         library,
         counts,
@@ -693,7 +748,8 @@ class HomeViewModel @Inject constructor(
                 )
             },
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_GRACE_MS), HomeState())
+    }.combine(resume) { home, offer -> home.copy(resume = offer) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_GRACE_MS), HomeState())
 
     /** See [library]. */
     private data class Library(val active: ProviderSource?, val all: List<Playlist>)

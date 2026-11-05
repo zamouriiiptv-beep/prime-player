@@ -405,6 +405,29 @@ fun ShellScreen(
         zapping = selection.mediaId?.let { Zapping(request, it, selection.listed) }
     }
 
+    // **Carrying on from Home: the channels' board, with the channel last watched playing in its picture.**
+    //
+    // The live card's press once something was watched. It lands where the viewer was -- the board, the picture on, the list
+    // beside it -- and not in the large player, so the rest of the channels are one press away and expanding is one more. A
+    // locked channel asks for its password first, here as on every other way to a channel (see `play` above): the board is
+    // entered, and the channel started, only once it is given.
+    val resumeWatching: (CatalogSelection) -> Unit = { selection ->
+        val start = {
+            dest = Dest.Live
+            playInPreview(selection)
+        }
+        val id = selection.mediaId
+        when (pressVerdictFor(live = selection.live, channelId = id, known = lockModel.locked.value)) {
+            PressVerdict.Start -> start()
+            PressVerdict.Ask -> { asking = ShellPin(PinPurpose.Play) { start() } }
+            PressVerdict.Wait -> {
+                scope.launch {
+                    if (id != null && lockModel.isLocked(id)) asking = ShellPin(PinPurpose.Play) { start() } else start()
+                }
+            }
+        }
+    }
+
     // **Making the small picture large is opening its channel, and a locked one asks first.**
     //
     // Both ways there come through here -- a press on the picture, and a second press on its row in
@@ -579,6 +602,7 @@ fun ShellScreen(
                         // Catch-up is a destination of its own: the channels that keep an archive, and the programmes
                         // that have aired on them. It took the place of the button for the newest additions.
                         onCatchUp = { dest = Dest.CatchUp },
+                        onResume = resumeWatching,
                         // No `onAbout`: "about" is this build's licence, its device and its
                         // version, and Settings already opens exactly that screen through
                         // `onShowLicence` below. Home's rail carried a second door to the

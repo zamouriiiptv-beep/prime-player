@@ -3,6 +3,7 @@ package com.castivio.data.database
 import com.castivio.domain.CatalogQuery
 import com.castivio.domain.HiddenKind
 import com.castivio.domain.MediaKind
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -125,6 +126,54 @@ class RecentChannelsTest {
 
         assertEquals(emptyList<String>(), titles())
         assertEquals(0, total())
+    }
+
+    // ---------------------------------------------------------------------------- Home's few channels
+
+    /** What Home's live card reads: the first few of the same list, as a flow -- the latest answer is the one taken. */
+    private fun latest(limit: Int) = runBlocking { repository().recentChannels(limit).first().map { it.title } }
+
+    @Test
+    fun `home reads the channels watched last, the last first`() {
+        watch(2, 0, 4)
+
+        assertEquals(channels(4, 0, 2), latest(5))
+    }
+
+    @Test
+    fun `home reads no more than it asks for`() {
+        watch(0, 1, 2, 3, 4)
+
+        assertEquals(channels(4, 3, 2), latest(3))
+    }
+
+    @Test
+    fun `home reads nothing when nothing was watched`() {
+        assertEquals(emptyList<String>(), latest(5))
+    }
+
+    @Test
+    fun `a channel watched again is read once, at the head`() {
+        watch(1, 2, 3)
+        watch(1)
+
+        assertEquals(channels(1, 3, 2), latest(5))
+    }
+
+    @Test
+    fun `home is not offered a channel the viewer hid`() = runBlocking {
+        watch(0, 1, 2)
+
+        RoomHiddenItems(database.hiddenDao(), clock = { now }).hide(HiddenKind.CHANNEL, listOf(idOf("Channel 2")))
+
+        assertEquals(channels(1, 0), latest(5))
+    }
+
+    @Test
+    fun `home reads the same channels the rail's list is made of`() {
+        watch(3, 1, 4, 0)
+
+        assertEquals(titles().take(3), latest(3))
     }
 
     // ------------------------------------------------------------------------------- the record

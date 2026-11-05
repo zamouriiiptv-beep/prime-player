@@ -428,4 +428,11 @@
     <string name="series_favorites_empty_detail">Press Add to Favorites on a show\'s page and it will be listed here.</string>
     <string name="series_all">All series</string>
     <string name="series_search_hint">Search series</string>
+
+    <!-- The live card's other faces (design/mockups/home-resume-ar.png, home-resume-idle-ar.png). -->
+    <string name="home_resume_label">Continue watching</string>
+    <string name="home_resume_go">Continue</string>
+    <string name="home_load_hero_title">Load your channels</string>
+    <string name="home_load_hero_detail">Fetched from your provider and kept on this device</string>
+    <string name="home_load_hero_button">Load the channels</string>
 </resources>

@@ -226,6 +226,12 @@ fun HomeScreen(
      * the place of the button for the newest additions, a screen that was never built.
      */
     onCatchUp: () -> Unit,
+    /**
+     * Carry on with the channel watched last: the live card's own press, once something was watched. The shell opens the
+     * channels' board with that channel playing in its picture -- asking for the password first, where it is locked, as any
+     * press on a channel does -- so the viewer lands where they were and the rest of the list is one press away.
+     */
+    onResume: (CatalogSelection) -> Unit,
     /** Opens the language chooser. */
     onLanguage: () -> Unit,
     /** Ask to leave. The confirmation is the application's, not this screen's. */
@@ -382,6 +388,9 @@ fun HomeScreen(
                         // The holder decides: a section on the device opens, one that is not
                         // is asked for and loads on its own card while the viewer stays here.
                         onSeeSection = { section -> if (model.press(section)) onSeeSection(section) },
+                        // The same press on the live section, and the same decision: what differs is where it goes -- on to the
+                        // channel last watched, playing, and not to the board with nothing playing.
+                        onResume = { selection -> if (model.press(CatalogSection.Live)) onResume(selection) },
                         onRefresh = model::refresh,
                         onChoosePlaylist = model::choosePlaylist,
                         onAddPlaylist = onAddPlaylist,
@@ -973,6 +982,7 @@ private fun SectionBoard(
      */
     railFocus: FocusRequester,
     onSeeSection: (CatalogSection) -> Unit,
+    onResume: (CatalogSelection) -> Unit,
     onRefresh: () -> Unit,
     onChoosePlaylist: (String) -> Unit,
     onAddPlaylist: () -> Unit,
@@ -1045,7 +1055,9 @@ private fun SectionBoard(
         HeroCard(
             section = live,
             frame = frame,
+            resume = state.resume,
             onClick = { onSeeSection(live.section) },
+            onResume = onResume,
             modifier = Modifier.weight(HERO_SHARE).fillMaxHeight(),
         )
     }
@@ -1152,9 +1164,10 @@ private fun Section.figuredSentence(frame: CastivioMetrics): AnnotatedString {
  * is full without anything being said in the space (see [drawHeroLines]).
  *
  * It is ornament, and that is the point: it says nothing the panel does not already
- * say. Filling that space with a *fact* would have meant inventing one — a last-watched
- * channel — and none exists behind this screen. A load's progress, which does, is said
- * under the name and only while there is a load; see [HeroLoad].
+ * say. A fact fills that space only where the device holds one: the channel watched last,
+ * which the card shows instead once there is one (see [HeroFace.Continue]), and a load's
+ * progress, said under the name while there is a load; see [HeroLoad]. Nothing is
+ * invented to fill it.
  *
  * The watermark is sized from the panel rather than from a token because it is a
  * proportion of a box whose height is decided by the frame; the card clips it, so an
@@ -1164,13 +1177,24 @@ private fun Section.figuredSentence(frame: CastivioMetrics): AnnotatedString {
 private fun HeroCard(
     section: Section,
     frame: CastivioMetrics,
+    resume: Resume?,
     onClick: () -> Unit,
+    onResume: (CatalogSelection) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
     val arrived = section.load is CardLoad.Arrived
+    val face = heroFace(
+        unfetched = section.tally == Tally.Unfetched,
+        counted = section.tally == Tally.Counted,
+        load = section.load,
+        resume = resume,
+    )
+    // What watched last is carried on from, and the channel's own selection is what the shell starts: a channel that cannot be
+    // played from a card -- it has no selection -- leaves the press as it was, on the board.
+    val resumeSelection = if (face == HeroFace.Continue) resume?.channel?.asSelection() else null
     InteractiveGlassCard(
-        onClick = onClick,
+        onClick = if (resumeSelection != null) ({ onResume(resumeSelection) }) else onClick,
         modifier = modifier,
         shape = RoundedCornerShape(frame.radius),
         // Just loaded: a breath of the success green on the glass and its edge, for the
@@ -1181,61 +1205,91 @@ private fun HeroCard(
         fill = if (arrived) arrivedFill() else CastivioTheme.colors.cardSurface,
         restBorder = if (arrived) colors.success.copy(alpha = ARRIVED_EDGE_ALPHA) else colors.cardSurfaceEdge,
     ) {
-        BoxWithConstraints(
-            Modifier
-                .fillMaxSize()
-                .drawBehind { drawHeroLines(azure = colors.hueAzure, violet = colors.hueViolet) },
-        ) {
-            // **Filled with a gradient, not a tint, and placed dead centre.** It hung
-            // from the top edge in a flat wash of the section's hue at a tenth of its
-            // ink, which read as an icon somebody forgot in a corner rather than a
-            // mark the panel was built around. Centred, a little larger and carrying
-            // the azure-to-violet ramp the backdrop and the wordmark already use, it
-            // reads as part of the identity instead of a shape added to it.
-            //
-            // `Icon` paints a vector in one colour, so the gradient is applied after
-            // the fact: the glyph is drawn into its own layer and `SrcIn` replaces
-            // every opaque pixel of it with the brush, which is why the layer is
-            // forced offscreen — without that the blend would reach the card behind.
-            // The alpha rides on the same layer so it multiplies the finished ramp
-            // once rather than each colour separately.
-            val ramp = Brush.linearGradient(
-                listOf(colors.discGlyph(section.hue), colors.hueViolet),
+        when (face) {
+            HeroFace.Plain -> PlainFace(section, frame)
+            HeroFace.NotLoaded -> NotLoadedFace(
+                name = stringResource(section.name),
+                sentence = section.sentence(),
+                sentenceInk = section.ink(),
+                icon = section.icon,
+                hue = section.hue,
+                frame = frame,
             )
-            val glyph = maxHeight * HERO_GLYPH_SHARE
-            Icon(
-                imageVector = section.icon,
-                contentDescription = null,
-                tint = colors.onBackgroundStrong,
-                modifier = Modifier
-                    // Raised, so that the panel's name under it does not touch it: its centre is at HERO_GLYPH_CENTRE of the
-                    // panel's height and not the middle.
-                    .align(Alignment.TopCenter)
-                    .padding(top = maxHeight * HERO_GLYPH_CENTRE - glyph / 2)
-                    .size(glyph)
-                    .graphicsLayer {
-                        alpha = HERO_GLYPH_ALPHA
-                        compositingStrategy = CompositingStrategy.Offscreen
-                    }
-                    .drawWithContent {
-                        drawContent()
-                        drawRect(ramp, blendMode = BlendMode.SrcIn)
-                    },
-            )
-
-            Column(
-                Modifier.fillMaxSize().padding(frame.chipPad),
-                verticalArrangement = Arrangement.Bottom,
-            ) {
-                Text(
-                    text = stringResource(section.name),
-                    style = castivioTitleStyle(frame.fsLabel),
-                    color = colors.onBackgroundStrong,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+            // Continue is only ever chosen with something to continue from -- see [heroFace] -- so there is always an offer here.
+            HeroFace.Continue -> resume?.let { offer ->
+                ContinueFace(
+                    resume = offer,
+                    name = stringResource(section.name),
+                    sentence = section.sentence(),
+                    sentenceInk = section.ink(),
+                    frame = frame,
                 )
-                HeroLoad(section, frame)
             }
+        }
+    }
+}
+
+/**
+ * The live card as it was, and as it stays whenever it has nothing else to say: the glyph and its lines, the name, the count --
+ * or the load, its bar and its failure -- see [HeroLoad].
+ */
+@Composable
+private fun PlainFace(section: Section, frame: CastivioMetrics) {
+    val colors = CastivioTheme.colors
+    BoxWithConstraints(
+        Modifier
+            .fillMaxSize()
+            .drawBehind { drawHeroLines(azure = colors.hueAzure, violet = colors.hueViolet) },
+    ) {
+        // **Filled with a gradient, not a tint, and placed dead centre.** It hung
+        // from the top edge in a flat wash of the section's hue at a tenth of its
+        // ink, which read as an icon somebody forgot in a corner rather than a
+        // mark the panel was built around. Centred, a little larger and carrying
+        // the azure-to-violet ramp the backdrop and the wordmark already use, it
+        // reads as part of the identity instead of a shape added to it.
+        //
+        // `Icon` paints a vector in one colour, so the gradient is applied after
+        // the fact: the glyph is drawn into its own layer and `SrcIn` replaces
+        // every opaque pixel of it with the brush, which is why the layer is
+        // forced offscreen — without that the blend would reach the card behind.
+        // The alpha rides on the same layer so it multiplies the finished ramp
+        // once rather than each colour separately.
+        val ramp = Brush.linearGradient(
+            listOf(colors.discGlyph(section.hue), colors.hueViolet),
+        )
+        val glyph = maxHeight * HERO_GLYPH_SHARE
+        Icon(
+            imageVector = section.icon,
+            contentDescription = null,
+            tint = colors.onBackgroundStrong,
+            modifier = Modifier
+                // Raised, so that the panel's name under it does not touch it: its centre is at HERO_GLYPH_CENTRE of the
+                // panel's height and not the middle.
+                .align(Alignment.TopCenter)
+                .padding(top = maxHeight * HERO_GLYPH_CENTRE - glyph / 2)
+                .size(glyph)
+                .graphicsLayer {
+                    alpha = HERO_GLYPH_ALPHA
+                    compositingStrategy = CompositingStrategy.Offscreen
+                }
+                .drawWithContent {
+                    drawContent()
+                    drawRect(ramp, blendMode = BlendMode.SrcIn)
+                },
+        )
+
+        Column(
+            Modifier.fillMaxSize().padding(frame.chipPad),
+            verticalArrangement = Arrangement.Bottom,
+        ) {
+            Text(
+                text = stringResource(section.name),
+                style = castivioTitleStyle(frame.fsLabel),
+                color = colors.onBackgroundStrong,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            HeroLoad(section, frame)
         }
     }
 }

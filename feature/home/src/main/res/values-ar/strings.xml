@@ -313,4 +313,11 @@
     <string name="series_favorites_empty_detail">اضغط «إضافة للمفضلة» في صفحة مسلسل وسيظهر هنا.</string>
     <string name="series_all">جميع المسلسلات</string>
     <string name="series_search_hint">البحث في المسلسلات</string>
+
+    <!-- بطاقة البث المباشر: وجهاها الآخران (design/mockups/home-resume-ar.png وhome-resume-idle-ar.png). -->
+    <string name="home_resume_label">تابع المشاهدة</string>
+    <string name="home_resume_go">تابع</string>
+    <string name="home_load_hero_title">حمّل قنوات اشتراكك</string>
+    <string name="home_load_hero_detail">تُجلب من خادم الاشتراك وتبقى على جهازك</string>
+    <string name="home_load_hero_button">تحميل القنوات</string>
 </resources>

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<!-- Home: two directions for making it livelier, drawn on the approved dark-glass Home (home-dark-ar.html, §68) and NOT on the coloured or glowing
+     surfaces the owner turned down on 2026-11-04. Phone geometry, 833x385dp, one px per dp; rendered at 2x. Not the app: a drawing. -->
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>Home — اتجاهان للحيوية</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#05040E;color:#fff;font-family:"Inter","DejaVu Sans",system-ui,sans-serif;width:833px}
+.screen{position:relative;width:833px;height:385px;overflow:hidden;
+  background:radial-gradient(70% 90% at 10% 112%,rgba(110,75,216,.16),transparent 62%),radial-gradient(60% 80% at 92% -10%,rgba(46,107,255,.14),transparent 60%),linear-gradient(160deg,#0a0a22 0%,#0f102b 55%,#0b1229 100%)}
+.abs{position:absolute}
+svg{fill:none;stroke:currentColor;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round;flex:none}
+/* the one finish of every card */
+.glass{background:linear-gradient(135deg,rgba(36,40,106,.86),rgba(13,16,52,.92));border:1.3px solid rgba(132,124,255,.50)}
+/* header */
+.logo{left:72px;top:18px;direction:ltr;display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px;letter-spacing:.24em;background:linear-gradient(90deg,#9b7bff,#4fa8ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.logo i{display:block;width:24px;height:24px;border-radius:50%;background:conic-gradient(#e0407a,#6a4cff,#2c9cff,#e0407a)}
+.chip{top:12px;width:162px;height:40px;border-radius:9px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;font-size:10px;color:#cfd0ea}
+.chip b{display:block;font-size:15px;font-weight:700;margin-top:1px}
+.chip.ok{background:linear-gradient(135deg,rgba(18,84,66,.62),rgba(10,44,40,.62));border:1.4px solid rgba(61,214,140,.75)}
+.chip.ok b,.chip.ok svg{color:#3ddf8c}
+.chip.lic{background:linear-gradient(135deg,rgba(24,48,118,.62),rgba(12,24,70,.62));border:1.4px solid rgba(86,160,255,.75)}
+.chip.lic b,.chip.lic svg{color:#6fb6ff}
+.clock{left:590px;top:14px;font-size:20px;font-weight:700;text-align:center;direction:ltr}
+.clock small{display:block;font-size:10px;font-weight:400;color:#c3c4e2;margin-top:1px}
+.round{width:32px;height:32px;border-radius:50%;top:17px;display:flex;align-items:center;justify-content:center;color:#e6e8ff;background:rgba(28,32,92,.8);border:1.2px solid rgba(132,124,255,.45)}
+.lang{left:707px;top:17px;height:32px;width:55px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:9px;gap:4px;color:#e6e8ff;background:rgba(28,32,92,.8);border:1.2px solid rgba(132,124,255,.45)}
+/* rail */
+.rail{left:648px;top:73px;width:113px;display:flex;flex-direction:column;gap:6px}
+.btn{height:39px;border-radius:9px;display:flex;align-items:center;gap:8px;padding:0 11px;font-size:11px;color:#f0eefc}
+.btn svg{color:#a070ff}
+/* the three lines */
+.tile{left:410px;width:222px;height:66px;border-radius:12px;display:flex;align-items:center;gap:12px;padding:0 14px}
+.tile .ic{width:34px;height:34px;display:flex;align-items:center;justify-content:center;flex:none}
+.tile .ic svg{width:24px;height:24px;stroke-width:2.2}
+.tile .nm{font-size:14px;font-weight:700}
+.tile .st{font-size:10.5px;margin-top:3px}
+.tile .st b{font-size:17px;font-weight:800;margin-left:3px}
+.t1{top:73px}.t2{top:152px}.t3{top:231px}
+.t1 .ic,.t1 .st{color:#b66bff}.t2 .ic,.t2 .st{color:#46e08a}.t3 .ic{color:#ffb020}.t3 .st{color:#5fa8ff}
+/* the hero */
+.hero{left:72px;top:73px;width:321px;height:224px;border-radius:14px;overflow:hidden}
+.hero svg.rib{position:absolute;left:0;top:0;width:100%;height:100%}
+.hero svg.rib path,.hero svg.rib rect{fill:none}
+.hero svg.tv{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);width:132px;height:114px;stroke-width:6.5}
+.hero .t{position:absolute;right:16px;bottom:44px;font-size:14px;font-weight:700}
+.hero .n{position:absolute;right:16px;bottom:10px;font-size:30px;font-weight:800;color:#4fa6ff;direction:rtl}
+/* footer */
+.fchip{top:316px;height:32px;width:223px;border-radius:9px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:10px;color:#dcdaf0}
+.fchip.k svg{color:#ffb020}.fchip.m svg{color:#b69cff}.fchip.l svg{color:#3ddf8c}
+.note{left:0;right:0;top:359px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:9.5px;color:#c3c2e0}
+.note svg{color:#a070ff;width:13px;height:13px}
+
+/* ---- shared by the two directions: logo plates as the channels' list draws them */
+.lg{direction:ltr;display:inline-flex;align-items:center;justify-content:center;border-radius:3px;font-weight:800;line-height:1;flex:none}
+.lg.w{background:#f3f4fb}
+.tf1{background:radial-gradient(circle at 30% 30%,#2a5bff,#d3202c 85%);color:#fff;border-radius:50%}
+.f2{color:#1b1b1b}.f2 i{color:#e8401c;font-style:normal}
+.f3{color:#1b1b1b}.f3 i{color:#1d8fe8;font-style:normal}
+.f4{color:#1b1b1b}.f4 i{color:#8a2be2;font-style:normal}
+.m6{background:#f3f4fb;color:#2b2b2b}
+.m6 i{color:#e8401c;font-style:normal}
+.arte{background:#1d1d1f;color:#ff7a1a}
+.w9{background:#2a1a5e;color:#c46bff}
+/* ---- direction A: the colour comes from what is there */
+.thumbs{position:absolute;left:12px;top:50%;transform:translateY(-50%);display:flex;direction:ltr}
+.thumbs i{display:block;width:19px;height:28px;border-radius:3px;margin-left:-7px;border:1.2px solid rgba(15,16,43,.9)}
+.thumbs i:first-child{margin-left:0}
+.thumbs.r i{width:23px;height:23px;border-radius:50%;margin-left:-6px}
+.recent{position:absolute;right:16px;left:16px;top:106px;direction:rtl}
+.recent small{display:block;font-size:9.5px;color:#aeb0cc;margin-bottom:5px}
+.recent .row{display:flex;gap:6px;direction:ltr;justify-content:flex-end}
+.recent .row .lg{width:46px;height:25px;font-size:12px}
+.focused{background:linear-gradient(135deg,#9a78ff,#6f4cf0)!important;border:1.4px solid #d9ccff!important;color:#120e34}
+.focused .nm,.focused .st,.focused .st b,.focused .ic{color:#120e34!important}
+.focused .thumbs i{border-color:#6f4cf0}
+.note2{left:0;right:0;top:322px;text-align:center;font-size:10px;color:#b9b8d8;direction:rtl}
+.note2 b{font-weight:600;color:#e6e4fb}
+.note2 em{font-style:normal;color:#ffb020}
+.note2 span.ok{color:#3ddf8c}
+/* ---- direction B: continue where you were */
+.cont{padding:14px 16px}
+.cont .top{display:flex;justify-content:space-between;align-items:center;direction:rtl}
+.cont .lab{font-size:10px;color:#aeb0cc}
+.cont .cnt{font-size:10px;color:#cfd0ea}.cont .cnt b{color:#4fa6ff;font-size:13px}
+.cont .plate{position:absolute;left:50%;transform:translateX(-50%);top:38px;width:150px;height:72px;border-radius:8px;background:#f3f4fb;display:flex;align-items:center;justify-content:center}
+.cont .plate .lg{width:62px;height:62px;font-size:19px}
+.cont .name{position:absolute;right:16px;left:16px;top:120px;font-size:13px;font-weight:700;text-align:center}
+.cont .name small{display:block;font-size:10px;font-weight:400;color:#aeb0cc;margin-top:2px}
+.cont .prog{position:absolute;right:16px;left:16px;top:152px;height:5px;border-radius:3px;background:rgba(255,255,255,.12)}
+.cont .prog i{display:block;height:100%;width:83%;border-radius:3px;background:#30d0a0;margin-left:auto}
+.cont .btnrow{position:absolute;right:16px;left:16px;bottom:12px;display:flex;gap:8px;direction:rtl;align-items:center}
+.cont .go{height:32px;border-radius:9px;padding:0 16px;display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;background:linear-gradient(135deg,#9a78ff,#6f4cf0);color:#120e34}
+.cont .btnrow .lg{width:40px;height:22px;font-size:10px}
+
+.cap{padding:14px 24px 8px;font-size:12.5px;line-height:1.75;color:#d9d8f2;direction:rtl}
+.cap b{color:#fff}.cap em{font-style:normal;color:#ffb020}
+.cap.warn{color:#ffd9a0}
+</style></head><body>
+<div class="cap"><b>٠ — كما هي الآن (المعتمدة في §68):</b> زجاج داكن لكل البطاقات، اللون في الأيقونات والأعداد فقط، بلا توهج. هذا المرجع، وما بعده يبدأ منه: <em>الأماكن والأحجام والترتيب لا تتغيّر</em>، ولا توهج ولا أسطح ملوّنة، لأن المالك رفضهما قبل يوم.</div>
+<div class="screen" id="fr">
+  <div class="abs logo"><i></i>CASTIVIO</div>
+  <div class="abs chip ok" style="left:214px"><svg width="19" height="19" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/></svg><span>الاشتراك<b>8-4-2027</b></span></div>
+  <div class="abs chip lic" style="left:402px"><svg width="19" height="19" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/></svg><span>رخصة Castivio<b>11-11-2026</b></span></div>
+  <div class="abs clock">21:24<small>4-11-2026</small></div>
+  <div class="abs round" style="left:660px"><svg width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg></div>
+  <div class="abs lang">اللغة <svg width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></div>
+
+  <div class="abs rail">
+    <div class="btn glass"><svg width="17" height="17" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5"/></svg>تحديث</div>
+    <div class="btn glass"><svg width="17" height="17" viewBox="0 0 24 24"><path d="M4 7h12M4 12h8M4 17h8M17 13v6M14 16h6"/></svg>تبديل القائمة</div>
+    <div class="btn glass"><svg width="17" height="17" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.5-5.8M4 4v5h5M12 8v4l3 2"/></svg>ما فاتك</div>
+    <div class="btn glass"><svg width="17" height="17" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>الإعدادات</div>
+    <div class="btn glass"><svg width="17" height="17" viewBox="0 0 24 24"><path d="M12 3v8M6.5 6.5a8 8 0 1 0 11 0"/></svg>خروج</div>
+  </div>
+
+  <div class="abs tile t1 glass"><span class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M3 8l3-4 3 4M9 8l3-4 3 4M15 8l3-4 3 4"/></svg></span><span><div class="nm">الأفلام</div><div class="st"><b>120,654</b> فيلمًا</div></span></div>
+  <div class="abs tile t2 glass"><span class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M9 21h6M12 17v4"/></svg></span><span><div class="nm">المسلسلات</div><div class="st"><b>29,066</b> مسلسلًا</div></span></div>
+  <div class="abs tile t3 glass"><span class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="12" rx="2"/><circle cx="9" cy="14" r="2.5"/><path d="M14 12h4M14 16h4M7 8l10-4"/></svg></span><span><div class="nm">الراديو</div><div class="st">لم يُحمَّل بعد</div></span></div>
+
+  <div class="abs hero glass">
+    <svg class="rib" viewBox="0 0 321 224" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <linearGradient id="rg" x1="0" x2="1"><stop offset="0" stop-color="#9b6bff" stop-opacity="0"/><stop offset=".45" stop-color="#78a4ff" stop-opacity=".95"/><stop offset="1" stop-color="#b66bff" stop-opacity="0"/></linearGradient>
+        <linearGradient id="eg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4cd2ff"/><stop offset="1" stop-color="#9b6bff"/></linearGradient>
+      </defs>
+      <!-- the glyph's frame, echoed outward: thin crisp lines that fill the card around it, fading with distance -->
+      <g stroke="url(#eg)" stroke-width="1.2">
+        <rect x="85.5" y="37" width="150" height="98" rx="17" opacity=".34"/>
+        <rect x="63" y="22" width="195" height="128" rx="22" opacity=".22"/>
+        <rect x="38" y="6" width="245" height="160" rx="27" opacity=".13"/>
+      </g>
+      <!-- ribbons across the lower half, behind the name and the count -->
+      <g stroke="url(#rg)" stroke-width="1.4">
+        <path d="M0 176C55 138 112 206 178 160S280 134 321 154" opacity=".75"/>
+        <path d="M0 192C60 154 118 222 186 176S284 150 321 170" opacity=".6"/>
+        <path d="M0 160C52 122 108 190 172 144S276 118 321 138" opacity=".5"/>
+        <path d="M0 208C64 172 124 236 192 192S288 166 321 186" opacity=".42"/>
+        <path d="M0 144C50 108 104 174 166 130S272 104 321 124" opacity=".34"/>
+      </g>
+    </svg>
+    <svg class="tv" viewBox="0 0 150 130"><defs><linearGradient id="tg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4cd2ff"/><stop offset=".6" stop-color="#5a9bff"/><stop offset="1" stop-color="#9b6bff"/></linearGradient></defs><g stroke="url(#tg)"><path d="M45 18L75 42L105 18"/><rect x="10" y="40" width="130" height="84" rx="14"/><path d="M62 62v40l34-20z"/></g></svg>
+    <div class="t">البث المباشر</div><div class="n">54,295 قناة</div>
+  </div>
+
+  <div class="abs fchip k glass" style="left:72px"><svg width="17" height="17" viewBox="0 0 24 24"><circle cx="8" cy="12" r="4"/><path d="M12 12h9M18 12v4M21 12v3"/></svg>مفتاح الجهاز: 116822</div>
+  <div class="abs fchip m glass" style="left:305px"><svg width="17" height="17" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3"/></svg>ماك: FE:F8:4D:83:78:9F</div>
+  <div class="abs fchip l glass" style="left:538px"><svg width="17" height="17" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0"/></svg>الجهاز: مفعَّل</div>
+  <div class="abs note"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.5"/></svg>Castivio مشغّل وسائط. لا يوفّر قنوات ولا أفلامًا ولا اشتراكات — أنت من يضيفها.</div>
+</div>
+<div class="cap"><b>أ — اللون من المحتوى لا من الغلاف:</b> الزجاج الداكن نفسه، لكن البطاقات تعرض <em>ما هو موجود فعلًا</em>: صف «آخر ما شاهدت» (شعارات القنوات كما تُرسم في قائمة القنوات) داخل بطاقة البث، وملصقات مصغّرة في الأفلام والمسلسلات وشعارات محطات في الراديو — من ذاكرة الجهاز، وتختفي إن لم يكن هناك شيء. <b>التركيز</b> يملأ البطاقة بالبنفسجي كصف القنوات (الأفلام في الرسم هي المركَّز عليها). الشرائح الثلاث في الأسفل سطر واحد هادئ.</div>
+<div class="screen" id="fa">
+  <div class="abs logo"><i></i>CASTIVIO</div>
+  <div class="abs chip ok" style="left:214px"><svg width="19" height="19" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/></svg><span>الاشتراك<b>8-4-2027</b></span></div>
+  <div class="abs chip lic" style="left:402px"><svg width="19" height="19" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/></svg><span>رخصة Castivio<b>11-11-2026</b></span></div>
+  <div class="abs clock">21:24<small>4-11-2026</small></div>
+  <div class="abs round" style="left:660px"><svg width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg></div>
+  <div class="abs lang">اللغة <svg width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></div>
+
+  <div class="abs rail">
+    <div class="btn glass"><svg width="17" height="17" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5"/></svg>تحديث</div>
+    <div class="btn glass"><svg width="17" height="17" viewBox="0 0 24 24"><path d="M4 7h12M4 12h8M4 17h8M17 13v6M14 16h6"/></svg>تبديل القائمة</div>
+    <div class="btn glass"><svg width="17" height="17" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.5-5.8M4 4v5h5M12 8v4l3 2"/></svg>ما فاتك</div>
+    <div class="btn glass"><svg width="17" height="17" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>الإعدادات</div>
+    <div class="btn glass"><svg width="17" height="17" viewBox="0 0 24 24"><path d="M12 3v8M6.5 6.5a8 8 0 1 0 11 0"/></svg>خروج</div>
+  </div>
+
+  <div class="abs tile t1 glass focused"><span class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M3 8l3-4 3 4M9 8l3-4 3 4M15 8l3-4 3 4"/></svg></span><span><div class="nm">الأفلام</div><div class="st"><b>120,654</b> فيلمًا</div></span><span class="thumbs"><i style="background:linear-gradient(160deg,#ff7a59,#8a2be2)"></i><i style="background:linear-gradient(160deg,#2dd4bf,#1d4ed8)"></i><i style="background:linear-gradient(160deg,#f4c430,#d3202c)"></i></span></div>
+  <div class="abs tile t2 glass"><span class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M9 21h6M12 17v4"/></svg></span><span><div class="nm">المسلسلات</div><div class="st"><b>29,066</b> مسلسلًا</div></span><span class="thumbs"><i style="background:linear-gradient(160deg,#46e08a,#0f766e)"></i><i style="background:linear-gradient(160deg,#a78bfa,#312e81)"></i><i style="background:linear-gradient(160deg,#fb7185,#7f1d1d)"></i></span></div>
+  <div class="abs tile t3 glass"><span class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="12" rx="2"/><circle cx="9" cy="14" r="2.5"/><path d="M14 12h4M14 16h4M7 8l10-4"/></svg></span><span><div class="nm">الراديو</div><div class="st"><b>1,083</b> محطة</div></span><span class="thumbs r"><i style="background:linear-gradient(160deg,#e8512b,#a3250d);display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:800;color:#fff;font-style:normal">M1</i><i style="background:linear-gradient(160deg,#f4c430,#b45309);display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:800;color:#fff;font-style:normal">HIT</i><i style="background:linear-gradient(160deg,#2a7ede,#1e3a8a);display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:800;color:#fff;font-style:normal">CH</i><i style="background:linear-gradient(160deg,#1f9d6a,#065f46);display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:800;color:#fff;font-style:normal">CAP</i></span></div>
+
+  <div class="abs hero glass">
+    <svg class="rib" viewBox="0 0 321 224" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <linearGradient id="rg" x1="0" x2="1"><stop offset="0" stop-color="#9b6bff" stop-opacity="0"/><stop offset=".45" stop-color="#78a4ff" stop-opacity=".95"/><stop offset="1" stop-color="#b66bff" stop-opacity="0"/></linearGradient>
+        <linearGradient id="eg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4cd2ff"/><stop offset="1" stop-color="#9b6bff"/></linearGradient>
+      </defs>
+      <!-- the glyph's frame, echoed outward: thin crisp lines that fill the card around it, fading with distance -->
+      <g stroke="url(#eg)" stroke-width="1.2">
+        <rect x="85.5" y="37" width="150" height="98" rx="17" opacity=".34"/>
+        <rect x="63" y="22" width="195" height="128" rx="22" opacity=".22"/>
+        <rect x="38" y="6" width="245" height="160" rx="27" opacity=".13"/>
+      </g>
+      <!-- ribbons across the lower half, behind the name and the count -->
+      <g stroke="url(#rg)" stroke-width="1.4">
+        <path d="M0 176C55 138 112 206 178 160S280 134 321 154" opacity=".75"/>
+        <path d="M0 192C60 154 118 222 186 176S284 150 321 170" opacity=".6"/>
+        <path d="M0 160C52 122 108 190 172 144S276 118 321 138" opacity=".5"/>
+        <path d="M0 208C64 172 124 236 192 192S288 166 321 186" opacity=".42"/>
+        <path d="M0 144C50 108 104 174 166 130S272 104 321 124" opacity=".34"/>
+      </g>
+    </svg>
+    <svg class="tv" style="width:92px;height:80px;top:27%;stroke-width:6.5" viewBox="0 0 150 130"><defs><linearGradient id="tg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4cd2ff"/><stop offset=".6" stop-color="#5a9bff"/><stop offset="1" stop-color="#9b6bff"/></linearGradient></defs><g stroke="url(#tg)"><path d="M45 18L75 42L105 18"/><rect x="10" y="40" width="130" height="84" rx="14"/><path d="M62 62v40l34-20z"/></g></svg>
+    <div class="recent"><small>آخر ما شاهدت</small><div class="row"><span class="lg w f2" style="width:46px;height:25px;font-size:13px"><i>•</i>2</span><span class="lg w f3" style="width:46px;height:25px;font-size:13px"><i>•</i>3</span><span class="lg w m6" style="width:46px;height:25px;font-size:13px">M<i>6</i></span><span class="lg  arte" style="width:46px;height:25px;font-size:11px">arte</span><span class="lg  tf1" style="width:25px;height:25px;font-size:8px">TF1</span></div></div><div class="t">البث المباشر</div><div class="n">54,295 قناة</div>
+  </div>
+
+  <div class="abs note2"><em>مفتاح الجهاز</em> <b>116822</b> &nbsp;·&nbsp; ماك <b>FE:F8:4D:83:78:9F</b> &nbsp;·&nbsp; <span class="ok">الجهاز مفعَّل</span></div>
+  <div class="abs note"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.5"/></svg>Castivio مشغّل وسائط. لا يوفّر قنوات ولا أفلامًا ولا اشتراكات — أنت من يضيفها.</div>
+</div>
+<div class="cap"><b>ب — تابع من حيث توقفت:</b> بطاقة البث تصير «تابع المشاهدة»: القناة الأخيرة بشعارها الكبير على لوحة بيضاء، وبرنامجها الآن بشريط التقدم الأخضر، وزر «تابع»، وصف قنوات أخيرة. عدد قنوات البث المباشر يصير سطرًا صغيرًا في رأسها. بطاقات الأقسام والرف والرأس كما هي. هذا أبعد عن الحالي من «أ»، وأقرب إلى ما تقدّمه شاشة القنوات.</div>
+<div class="screen" id="fb">
+  <div class="abs logo"><i></i>CASTIVIO</div>
+  <div class="abs chip ok" style="left:214px"><svg width="19" height="19" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/></svg><span>الاشتراك<b>8-4-2027</b></span></div>
+  <div class="abs chip lic" style="left:402px"><svg width="19" height="19" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/></svg><span>رخصة Castivio<b>11-11-2026</b></span></div>
+  <div class="abs clock">21:24<small>4-11-2026</small></div>
+  <div class="abs round" style="left:660px"><svg width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg></div>
+  <div class="abs lang">اللغة <svg width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></div>
+
+  <div class="abs rail">
+    <div class="btn glass"><svg width="17" height="17" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5"/></svg>تحديث</div>
+    <div class="btn glass"><svg width="17" height="17" viewBox="0 0 24 24"><path d="M4 7h12M4 12h8M4 17h8M17 13v6M14 16h6"/></svg>تبديل القائمة</div>
+    <div class="btn glass"><svg width="17" height="17" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.5-5.8M4 4v5h5M12 8v4l3 2"/></svg>ما فاتك</div>
+    <div class="btn glass"><svg width="17" height="17" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>الإعدادات</div>
+    <div class="btn glass"><svg width="17" height="17" viewBox="0 0 24 24"><path d="M12 3v8M6.5 6.5a8 8 0 1 0 11 0"/></svg>خروج</div>
+  </div>
+
+  <div class="abs tile t1 glass"><span class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M3 8l3-4 3 4M9 8l3-4 3 4M15 8l3-4 3 4"/></svg></span><span><div class="nm">الأفلام</div><div class="st"><b>120,654</b> فيلمًا</div></span></div>
+  <div class="abs tile t2 glass"><span class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M9 21h6M12 17v4"/></svg></span><span><div class="nm">المسلسلات</div><div class="st"><b>29,066</b> مسلسلًا</div></span></div>
+  <div class="abs tile t3 glass"><span class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="12" rx="2"/><circle cx="9" cy="14" r="2.5"/><path d="M14 12h4M14 16h4M7 8l10-4"/></svg></span><span><div class="nm">الراديو</div><div class="st">لم يُحمَّل بعد</div></span></div>
+
+  <div class="abs hero glass cont"><div class="top"><span class="lab">تابع المشاهدة</span><span class="cnt">البث المباشر · <b>54,295</b> قناة</span></div><div class="plate"><span class="lg tf1">TF1</span></div><div class="name">FR| TF1 4K<small>Le grand concours · 20:10 – 21:30</small></div><div class="prog"><i></i></div><div class="btnrow"><span class="go"><svg width="14" height="14" viewBox="0 0 24 24" style="fill:#120e34;stroke:none"><path d="M8 5v14l11-7z"/></svg>تابع</span><span class="lg w f2" style="width:40px;height:22px;font-size:11px"><i>•</i>2</span><span class="lg w f3" style="width:40px;height:22px;font-size:11px"><i>•</i>3</span><span class="lg w m6" style="width:40px;height:22px;font-size:11px">M<i>6</i></span><span class="lg  arte" style="width:40px;height:22px;font-size:10px">arte</span></div></div>
+
+  <div class="abs fchip k glass" style="left:72px"><svg width="17" height="17" viewBox="0 0 24 24"><circle cx="8" cy="12" r="4"/><path d="M12 12h9M18 12v4M21 12v3"/></svg>مفتاح الجهاز: 116822</div>
+  <div class="abs fchip m glass" style="left:305px"><svg width="17" height="17" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3"/></svg>ماك: FE:F8:4D:83:78:9F</div>
+  <div class="abs fchip l glass" style="left:538px"><svg width="17" height="17" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0"/></svg>الجهاز: مفعَّل</div>
+  <div class="abs note"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.5"/></svg>Castivio مشغّل وسائط. لا يوفّر قنوات ولا أفلامًا ولا اشتراكات — أنت من يضيفها.</div>
+</div>
+<div class="cap warn"><b>ما لا يغطيه الرسم:</b> الشعارات والملصقات هنا أمثلة، لا بيانات حقيقية؛ وإن لم يكن للمشاهد شيء مشاهَد تبقى البطاقة كما في المرجع. لم أرسم التلفاز ولا الهاتف العمودي. وأي ظهور لصور في الرئيسية يخضع لقواعد الأداء (صور مصغّرة محملة مسبقًا، لا عمل في التركيب، أعداد من القيم المخزّنة).</div>
+<div style="height:14px"></div>
+</body></html>

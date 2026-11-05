@@ -275,6 +275,21 @@ interface MediaDao {
     )
     suspend fun windowRecent(kind: String, offset: Int, limit: Int): List<MediaEntity>
 
+    /**
+     * The first [limit] rows of [windowRecent]'s list, as a flow: Home's "continue watching" reads these few and is told when
+     * another channel is watched. Room observes `playback_progress`, `media`, the subscription and the hidden items through the
+     * query, so nothing here is invalidated by hand.
+     */
+    @Query(
+        """
+        SELECT m.* FROM playback_progress p
+        INNER JOIN media m ON m.id = p.media_id
+        WHERE m.source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN_M AND m.kind = :kind
+        ORDER BY p.updated_at DESC, m.id LIMIT :limit
+        """,
+    )
+    fun recentFirst(kind: String, limit: Int): Flow<List<MediaEntity>>
+
     // ------------------------------------------- where a channel stands in a list, and how long it is
     //
     // Each counts the rows that come before one in the order its window reads -- `provider_order`,

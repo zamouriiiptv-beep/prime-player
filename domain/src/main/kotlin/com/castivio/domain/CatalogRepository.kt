@@ -59,6 +59,15 @@ interface CatalogRepository {
     fun archiveGroups(): Flow<List<ArchiveGroup>> = flowOf(emptyList())
 
     /**
+     * The live channels the viewer watched last, the last first, at most [limit]: what Home offers to resume.
+     *
+     * Read as the record changes -- a channel's picture showing moves it to the head -- and as the subscription or what is
+     * hidden changes, so a channel the viewer hid is never offered. Bounded by [limit] like every read here: it is a handful
+     * of rows, never the list the Recently watched entry pages. Defaulted so a fake that has nothing watched need not say so.
+     */
+    fun recentChannels(limit: Int): Flow<List<Channel>> = flowOf(emptyList())
+
+    /**
      * Provider and guide ids for specific rows.
      *
      * Bounded by the ids passed in — the visible window — because its caller is a

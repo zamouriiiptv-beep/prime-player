@@ -18,6 +18,7 @@ import com.castivio.domain.CatalogOrder
 import com.castivio.domain.CatalogPager
 import com.castivio.domain.CatalogQuery
 import com.castivio.domain.CatalogRepository
+import com.castivio.domain.Channel
 import com.castivio.domain.ChannelRef
 import com.castivio.domain.ChannelWindows
 import com.castivio.domain.Episode
@@ -199,6 +200,10 @@ class RoomCatalogRepository(
     override fun archiveGroups(): Flow<List<ArchiveGroup>> =
         rereading { mediaDao.archiveGroups(MediaKind.LIVE.name) }
             .map { rows -> rows.map { ArchiveGroup(id = it.id, name = it.name, channels = it.channels) } }
+
+    override fun recentChannels(limit: Int): Flow<List<Channel>> =
+        rereading { mediaDao.recentFirst(MediaKind.LIVE.name, limit) }
+            .map { rows -> rows.mapNotNull { it.toDomain() as? Channel } }
 
     override suspend fun page(request: PageRequest): Page<MediaItem> {
         val kind = request.kind.name
