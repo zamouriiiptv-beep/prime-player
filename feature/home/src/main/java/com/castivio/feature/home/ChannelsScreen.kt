@@ -4069,4 +4069,4 @@ internal val FIELD_INSET = 13.dp
  * A shade under it, so the field reads as the column's control rather than as its first
  * category — the same trick the header's field plays against the band.
  */
-private const val FIELD_OF_ROW = 0.86f
+internal const val FIELD_OF_ROW = 0.86f

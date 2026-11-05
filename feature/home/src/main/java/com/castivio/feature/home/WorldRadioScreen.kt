@@ -485,7 +485,8 @@ private fun WorldRail(
 
         Text(
             text = stringResource(R.string.radio_world_credit, ltrToken(DIRECTORY_NAME)),
-            style = castivioBodyStyle(m.frame.fsBody),
+            // A footnote, drawn smaller than the rows so that its whole line fits the rail: at the rows' size it was cut at "radio-browser.in…".
+            style = castivioBodyStyle(m.frame.fsBody * CREDIT_OF_BODY),
             color = colors.onBackgroundMuted,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -760,6 +761,9 @@ private fun WorldNotice(
 
 /** What stands in the rail for the directory, in the credit line: its name, as it asks to be named. */
 internal const val DIRECTORY_NAME = "radio-browser.info"
+
+/** The credit line's size as a share of the rows' second line. */
+private const val CREDIT_OF_BODY = 0.8f
 
 /** How dim a resting station's row is drawn: still readable, plainly not the ones that play. */
 private const val DIMMED = 0.5f

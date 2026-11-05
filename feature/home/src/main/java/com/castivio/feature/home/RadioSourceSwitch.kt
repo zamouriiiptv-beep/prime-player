@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -26,13 +26,12 @@ import androidx.compose.ui.unit.dp
 import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Radius
-import com.castivio.core.design.theme.Sizing
 
 /**
  * The radio's two sources, one press apart, at the head of the rail: the subscription's own stations, or the world's directory.
  *
- * Two segments of one pill, the open one filled -- the board's own way of saying which list is open -- and each a control the remote can land
- * on ([Sizing.minTarget]). The shell holds which is open, because the sound belongs to the source: opening the other lets the first go.
+ * Two segments of one pill, the open one filled -- the board's own way of saying which list is open -- each as tall as the rail's field, so the
+ * pill is a little taller than the field under it ([FIELD_OF_ROW], [SEGMENT_GAP]) and no taller than the rail's other rows. The shell holds which is open, because the sound belongs to the source: opening the other lets the first go.
  */
 @Composable
 internal fun RadioSourceSwitch(
@@ -60,7 +59,9 @@ internal fun RadioSourceSwitch(
             Box(
                 Modifier
                     .weight(1f)
-                    .heightIn(min = Sizing.minTarget(CastivioTheme.device.isTv))
+                    // As tall as the rail's own field under it, so the pill that holds both is a little taller than the field and
+                    // not a control of its own size: the rows of this rail are this tall, and so is what it is pressed with.
+                    .height(m.railMin * FIELD_OF_ROW)
                     .clip(shape)
                     .background(if (chosen) colors.secondary else Color.Transparent)
                     .border(1.dp, if (focused) colors.focusRing else Color.Transparent, shape)
@@ -87,4 +88,5 @@ internal fun RadioSourceSwitch(
     }
 }
 
-private val SEGMENT_GAP = 2.dp
+/** What stands between the pill and its two halves, and between them: the pill is this much taller than the field beside it, twice over. */
+private val SEGMENT_GAP = 3.dp
