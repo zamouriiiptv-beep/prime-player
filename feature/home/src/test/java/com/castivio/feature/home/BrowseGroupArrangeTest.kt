@@ -48,6 +48,9 @@ class BrowseGroupArrangeTest {
         val board = arranging()
         board.model.mark(Held.Bouquet("news"))
         board.model.mark(Held.Bouquet("kids"))
+        // The holder's state is read on the main dispatcher, which a test advances by hand: without this the
+        // state still holds the moment before the two marks, and the assertion reads a board nobody ticked.
+        runCurrent()
         assertEquals(setOf(Held.Bouquet("news"), Held.Bouquet("kids")), board.state.arranging!!.marked)
 
         board.model.press(Held.Bouquet("kids"))
