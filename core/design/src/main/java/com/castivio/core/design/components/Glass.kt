@@ -31,8 +31,8 @@ import com.castivio.core.design.theme.Radius
 /**
  * Glass surfaces.
  *
- * Castivio's glass is *quiet*: a translucent fill with a vertical sheen, a
- * hairline border that fades top-to-bottom, and a wide soft shadow. Android
+ * Castivio's glass is *quiet*: an indigo fill that runs from lit to the page's own
+ * darkness, a hairline edge in the same indigo, and a wide soft shadow. Android
  * has no true backdrop blur below API 31, so the effect is built from layered
  * translucency instead — which reads the same over the animated backdrop and
  * costs nothing on a cheap TV stick.
@@ -54,8 +54,8 @@ fun GlassCard(
         modifier
             .shadow(elevation, shape, ambientColor = Elevation.ambient, spotColor = Elevation.spot)
             .clip(shape)
-            .background(colors.glassFillBrush)
-            .border(BorderStroke(1.dp, colors.cardBorderBrush), shape),
+            .background(colors.cardSurface)
+            .border(BorderStroke(1.dp, colors.cardSurfaceEdge), shape),
     ) { content() }
 }
 
@@ -75,23 +75,22 @@ fun GlassHeroCard(
  * A glass card that behaves as one target: lifts and brightens on focus,
  * dips on press. Use for menu entries, method pickers, channel tiles.
  *
- * @param fill the pane's own glass. The default is `glassFillBrush`, 7.8% of
- *   white falling to 3.9% down the card — right for a list of tiles, where the
+ * @param fill the pane's own glass. The default is `cardSurface`, the indigo at
+ *   26% falling to 6% across the card — right for a list of tiles, where the
  *   fade is what keeps a column of them from reading as a stack of slabs.
  *
  *   A screen whose whole content is two large panes wants the opposite: at that
- *   size the fade lands the bottom half of each pane on 3.9%, which is the fill
- *   of an *inactive* surface, and the card stops reading as a thing you can
- *   choose. Passing `SolidColor(colors.glassFillStrong)` holds it at 7.8%
- *   throughout. Both values are the ones already in the theme; what the caller
- *   picks is whether the pane fades, not what it is made of.
+ *   size the fade lands the far half of each pane on the page's own darkness,
+ *   and the card stops reading as a thing you can choose. Passing a brush that
+ *   holds its weight throughout does; what the caller picks is whether the pane
+ *   fades, not what it is made of.
  */
 @Composable
 fun InteractiveGlassCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(Radius.lg),
-    fill: Brush = CastivioTheme.colors.glassFillBrush,
+    fill: Brush = CastivioTheme.colors.cardSurface,
     /**
      * The edge, and the light around it, while the card is **not** focused.
      *
@@ -115,12 +114,12 @@ fun InteractiveGlassCard(
         if (focused) Elevation.level3 else Elevation.level2, Motion.focusSpec(), label = "elev",
     )
     val border by animateColorAsState(
-        // `edgeCard`, which is the application's one card edge. It was `glassBorder`
+        // `cardSurfaceEdge`, which is the application's one card edge. It was `glassBorder`
         // -- the generic edge a chip and a button also draw -- so a card and the
         // control beside it were outlined the same way and nothing in the drawing
         // said which was which. A chip is a control and keeps the quiet edge; a card
         // is a surface and has its own.
-        if (focused) colors.focusRing else restBorder ?: colors.edgeCard,
+        if (focused) colors.focusRing else restBorder ?: colors.cardSurfaceEdge,
         Motion.focusSpec(),
         label = "border",
     )

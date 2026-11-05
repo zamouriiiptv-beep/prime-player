@@ -2,6 +2,7 @@ package com.castivio.core.design.theme
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -398,6 +399,59 @@ class ThemeColorsTest {
             assertEquals("$name's scrim has blue in it", 0f, scrim.blue, 0.001f)
         }
         assertEquals(dark.scrim, slate.scrim)
+    }
+
+    /* ------------------------------------------------------------ the card */
+
+    /**
+     * The indigo is derived from the two hue roles, not stored: a card cannot drift from the wordmark it shares them with.
+     * Three fifths of the way from the azure to the violet, and the edge is that colour at half weight.
+     */
+    @Test
+    fun `a card is the indigo of the two hues on both grounds`() {
+        for ((name, ground) in listOf("dark" to dark, "slate" to slate)) {
+            val mix = lerp(ground.hueAzure, ground.hueViolet, 0.6f)
+            assertEquals("$name's indigo", mix, ground.cardIndigo)
+            assertEquals("$name's card edge is the indigo", mix.copy(alpha = 0.5f), ground.cardSurfaceEdge)
+        }
+    }
+
+    /** One recipe for both grounds -- a flag a screen could read to draw two cards is the thing the file exists to prevent. */
+    @Test
+    fun `the card is drawn the same on both grounds`() {
+        assertEquals(dark.cardIndigo, slate.cardIndigo)
+        assertEquals(dark.cardSurfaceEdge, slate.cardSurfaceEdge)
+    }
+
+    /**
+     * What the owner photographed was a card a hair's breadth from its page (1.0 to 1.45), so the property that matters is
+     * that the card is an object on **either** ground: lit at its head, the page again at its foot, and an edge that can be
+     * seen. Measured on the flat ground, which is the weakest case -- the backdrop's glows only add to it.
+     */
+    @Test
+    fun `a card is an object on either ground`() {
+        for ((name, ground) in listOf("dark" to dark, "slate" to slate)) {
+            val page = ground.background
+            val lit = over(ground.cardIndigo, 0.26f, page)
+            val foot = over(ground.cardIndigo, 0.06f, page)
+            val edge = over(ground.cardIndigo, 0.5f, page)
+            assertTrue("$name: the lit corner stands off the page (${contrast(lit, page)})", contrast(lit, page) >= 1.35f)
+            assertTrue("$name: the far corner is the page again (${contrast(foot, page)})", contrast(foot, page) <= 1.10f)
+            assertTrue("$name: the edge can be seen (${contrast(edge, page)})", contrast(edge, page) >= 2.2f)
+        }
+    }
+
+    /**
+     * The card took a recipe of its own and left the ladder alone: a control and a field are still drawn in the quiet
+     * white, because a control is meant to be quieter than the card it sits in. If the ladder moved, ~150 call sites would.
+     */
+    @Test
+    fun `the surface ladder under the controls did not move`() {
+        for (ground in listOf(dark, slate)) {
+            assertEquals(ground.glassFill, ground.surfaceGlass)
+            assertEquals(ground.glassFillStrong, ground.surfaceRaised)
+            assertEquals(Palette.WellInk, ground.surfaceWell)
+        }
     }
 
     /**

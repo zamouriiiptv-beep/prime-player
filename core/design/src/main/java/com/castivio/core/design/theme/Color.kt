@@ -343,6 +343,19 @@ private const val CTA_QUIET_RING = 0.30f
 private const val WELL_LIT = 0.75f
 
 /**
+ * How far from the azure to the violet the indigo of a card is: three fifths of the way, so it is nearer the violet the
+ * wordmark ends on than the azure it starts from, and is neither of them.
+ */
+private const val CARD_INDIGO_MIX = 0.6f
+
+/** The card's fill at its lit corner and at its far one. The far corner is the page again: a card is a surface, not a film. */
+private const val CARD_TOP_ALPHA = 0.26f
+private const val CARD_FOOT_ALPHA = 0.06f
+
+/** The card's edge: seen on the page and not a colour -- 2.3:1 against it, on either ground. */
+private const val CARD_EDGE_ALPHA = 0.5f
+
+/**
  * Semantic colour tokens. Screens use these names, never raw palette values,
  * so the whole app re-skins from one place.
  */
@@ -797,6 +810,33 @@ class CastivioColors(
      */
     val cardBorderBrush: Brush
         get() = Brush.verticalGradient(listOf(edgeCard, glassBorderSoft))
+
+    /**
+     * The hue a card is made of: the azure and the violet the wordmark and the backdrop share, mixed [CARD_INDIGO_MIX] of the
+     * way to the violet. Derived from the two hue roles rather than stored, so a card can never drift from the wordmark.
+     */
+    val cardIndigo: Color
+        get() = lerp(hueAzure, hueViolet, CARD_INDIGO_MIX)
+
+    /**
+     * What a card, a panel or a menu is filled with: [cardIndigo] at 26% in one corner running to 6% in the other, over the
+     * page. Lighter than the page at its head and as dark as it at its foot, and with no hue of its own beyond that indigo, so
+     * the colour of a card is what is drawn on it.
+     *
+     * It replaces [glassFillBrush] as the fill of a *surface*. That one is white at a few per cent -- on a dark page a grey
+     * film, 1.0 to 1.45 against the page it stood on, measured on two screenshots -- and it stays what a *control* and a field
+     * are drawn in, because a control is meant to be quieter than the card it sits in. The same recipe reads the same on both
+     * grounds (1.41 against the void, 1.47 against the slate at the lit corner), so there is one of it and not one per ground.
+     * Drawn first in `design/mockups/home-dark-ar.html`.
+     */
+    val cardSurface: Brush
+        get() = cardIndigo.let { indigo ->
+            Brush.linearGradient(listOf(indigo.copy(alpha = CARD_TOP_ALPHA), indigo.copy(alpha = CARD_FOOT_ALPHA)))
+        }
+
+    /** The edge of [cardSurface]: the same indigo at [CARD_EDGE_ALPHA], one colour all the way round. */
+    val cardSurfaceEdge: Color
+        get() = cardIndigo.copy(alpha = CARD_EDGE_ALPHA)
 
     /* --------------------------------------------------------------- over video
      *

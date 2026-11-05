@@ -94,7 +94,6 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -1179,8 +1178,8 @@ private fun HeroCard(
         //
         // Otherwise it is the same dark glass every card of this screen is, with no light round it: the colour is in the
         // glyph, the lines and the count (see [glassFill]).
-        fill = if (arrived) arrivedFill() else glassFill(),
-        restBorder = if (arrived) colors.success.copy(alpha = ARRIVED_EDGE_ALPHA) else glassEdge(),
+        fill = if (arrived) arrivedFill() else CastivioTheme.colors.cardSurface,
+        restBorder = if (arrived) colors.success.copy(alpha = ARRIVED_EDGE_ALPHA) else colors.cardSurfaceEdge,
     ) {
         BoxWithConstraints(
             Modifier
@@ -1326,8 +1325,8 @@ private fun SectionLine(
         modifier = modifier,
         shape = RoundedCornerShape(frame.radius / 2),
         // The panel's few seconds of success green, on a line as on the panel -- and otherwise the same dark glass.
-        fill = if (arrived) arrivedFill() else glassFill(),
-        restBorder = if (arrived) colors.success.copy(alpha = ARRIVED_EDGE_ALPHA) else glassEdge(),
+        fill = if (arrived) arrivedFill() else CastivioTheme.colors.cardSurface,
+        restBorder = if (arrived) colors.success.copy(alpha = ARRIVED_EDGE_ALPHA) else colors.cardSurfaceEdge,
     ) {
         Row(
             Modifier.fillMaxSize().padding(horizontal = frame.chipPad),
@@ -1555,32 +1554,6 @@ private fun loadSeconds(load: CardLoad.Arrived): String? {
     val instrumented = remember(context) { PerformanceLog.isVisibleIn(context) }
     val seconds = load.seconds ?: return null
     return if (instrumented) stringResource(R.string.home_load_seconds, seconds.toInt()) else null
-}
-
-/**
- * The dark glass every card of Home is made of: an indigo -- the azure and the violet the wordmark and the backdrop share, mixed
- * [GLASS_INDIGO_MIX] of the way to the violet -- at [GLASS_TOP_ALPHA] in one corner running to [GLASS_FOOT_ALPHA] in the other,
- * over the page. It is lighter than the page at its head and as dark as it at its foot, so a card is a surface and not a film, and
- * it has no hue of its own, so the colour of a card is what is drawn on it.
- *
- * It was white at a few per cent -- "glass" -- which on a dark page is a grey film: a card a hair's breadth from the page it
- * stands on (contrast 1.0 to 1.45, measured on two screenshots). Then it was a tint of each card's own hue, and the owner found
- * it too many colours. This is the third answer, drawn in `design/mockups/home-dark-ar.html`.
- */
-@Composable
-private fun glassFill(): Brush {
-    val indigo = glassIndigo()
-    return Brush.linearGradient(listOf(indigo.copy(alpha = GLASS_TOP_ALPHA), indigo.copy(alpha = GLASS_FOOT_ALPHA)))
-}
-
-/** The edge of that glass: the same indigo at [GLASS_EDGE_ALPHA], an edge that can be seen on the page and is not a colour. */
-@Composable
-private fun glassEdge(): Color = glassIndigo().copy(alpha = GLASS_EDGE_ALPHA)
-
-@Composable
-private fun glassIndigo(): Color {
-    val colors = CastivioTheme.colors
-    return lerp(colors.hueAzure, colors.hueViolet, GLASS_INDIGO_MIX)
 }
 
 /**
@@ -1936,8 +1909,8 @@ private fun ColumnScope.PlaylistPicker(
                     // the other way from the board's. This is the one system, and the
                     // day those four layers change the menu changes with them.
                     .castivioBackdrop { menuGround.rect ?: anchorGround }
-                    .background(colors.glassFillBrush)
-                    .border(BorderStroke(1.dp, colors.edgeQuiet), shape),
+                    .background(colors.cardSurface)
+                    .border(BorderStroke(1.dp, colors.cardSurfaceEdge), shape),
             ) {
                 // The popup's own view, which is what knows where the popup window
                 // sits on the screen. `LocalView` outside the menu is Home's view and
@@ -2395,8 +2368,8 @@ private fun UtilityCard(
         onClick = onClick,
         modifier = modifier,
         shape = RoundedCornerShape(frame.radius / 2),
-        fill = glassFill(),
-        restBorder = glassEdge(),
+        fill = CastivioTheme.colors.cardSurface,
+        restBorder = CastivioTheme.colors.cardSurfaceEdge,
     ) {
         Row(
             Modifier.fillMaxSize().padding(horizontal = frame.chipPad),
@@ -2585,8 +2558,8 @@ private fun Fact(
         modifier
             .height(frame.chip)
             .clip(shape)
-            .background(glassFill())
-            .border(BorderStroke(1.dp, glassEdge()), shape)
+            .background(CastivioTheme.colors.cardSurface)
+            .border(BorderStroke(1.dp, CastivioTheme.colors.cardSurfaceEdge), shape)
             .padding(horizontal = frame.chipPad),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2, Alignment.CenterHorizontally),
@@ -2717,8 +2690,8 @@ private const val ARRIVED_EDGE_ALPHA = 0.55f
 /**
  * What the surfaces of Home are drawn with -- the drawing is `design/mockups/home-dark-ar.html`.
  *
- * Every card is [glassFill] and [glassEdge]: the indigo of [GLASS_INDIGO_MIX] at [GLASS_TOP_ALPHA] to [GLASS_FOOT_ALPHA], its edge at
- * [GLASS_EDGE_ALPHA]. The two terms in the header are the exception, tinted by their own hue from [TERM_TINT_TOP] to
+ * Every card is the design system's `cardSurface` and `cardSurfaceEdge` -- the indigo, in `:core:design`, which every other card in the
+ * application is drawn in as well. The two terms in the header are the exception, tinted by their own hue from [TERM_TINT_TOP] to
  * [TERM_TINT_FOOT] with an edge of [TERM_EDGE_ALPHA]. A line's figure is [LINE_FIGURE_RATIO] times the size of its words. No card has a
  * glow or a shadow of its own -- the owner did not want one.
  *
@@ -2727,10 +2700,6 @@ private const val ARRIVED_EDGE_ALPHA = 0.55f
  * of [HERO_ECHOES] at a ratio of [HERO_FRAME_RATIO] and a corner of [HERO_ECHO_RADIUS], and the ribbons of [HERO_RIBBONS] -- each
  * the fractions of the panel its two curves pass through, and its ink -- brightest at [HERO_RIBBON_PEAK] of their length.
  */
-private const val GLASS_INDIGO_MIX = 0.6f
-private const val GLASS_TOP_ALPHA = 0.26f
-private const val GLASS_FOOT_ALPHA = 0.06f
-private const val GLASS_EDGE_ALPHA = 0.5f
 private const val TERM_TINT_TOP = 0.22f
 private const val TERM_TINT_FOOT = 0.08f
 private const val TERM_EDGE_ALPHA = 0.75f
