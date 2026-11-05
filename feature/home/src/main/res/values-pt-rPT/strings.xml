@@ -129,11 +129,10 @@
     <string name="reorder_entry">Ordenar</string>
     <string name="reorder_save">Guardar</string>
     <string name="reorder_cancel">Cancelar</string>
-    <string name="reorder_hint_pick">Prima OK numa categoria ou canal para o pegar.</string>
+    <string name="reorder_hint_pick">Prima OK para selecionar uma categoria ou canal; mantenha OK premido para selecionar várias linhas.</string>
     <string name="reorder_hint_move">Mova-o com ↑ e ↓ e prima OK para o largar.</string>
-    <string name="reorder_hint_all">Abra primeiro uma categoria para reordenar os respetivos canais.</string>
-    <string name="reorder_hint_mark">Mantenha OK premido em linhas para assinalar várias e movê-las em conjunto.</string>
-    <string name="reorder_hint_marked">Assinaladas: %1$d. Prima OK numa delas para as pegar em conjunto.</string>
+    <string name="reorder_hint_all">Abra primeiro uma categoria para reordenar os respetivos canais, ou prima OK numa categoria para a selecionar.</string>
+    <string name="reorder_hint_marked">Selecionadas: %1$d. Prima OK numa delas para as mover em conjunto.</string>
     <string name="reorder_failed">Não foi possível guardar a ordem. Tente novamente.</string>
     <string name="reorder_move_up">Mover para cima</string>
     <string name="reorder_move_down">Mover para baixo</string>

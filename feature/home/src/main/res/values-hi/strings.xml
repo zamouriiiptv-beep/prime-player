@@ -129,11 +129,10 @@
     <string name="reorder_entry">क्रम</string>
     <string name="reorder_save">सहेजें</string>
     <string name="reorder_cancel">रद्द करें</string>
-    <string name="reorder_hint_pick">किसी श्रेणी या चैनल को उठाने के लिए उस पर OK दबाएँ।</string>
+    <string name="reorder_hint_pick">श्रेणी या चैनल चुनने के लिए OK दबाएँ; कई पंक्तियाँ चुनने के लिए OK दबाकर रखें।</string>
     <string name="reorder_hint_move">↑ और ↓ से उसे खिसकाएँ, फिर रखने के लिए OK दबाएँ।</string>
-    <string name="reorder_hint_all">चैनलों का क्रम बदलने के लिए पहले कोई श्रेणी खोलें।</string>
-    <string name="reorder_hint_mark">कई पंक्तियों को चुनकर साथ में हिलाने के लिए उन पर OK दबाकर रखें।</string>
-    <string name="reorder_hint_marked">चुने गए: %1$d। इनमें से किसी एक पर OK दबाएँ, सभी साथ उठ जाएँगे।</string>
+    <string name="reorder_hint_all">चैनलों का क्रम बदलने के लिए पहले कोई श्रेणी खोलें, या किसी श्रेणी को चुनने के लिए उस पर OK दबाएँ।</string>
+    <string name="reorder_hint_marked">चुने गए: %1$d। इनमें से किसी एक पर OK दबाएँ, सभी साथ हिलेंगे।</string>
     <string name="reorder_failed">क्रम सहेजा नहीं जा सका। फिर से कोशिश करें।</string>
     <string name="reorder_move_up">ऊपर ले जाएँ</string>
     <string name="reorder_move_down">नीचे ले जाएँ</string>

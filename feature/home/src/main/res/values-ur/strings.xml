@@ -129,11 +129,10 @@
     <string name="reorder_entry">ترتیب</string>
     <string name="reorder_save">محفوظ کریں</string>
     <string name="reorder_cancel">منسوخ کریں</string>
-    <string name="reorder_hint_pick">کسی زمرے یا چینل کو اٹھانے کے لیے اس پر OK دبائیں۔</string>
+    <string name="reorder_hint_pick">کوئی زمرہ یا چینل منتخب کرنے کے لیے OK دبائیں؛ کئی قطاریں منتخب کرنے کے لیے OK دبائے رکھیں۔</string>
     <string name="reorder_hint_move">↑ اور ↓ سے اسے ہلائیں، پھر رکھنے کے لیے OK دبائیں۔</string>
-    <string name="reorder_hint_all">چینلز کی ترتیب بدلنے کے لیے پہلے کوئی زمرہ کھولیں۔</string>
-    <string name="reorder_hint_mark">کئی قطاروں کو چن کر ایک ساتھ ہلانے کے لیے ان پر OK دبائے رکھیں۔</string>
-    <string name="reorder_hint_marked">منتخب: %1$d۔ ان میں سے کسی ایک پر OK دبائیں تاکہ سب ایک ساتھ اٹھ جائیں۔</string>
+    <string name="reorder_hint_all">چینلز کی ترتیب بدلنے کے لیے پہلے کوئی زمرہ کھولیں، یا کسی زمرے کو منتخب کرنے کے لیے اس پر OK دبائیں۔</string>
+    <string name="reorder_hint_marked">منتخب: %1$d۔ سب کو ایک ساتھ ہلانے کے لیے ان میں سے کسی ایک پر OK دبائیں۔</string>
     <string name="reorder_failed">ترتیب محفوظ نہیں ہو سکی۔ دوبارہ کوشش کریں۔</string>
     <string name="reorder_move_up">اوپر لے جائیں</string>
     <string name="reorder_move_down">نیچے لے جائیں</string>

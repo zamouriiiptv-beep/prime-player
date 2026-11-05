@@ -129,11 +129,10 @@
     <string name="reorder_entry">Ordnen</string>
     <string name="reorder_save">Speichern</string>
     <string name="reorder_cancel">Abbrechen</string>
-    <string name="reorder_hint_pick">Drücke OK auf einer Kategorie oder einem Sender, um ihn aufzunehmen.</string>
+    <string name="reorder_hint_pick">Drücke OK, um eine Kategorie oder einen Sender auszuwählen; halte OK gedrückt, um mehrere Zeilen auszuwählen.</string>
     <string name="reorder_hint_move">Verschiebe ihn mit ↑ und ↓ und drücke OK, um ihn abzulegen.</string>
-    <string name="reorder_hint_all">Öffne zuerst eine Kategorie, um die Reihenfolge ihrer Sender zu ändern.</string>
-    <string name="reorder_hint_mark">Halte OK auf Zeilen gedrückt, um mehrere zu markieren und gemeinsam zu verschieben.</string>
-    <string name="reorder_hint_marked">Markiert: %1$d. Drücke OK auf einer davon, um alle gemeinsam aufzunehmen.</string>
+    <string name="reorder_hint_all">Öffne zuerst eine Kategorie, um die Reihenfolge ihrer Sender zu ändern, oder drücke OK auf einer Kategorie, um sie auszuwählen.</string>
+    <string name="reorder_hint_marked">Ausgewählt: %1$d. Drücke OK auf einer davon, um alle gemeinsam zu verschieben.</string>
     <string name="reorder_failed">Die Reihenfolge konnte nicht gespeichert werden. Versuche es erneut.</string>
     <string name="reorder_move_up">Nach oben</string>
     <string name="reorder_move_down">Nach unten</string>

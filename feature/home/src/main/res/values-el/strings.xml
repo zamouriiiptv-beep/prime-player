@@ -129,11 +129,10 @@
     <string name="reorder_entry">Σειρά</string>
     <string name="reorder_save">Αποθήκευση</string>
     <string name="reorder_cancel">Άκυρο</string>
-    <string name="reorder_hint_pick">Πατήστε OK σε μια κατηγορία ή ένα κανάλι για να το πάρετε.</string>
+    <string name="reorder_hint_pick">Πατήστε OK για να επιλέξετε κατηγορία ή κανάλι· κρατήστε πατημένο το OK για να επιλέξετε πολλές γραμμές.</string>
     <string name="reorder_hint_move">Μετακινήστε το με ↑ και ↓ και πατήστε OK για να το αφήσετε.</string>
-    <string name="reorder_hint_all">Ανοίξτε πρώτα μια κατηγορία για να αναδιατάξετε τα κανάλια της.</string>
-    <string name="reorder_hint_mark">Κρατήστε πατημένο το OK σε γραμμές για να επιλέξετε πολλές και να τις μετακινήσετε μαζί.</string>
-    <string name="reorder_hint_marked">Επιλεγμένα: %1$d. Πατήστε OK σε ένα από αυτά για να τα πιάσετε μαζί.</string>
+    <string name="reorder_hint_all">Ανοίξτε πρώτα μια κατηγορία για να αναδιατάξετε τα κανάλια της ή πατήστε OK σε μια κατηγορία για να την επιλέξετε.</string>
+    <string name="reorder_hint_marked">Επιλεγμένα: %1$d. Πατήστε OK σε ένα από αυτά για να τα μετακινήσετε μαζί.</string>
     <string name="reorder_failed">Η σειρά δεν αποθηκεύτηκε. Δοκιμάστε ξανά.</string>
     <string name="reorder_move_up">Μετακίνηση πάνω</string>
     <string name="reorder_move_down">Μετακίνηση κάτω</string>

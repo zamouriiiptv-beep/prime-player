@@ -129,11 +129,10 @@
     <string name="reorder_entry">Подреди</string>
     <string name="reorder_save">Запази</string>
     <string name="reorder_cancel">Отказ</string>
-    <string name="reorder_hint_pick">Натиснете OK върху категория или канал, за да го вземете.</string>
+    <string name="reorder_hint_pick">Натиснете OK, за да изберете категория или канал; задръжте OK върху редове, за да изберете няколко.</string>
     <string name="reorder_hint_move">Преместете го с ↑ и ↓, след което натиснете OK, за да го пуснете.</string>
-    <string name="reorder_hint_all">Първо отворете категория, за да пренаредите каналите ѝ.</string>
-    <string name="reorder_hint_mark">Задръжте OK върху редове, за да отбележите няколко и да ги преместите заедно.</string>
-    <string name="reorder_hint_marked">Отбелязани: %1$d. Натиснете OK върху един от тях, за да ги вземете заедно.</string>
+    <string name="reorder_hint_all">Първо отворете категория, за да пренаредите каналите ѝ, или натиснете OK върху категория, за да я изберете.</string>
+    <string name="reorder_hint_marked">Избрани: %1$d. Натиснете OK върху един от тях, за да ги преместите заедно.</string>
     <string name="reorder_failed">Редът не можа да се запази. Опитайте отново.</string>
     <string name="reorder_move_up">Преместване нагоре</string>
     <string name="reorder_move_down">Преместване надолу</string>

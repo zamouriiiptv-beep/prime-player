@@ -129,11 +129,10 @@
     <string name="reorder_entry">排序</string>
     <string name="reorder_save">儲存</string>
     <string name="reorder_cancel">取消</string>
-    <string name="reorder_hint_pick">在分類或頻道上按「確定」鍵即可拿起。</string>
+    <string name="reorder_hint_pick">按「確定」鍵選取分類或頻道；長按「確定」鍵可選取多個項目。</string>
     <string name="reorder_hint_move">用 ↑ 和 ↓ 移動，再按「確定」放下。</string>
-    <string name="reorder_hint_all">請先開啟一個分類，再調整其中頻道的順序。</string>
-    <string name="reorder_hint_mark">在多個項目上長按 OK 可勾選，並一起移動。</string>
-    <string name="reorder_hint_marked">已勾選：%1$d。對其中一項按 OK，即可一起拿起。</string>
+    <string name="reorder_hint_all">請先開啟一個分類，再調整其中頻道的順序；或對分類按「確定」鍵將其選取。</string>
+    <string name="reorder_hint_marked">已選取：%1$d。對其中一項按「確定」鍵，即可一起移動。</string>
     <string name="reorder_failed">無法儲存順序，請再試一次。</string>
     <string name="reorder_move_up">上移</string>
     <string name="reorder_move_down">下移</string>

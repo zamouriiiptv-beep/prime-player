@@ -3523,13 +3523,13 @@ private fun LiveBadge(m: ChannelsMetrics) {
  * **In amber, with a hairline of it after the date**, so that where a day begins is found at a glance while the list is
  * scrolled, and the programmes of a later day are told from today's. Amber because the guide's other colours are taken --
  * green is the programme on now, blue and violet the selection -- and nothing else on this list is amber; it is the guide's
- * `hueAmber` lifted [DAY_INK_LIFT] of the way to white, as the sky blue of Catch-up's counts is lifted from its azure. The
+ * `hueAmber` lifted [AMBER_INK_LIFT] of the way to white, as the sky blue of Catch-up's counts is lifted from its azure. The
  * rows between two headings stay the quiet grey they were. Drawn first in `design/mockups/guide-date-colours-ar.html`.
  */
 @Composable
 private fun DayHeading(startOfDayMs: Long, m: ChannelsMetrics) {
     val colors = CastivioTheme.colors
-    val ink = lerp(colors.hueAmber, colors.onBackgroundStrong, DAY_INK_LIFT)
+    val ink = lerp(colors.hueAmber, colors.onBackgroundStrong, AMBER_INK_LIFT)
     Row(
         modifier = Modifier.fillMaxWidth().padding(top = m.guideGap, bottom = m.badgePadV),
         verticalAlignment = Alignment.CenterVertically,
@@ -3545,8 +3545,11 @@ private fun DayHeading(startOfDayMs: Long, m: ChannelsMetrics) {
     }
 }
 
-/** How far the day headings' amber is lifted toward white: the mockup's `#FFC85C` against the token's `#FFB020`. */
-private const val DAY_INK_LIFT = 0.28f
+/**
+ * How far the board's amber ink is lifted toward white: the mockup's `#FFC85C` against the token's `#FFB020`. The day headings
+ * of the guide and the word of the reorder band are drawn in it, which is why it is one number and not two.
+ */
+internal const val AMBER_INK_LIFT = 0.28f
 
 /** The hairline after a day heading, in the heading's own colour. */
 private const val DAY_RULE_ALPHA = 0.38f

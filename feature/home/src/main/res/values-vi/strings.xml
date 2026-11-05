@@ -129,11 +129,10 @@
     <string name="reorder_entry">Sắp xếp</string>
     <string name="reorder_save">Lưu</string>
     <string name="reorder_cancel">Hủy</string>
-    <string name="reorder_hint_pick">Nhấn OK trên danh mục hoặc kênh để nhấc lên.</string>
+    <string name="reorder_hint_pick">Nhấn OK để chọn danh mục hoặc kênh; giữ OK để chọn nhiều dòng.</string>
     <string name="reorder_hint_move">Di chuyển bằng ↑ và ↓, rồi nhấn OK để đặt xuống.</string>
-    <string name="reorder_hint_all">Hãy mở một danh mục trước để sắp xếp lại các kênh của nó.</string>
-    <string name="reorder_hint_mark">Giữ OK trên các dòng để đánh dấu nhiều dòng và di chuyển cùng nhau.</string>
-    <string name="reorder_hint_marked">Đã đánh dấu: %1$d. Nhấn OK trên một dòng để nhấc tất cả cùng nhau.</string>
+    <string name="reorder_hint_all">Hãy mở một danh mục trước để sắp xếp lại các kênh của nó, hoặc nhấn OK trên danh mục để chọn.</string>
+    <string name="reorder_hint_marked">Đã chọn: %1$d. Nhấn OK trên một dòng để di chuyển tất cả cùng nhau.</string>
     <string name="reorder_failed">Không lưu được thứ tự. Hãy thử lại.</string>
     <string name="reorder_move_up">Di chuyển lên</string>
     <string name="reorder_move_down">Di chuyển xuống</string>

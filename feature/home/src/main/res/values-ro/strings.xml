@@ -129,11 +129,10 @@
     <string name="reorder_entry">Ordine</string>
     <string name="reorder_save">Salvează</string>
     <string name="reorder_cancel">Anulare</string>
-    <string name="reorder_hint_pick">Apasă OK pe o categorie sau un canal pentru a-l ridica.</string>
+    <string name="reorder_hint_pick">Apasă OK pentru a selecta o categorie sau un canal; ține apăsat OK pentru a selecta mai multe rânduri.</string>
     <string name="reorder_hint_move">Mută-l cu ↑ și ↓, apoi apasă OK pentru a-l lăsa jos.</string>
-    <string name="reorder_hint_all">Deschide mai întâi o categorie pentru a-i reordona canalele.</string>
-    <string name="reorder_hint_mark">Țineți apăsat OK pe rânduri pentru a bifa mai multe și a le muta împreună.</string>
-    <string name="reorder_hint_marked">Bifate: %1$d. Apăsați OK pe unul dintre ele pentru a le ridica împreună.</string>
+    <string name="reorder_hint_all">Deschide mai întâi o categorie pentru a-i reordona canalele sau apasă OK pe o categorie pentru a o selecta.</string>
+    <string name="reorder_hint_marked">Selectate: %1$d. Apasă OK pe unul dintre ele pentru a le muta împreună.</string>
     <string name="reorder_failed">Ordinea nu a putut fi salvată. Încearcă din nou.</string>
     <string name="reorder_move_up">Mută în sus</string>
     <string name="reorder_move_down">Mută în jos</string>

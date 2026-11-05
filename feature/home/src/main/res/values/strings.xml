@@ -289,11 +289,10 @@
     <string name="reorder_entry">Reorder</string>
     <string name="reorder_save">Save</string>
     <string name="reorder_cancel">Cancel</string>
-    <string name="reorder_hint_pick">Press OK on a category or a channel to pick it up.</string>
+    <string name="reorder_hint_pick">Press OK to select a category or channel; hold OK to select several rows.</string>
     <string name="reorder_hint_move">Move it with ↑ and ↓, then press OK to put it down.</string>
-    <string name="reorder_hint_all">Open a category first to reorder its channels.</string>
-    <string name="reorder_hint_mark">Hold OK on rows to tick several and move them together.</string>
-    <string name="reorder_hint_marked">Ticked: %1$d. Press OK on one of them to pick them up together.</string>
+    <string name="reorder_hint_all">Open a category first to reorder its channels, or press OK on a category to select it.</string>
+    <string name="reorder_hint_marked">Selected: %1$d. Press OK on one of them to move them together.</string>
     <string name="reorder_failed">Couldn\'t save the order. Try again.</string>
     <string name="reorder_move_up">Move up</string>
     <string name="reorder_move_down">Move down</string>

@@ -129,11 +129,10 @@
     <string name="reorder_entry">並べ替え</string>
     <string name="reorder_save">保存</string>
     <string name="reorder_cancel">キャンセル</string>
-    <string name="reorder_hint_pick">カテゴリーまたはチャンネルで OK を押して持ち上げます。</string>
+    <string name="reorder_hint_pick">OK を押してカテゴリーまたはチャンネルを選択します。OK を長押しすると複数の行を選択できます。</string>
     <string name="reorder_hint_move">↑ と ↓ で動かし、OK を押して置きます。</string>
-    <string name="reorder_hint_all">チャンネルを並べ替えるには、先にカテゴリーを開いてください。</string>
-    <string name="reorder_hint_mark">複数の行で OK を長押しして選択し、まとめて移動します。</string>
-    <string name="reorder_hint_marked">選択中：%1$d。そのうち1つで OK を押すと、まとめて持ち上げます。</string>
+    <string name="reorder_hint_all">チャンネルを並べ替えるには、先にカテゴリーを開くか、カテゴリーで OK を押して選択してください。</string>
+    <string name="reorder_hint_marked">選択中：%1$d。そのうち1つで OK を押すと、まとめて移動します。</string>
     <string name="reorder_failed">順序を保存できませんでした。もう一度お試しください。</string>
     <string name="reorder_move_up">上へ移動</string>
     <string name="reorder_move_down">下へ移動</string>

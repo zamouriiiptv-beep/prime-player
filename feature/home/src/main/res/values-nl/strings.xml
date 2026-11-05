@@ -129,11 +129,10 @@
     <string name="reorder_entry">Ordenen</string>
     <string name="reorder_save">Opslaan</string>
     <string name="reorder_cancel">Annuleren</string>
-    <string name="reorder_hint_pick">Druk op OK bij een categorie of zender om hem op te pakken.</string>
+    <string name="reorder_hint_pick">Druk op OK om een categorie of zender te selecteren; houd OK ingedrukt om meer rijen te selecteren.</string>
     <string name="reorder_hint_move">Verplaats hem met ↑ en ↓ en druk op OK om hem neer te zetten.</string>
-    <string name="reorder_hint_all">Open eerst een categorie om de zenders ervan opnieuw te ordenen.</string>
-    <string name="reorder_hint_mark">Houd OK ingedrukt op rijen om er meer te markeren en samen te verplaatsen.</string>
-    <string name="reorder_hint_marked">Gemarkeerd: %1$d. Druk op OK op een ervan om ze samen op te pakken.</string>
+    <string name="reorder_hint_all">Open eerst een categorie om de zenders ervan opnieuw te ordenen, of druk op OK op een categorie om die te selecteren.</string>
+    <string name="reorder_hint_marked">Geselecteerd: %1$d. Druk op OK op een ervan om ze samen te verplaatsen.</string>
     <string name="reorder_failed">De volgorde kon niet worden opgeslagen. Probeer het opnieuw.</string>
     <string name="reorder_move_up">Omhoog</string>
     <string name="reorder_move_down">Omlaag</string>

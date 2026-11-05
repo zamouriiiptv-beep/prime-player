@@ -129,11 +129,10 @@
     <string name="reorder_entry">Järjestä</string>
     <string name="reorder_save">Tallenna</string>
     <string name="reorder_cancel">Peruuta</string>
-    <string name="reorder_hint_pick">Nosta luokka tai kanava painamalla OK.</string>
+    <string name="reorder_hint_pick">Valitse luokka tai kanava painamalla OK; valitse useita rivejä pitämällä OK painettuna.</string>
     <string name="reorder_hint_move">Siirrä sitä painikkeilla ↑ ja ↓ ja laske se painamalla OK.</string>
-    <string name="reorder_hint_all">Avaa ensin luokka, jotta voit järjestää sen kanavat.</string>
-    <string name="reorder_hint_mark">Pidä OK painettuna riveillä valitaksesi useita ja siirtääksesi ne yhdessä.</string>
-    <string name="reorder_hint_marked">Valittu: %1$d. Paina OK yhdellä niistä nostaaksesi ne yhdessä.</string>
+    <string name="reorder_hint_all">Avaa ensin luokka, jotta voit järjestää sen kanavat, tai valitse luokka painamalla OK.</string>
+    <string name="reorder_hint_marked">Valittu: %1$d. Siirrä ne yhdessä painamalla OK jollakin niistä.</string>
     <string name="reorder_failed">Järjestystä ei voitu tallentaa. Yritä uudelleen.</string>
     <string name="reorder_move_up">Siirrä ylös</string>
     <string name="reorder_move_down">Siirrä alas</string>

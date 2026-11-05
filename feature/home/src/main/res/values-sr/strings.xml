@@ -129,11 +129,10 @@
     <string name="reorder_entry">Редослед</string>
     <string name="reorder_save">Сачувај</string>
     <string name="reorder_cancel">Откажи</string>
-    <string name="reorder_hint_pick">Притисните OK на категорији или каналу да бисте га подигли.</string>
+    <string name="reorder_hint_pick">Притисните OK да бисте изабрали категорију или канал; држите OK да изаберете више редова.</string>
     <string name="reorder_hint_move">Померите га стрелицама ↑ и ↓, а затим притисните OK да бисте га спустили.</string>
-    <string name="reorder_hint_all">Прво отворите категорију да бисте променили редослед њених канала.</string>
-    <string name="reorder_hint_mark">Држите OK на редовима да означите више њих и преместите их заједно.</string>
-    <string name="reorder_hint_marked">Означено: %1$d. Притисните OK на једном од њих да их подигнете заједно.</string>
+    <string name="reorder_hint_all">Прво отворите категорију да бисте променили редослед њених канала или притисните OK на категорији да је изаберете.</string>
+    <string name="reorder_hint_marked">Изабрано: %1$d. Притисните OK на једном од њих да их преместите заједно.</string>
     <string name="reorder_failed">Редослед није сачуван. Покушајте поново.</string>
     <string name="reorder_move_up">Помери горе</string>
     <string name="reorder_move_down">Помери доле</string>

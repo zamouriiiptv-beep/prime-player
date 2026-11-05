@@ -129,11 +129,10 @@
     <string name="reorder_entry">Kolejność</string>
     <string name="reorder_save">Zapisz</string>
     <string name="reorder_cancel">Anuluj</string>
-    <string name="reorder_hint_pick">Naciśnij OK na kategorii lub kanale, aby go podnieść.</string>
+    <string name="reorder_hint_pick">Naciśnij OK, aby wybrać kategorię lub kanał; przytrzymaj OK, aby wybrać kilka wierszy.</string>
     <string name="reorder_hint_move">Przesuń go przyciskami ↑ i ↓, a potem naciśnij OK, aby go odłożyć.</string>
-    <string name="reorder_hint_all">Najpierw otwórz kategorię, aby zmienić kolejność jej kanałów.</string>
-    <string name="reorder_hint_mark">Przytrzymaj OK na wierszach, aby zaznaczyć kilka i przenieść je razem.</string>
-    <string name="reorder_hint_marked">Zaznaczono: %1$d. Naciśnij OK na jednym z nich, aby podnieść je razem.</string>
+    <string name="reorder_hint_all">Najpierw otwórz kategorię, aby zmienić kolejność jej kanałów, albo naciśnij OK na kategorii, aby ją wybrać.</string>
+    <string name="reorder_hint_marked">Wybrano: %1$d. Naciśnij OK na jednym z nich, aby przenieść je razem.</string>
     <string name="reorder_failed">Nie udało się zapisać kolejności. Spróbuj ponownie.</string>
     <string name="reorder_move_up">Przesuń w górę</string>
     <string name="reorder_move_down">Przesuń w dół</string>

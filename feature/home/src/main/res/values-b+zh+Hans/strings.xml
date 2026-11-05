@@ -129,11 +129,10 @@
     <string name="reorder_entry">排序</string>
     <string name="reorder_save">保存</string>
     <string name="reorder_cancel">取消</string>
-    <string name="reorder_hint_pick">在分类或频道上按“确定”键将其拿起。</string>
+    <string name="reorder_hint_pick">按“确定”键选择分类或频道；长按“确定”键可选择多行。</string>
     <string name="reorder_hint_move">用 ↑ 和 ↓ 移动，再按“确定”放下。</string>
-    <string name="reorder_hint_all">请先打开一个分类，再调整其中频道的顺序。</string>
-    <string name="reorder_hint_mark">在多个行上长按 OK 可勾选，并一起移动。</string>
-    <string name="reorder_hint_marked">已勾选：%1$d。对其中一项按 OK，即可一起拿起。</string>
+    <string name="reorder_hint_all">请先打开一个分类，再调整其中频道的顺序；或对分类按“确定”键将其选中。</string>
+    <string name="reorder_hint_marked">已选择：%1$d。对其中一项按“确定”键，即可一起移动。</string>
     <string name="reorder_failed">无法保存顺序，请重试。</string>
     <string name="reorder_move_up">上移</string>
     <string name="reorder_move_down">下移</string>

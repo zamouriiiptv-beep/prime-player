@@ -129,11 +129,10 @@
     <string name="reorder_entry">Sırala</string>
     <string name="reorder_save">Kaydet</string>
     <string name="reorder_cancel">İptal</string>
-    <string name="reorder_hint_pick">Bir kategoriyi veya kanalı almak için üzerinde OK’a basın.</string>
+    <string name="reorder_hint_pick">Bir kategori veya kanalı seçmek için OK’a basın; birden çok satırı seçmek için OK tuşunu basılı tutun.</string>
     <string name="reorder_hint_move">↑ ve ↓ ile taşıyın, bırakmak için OK’a basın.</string>
-    <string name="reorder_hint_all">Kanallarını yeniden sıralamak için önce bir kategori açın.</string>
-    <string name="reorder_hint_mark">Birden çok satırı işaretleyip birlikte taşımak için satırlarda OK tuşunu basılı tutun.</string>
-    <string name="reorder_hint_marked">İşaretli: %1$d. Birlikte almak için bunlardan birinde OK tuşuna basın.</string>
+    <string name="reorder_hint_all">Kanallarını yeniden sıralamak için önce bir kategori açın veya bir kategoriyi seçmek için üzerinde OK’a basın.</string>
+    <string name="reorder_hint_marked">Seçili: %1$d. Birlikte taşımak için bunlardan birinde OK tuşuna basın.</string>
     <string name="reorder_failed">Sıralama kaydedilemedi. Tekrar deneyin.</string>
     <string name="reorder_move_up">Yukarı taşı</string>
     <string name="reorder_move_down">Aşağı taşı</string>

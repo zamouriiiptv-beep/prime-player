@@ -129,11 +129,10 @@
     <string name="reorder_entry">Poradie</string>
     <string name="reorder_save">Uložiť</string>
     <string name="reorder_cancel">Zrušiť</string>
-    <string name="reorder_hint_pick">Stlačením OK na kategórii alebo kanáli ho zdvihnete.</string>
+    <string name="reorder_hint_pick">Stlačením OK vyberiete kategóriu alebo kanál; podržaním OK vyberiete viac riadkov.</string>
     <string name="reorder_hint_move">Presuňte ho pomocou ↑ a ↓ a stlačením OK ho položíte.</string>
-    <string name="reorder_hint_all">Najprv otvorte kategóriu, aby ste mohli zmeniť poradie jej kanálov.</string>
-    <string name="reorder_hint_mark">Podržte OK na riadkoch, aby ste ich označili viac a presunuli spolu.</string>
-    <string name="reorder_hint_marked">Označené: %1$d. Stlačte OK na jednom z nich a zdvihnete ich spolu.</string>
+    <string name="reorder_hint_all">Najprv otvorte kategóriu, aby ste mohli zmeniť poradie jej kanálov, alebo kategóriu vyberiete stlačením OK.</string>
+    <string name="reorder_hint_marked">Vybrané: %1$d. Stlačte OK na jednom z nich a presuniete ich spolu.</string>
     <string name="reorder_failed">Poradie sa nepodarilo uložiť. Skúste to znova.</string>
     <string name="reorder_move_up">Posunúť nahor</string>
     <string name="reorder_move_down">Posunúť nadol</string>

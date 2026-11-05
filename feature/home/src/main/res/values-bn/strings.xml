@@ -129,11 +129,10 @@
     <string name="reorder_entry">ক্রম</string>
     <string name="reorder_save">সংরক্ষণ</string>
     <string name="reorder_cancel">বাতিল</string>
-    <string name="reorder_hint_pick">কোনো বিভাগ বা চ্যানেল তুলে নিতে সেটিতে OK চাপুন।</string>
+    <string name="reorder_hint_pick">কোনো বিভাগ বা চ্যানেল বেছে নিতে OK চাপুন; একাধিক সারি বাছতে OK চেপে ধরে রাখুন।</string>
     <string name="reorder_hint_move">↑ ও ↓ দিয়ে সরান, তারপর নামিয়ে রাখতে OK চাপুন।</string>
-    <string name="reorder_hint_all">চ্যানেলের ক্রম বদলাতে আগে একটি বিভাগ খুলুন।</string>
-    <string name="reorder_hint_mark">একাধিক সারি বেছে একসঙ্গে সরাতে সারিতে OK চেপে ধরে রাখুন।</string>
-    <string name="reorder_hint_marked">বাছাই করা: %1$d। একসঙ্গে তুলতে এর একটিতে OK চাপুন।</string>
+    <string name="reorder_hint_all">চ্যানেলের ক্রম বদলাতে আগে একটি বিভাগ খুলুন, অথবা কোনো বিভাগ বাছতে তাতে OK চাপুন।</string>
+    <string name="reorder_hint_marked">বাছাই করা: %1$d। একসঙ্গে সরাতে এর একটিতে OK চাপুন।</string>
     <string name="reorder_failed">ক্রম সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।</string>
     <string name="reorder_move_up">উপরে সরান</string>
     <string name="reorder_move_down">নিচে সরান</string>

@@ -129,11 +129,10 @@
     <string name="reorder_entry">Ordne</string>
     <string name="reorder_save">Gem</string>
     <string name="reorder_cancel">Annullér</string>
-    <string name="reorder_hint_pick">Tryk på OK på en kategori eller en kanal for at samle den op.</string>
+    <string name="reorder_hint_pick">Tryk på OK for at vælge en kategori eller kanal; hold OK nede for at vælge flere rækker.</string>
     <string name="reorder_hint_move">Flyt den med ↑ og ↓, og tryk derefter på OK for at sætte den ned.</string>
-    <string name="reorder_hint_all">Åbn først en kategori for at omarrangere dens kanaler.</string>
-    <string name="reorder_hint_mark">Hold OK nede på rækker for at markere flere og flytte dem sammen.</string>
-    <string name="reorder_hint_marked">Markeret: %1$d. Tryk på OK på en af dem for at løfte dem sammen.</string>
+    <string name="reorder_hint_all">Åbn først en kategori for at omarrangere dens kanaler, eller tryk på OK på en kategori for at vælge den.</string>
+    <string name="reorder_hint_marked">Valgt: %1$d. Tryk på OK på en af dem for at flytte dem sammen.</string>
     <string name="reorder_failed">Rækkefølgen kunne ikke gemmes. Prøv igen.</string>
     <string name="reorder_move_up">Flyt op</string>
     <string name="reorder_move_down">Flyt ned</string>

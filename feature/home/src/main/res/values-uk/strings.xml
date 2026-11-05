@@ -129,11 +129,10 @@
     <string name="reorder_entry">Порядок</string>
     <string name="reorder_save">Зберегти</string>
     <string name="reorder_cancel">Скасувати</string>
-    <string name="reorder_hint_pick">Натисніть OK на категорії або каналі, щоб узяти його.</string>
+    <string name="reorder_hint_pick">Натисніть OK, щоб вибрати категорію або канал; утримуйте OK, щоб вибрати кілька рядків.</string>
     <string name="reorder_hint_move">Пересувайте клавішами ↑ і ↓, потім натисніть OK, щоб відпустити.</string>
-    <string name="reorder_hint_all">Спочатку відкрийте категорію, щоб змінити порядок її каналів.</string>
-    <string name="reorder_hint_mark">Утримуйте OK на рядках, щоб позначити кілька й переміщувати їх разом.</string>
-    <string name="reorder_hint_marked">Позначено: %1$d. Натисніть OK на одному з них, щоб узяти всі разом.</string>
+    <string name="reorder_hint_all">Спочатку відкрийте категорію, щоб змінити порядок її каналів, або натисніть OK на категорії, щоб вибрати її.</string>
+    <string name="reorder_hint_marked">Вибрано: %1$d. Натисніть OK на одному з них, щоб перемістити всі разом.</string>
     <string name="reorder_failed">Не вдалося зберегти порядок. Спробуйте ще раз.</string>
     <string name="reorder_move_up">Перемістити вгору</string>
     <string name="reorder_move_down">Перемістити вниз</string>

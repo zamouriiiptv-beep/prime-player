@@ -377,7 +377,7 @@ class ReorderModeTest {
     }
 
     private fun barOrder(): List<Float> = listOf(
-        compose.onNodeWithText("Press OK on a category or a channel to pick it up.").getUnclippedBoundsInRoot().left.value,
+        compose.onNodeWithText(PICK).getUnclippedBoundsInRoot().left.value,
         compose.onNodeWithText("Cancel").getUnclippedBoundsInRoot().left.value,
         compose.onNodeWithText("Save").getUnclippedBoundsInRoot().left.value,
     )
@@ -404,26 +404,60 @@ class ReorderModeTest {
     }
 
     @Test
-    fun `with nothing held the bar says what to pick up`() {
+    fun `with nothing held the bar says how to select`() {
         showBar(mode())
 
-        compose.onNode(hasText("Press OK on a category or a channel to pick it up.")).assertExists()
-        compose.onNode(hasText("Open a category first to reorder its channels.")).assertDoesNotExist()
+        compose.onNode(hasText(PICK)).assertExists()
+        compose.onNode(hasText("Open a category first to reorder its channels, or press OK on a category to select it.")).assertDoesNotExist()
     }
 
     @Test
     fun `with something held the bar says how to move it`() {
         showBar(mode(held = Held.Channel("c1")))
 
-        compose.onNode(hasText("Move it with ↑ and ↓, then press OK to put it down.")).assertExists()
-        compose.onNode(hasText("Press OK on a category or a channel to pick it up.")).assertDoesNotExist()
+        compose.onNode(hasText(MOVE)).assertExists()
+        compose.onNode(hasText(PICK)).assertDoesNotExist()
     }
 
     @Test
     fun `with all open the bar says the channels need a category`() {
         showBar(mode(channelsOf = null))
 
-        compose.onNode(hasText("Open a category first to reorder its channels.")).assertExists()
+        compose.onNode(hasText("Open a category first to reorder its channels, or press OK on a category to select it.")).assertExists()
+        compose.onNode(hasText(PICK)).assertDoesNotExist()
+    }
+
+    @Test
+    fun `with rows ticked the bar counts them and says what OK does`() {
+        showBar(mode().copy(marked = setOf(Held.Channel("c1"), Held.Channel("c2"))))
+
+        compose.onNode(hasText("Selected: 2. Press OK on one of them to move them together.")).assertExists()
+        compose.onNode(hasText(PICK)).assertDoesNotExist()
+    }
+
+    @Test
+    fun `the bar says one thing at a time, and the word that names the mode stays`() {
+        showBar(mode(held = Held.Channel("c1")))
+
+        compose.onNodeWithText("Reorder").assertExists()
+        compose.onNode(hasText(MOVE)).assertExists()
+        compose.onNode(hasText(PICK)).assertDoesNotExist()
+        compose.onNode(hasText("Open a category first to reorder its channels, or press OK on a category to select it.")).assertDoesNotExist()
+    }
+
+    @Test
+    fun `the hint stays on one line however narrow the room`() {
+        val m = channelsMetricsFor(tv = false, width = 360.dp, height = 640.dp)
+        compose.setContent {
+            CastivioTheme {
+                ReorderBar(mode = mode(), m = m, onSave = {}, onCancel = {})
+            }
+        }
+        compose.waitForIdle()
+
+        // Two lines of type are over twice its size; one is under. The sentence is longer than 360dp has room for.
+        val high = compose.onNode(hasText(PICK)).getUnclippedBoundsInRoot().height.value
+        assertTrue("the hint is $high dp high with a type size of ${m.frame.fsBody.value}", high < m.frame.fsBody.value * 2f)
     }
 
     @Test
@@ -449,7 +483,13 @@ class ReorderModeTest {
         showBar(mode().copy(failed = true))
 
         compose.onNode(hasText("Couldn't save the order. Try again.")).assertExists()
+        compose.onNode(hasText(PICK)).assertDoesNotExist()
         compose.onNodeWithText("Cancel").assertIsEnabled()
         compose.onNodeWithText("Save").assertIsEnabled()
+    }
+
+    private companion object {
+        const val PICK = "Press OK to select a category or channel; hold OK to select several rows."
+        const val MOVE = "Move it with ↑ and ↓, then press OK to put it down."
     }
 }

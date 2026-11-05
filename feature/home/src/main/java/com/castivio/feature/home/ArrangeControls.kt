@@ -6,11 +6,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -181,21 +183,23 @@ internal suspend fun LazyListState.keepInView(index: Int) {
 }
 
 /**
- * The band over the board while it is in reorder mode: what the mode is, what to press, and the
- * two ways out.
+ * The band over the board while it is in reorder mode: what the mode is, the one thing to do now, and the two ways out -- on
+ * one row.
  *
- * It says which of the two things is happening -- nothing picked up, or something -- because the
- * same arrow keys do different things in each, and a mode whose keys change meaning without a
- * word is not one a viewer can use from the sofa. Save and Cancel are always here, in the
- * system's own buttons, and neither is more than one press from anywhere on the board. A failed
- * save is said in the same place the hint is, where the eye already is.
+ * It said everything that was true in five lines, 109dp of a 385dp screen, and the board under it lost two channels and a
+ * bouquet for the sake of sentences that were mostly not about the viewer's next press. Now it says one -- [hint] chooses it --
+ * and cuts it with an ellipsis rather than wrapping it. Save and Cancel keep the size they have: a touch target does not
+ * shrink to make a band shorter, so the band is their height and a hair more.
  *
- * **Laid out left to right in every language, like the band above it and the columns under it.**
- * It sits between the two, and it used to follow the reader's direction while they did not: in
- * Arabic the buttons went to the far left, over the bouquets, and the hint to the right, over the
- * picture -- the one strip of the board that moved when the language did. Now nothing moves; the
- * hint is shaped by its own script inside its cell, as every other line on the board is, and Save
- * and Cancel stay at the trailing end, over the list and the picture they act on.
+ * The word that names the mode is amber, the board's one amber (see [AMBER_INK_LIFT]) and not the violet of "Live TV" above it:
+ * two words of one colour, one over the other, read as a single label. Drawn first in
+ * `design/mockups/channels-arrange-bar-ar.html`.
+ *
+ * **Laid out left to right in every language, like the band above it and the columns under it.** It sits between the two, and
+ * it used to follow the reader's direction while they did not: in Arabic the buttons went to the far left, over the bouquets,
+ * and the hint to the right, over the picture -- the one strip of the board that moved when the language did. Now nothing
+ * moves; the hint is shaped by its own script inside its cell, as every other line on the board is, and Save and Cancel stay
+ * at the trailing end, over the list and the picture they act on.
  */
 @Composable
 internal fun ReorderBar(
@@ -207,6 +211,8 @@ internal fun ReorderBar(
 ) {
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(m.previewRadius)
+    val label = lerp(colors.hueAmber, colors.onBackgroundStrong, AMBER_INK_LIFT)
+    val hint = mode.hint()
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Row(
@@ -220,57 +226,36 @@ internal fun ReorderBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(m.factGap),
         ) {
-            Column(Modifier.weight(1f)) {
+            Row(
+                Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(m.factGap),
+            ) {
                 Text(
                     text = stringResource(R.string.reorder_entry),
                     style = castivioChipStyle(m.frame.fsLabel),
-                    color = colors.secondary,
+                    color = label,
+                    maxLines = 1,
+                )
+                Box(Modifier.width(1.dp).height(m.frame.fsBody * HINT_RULE_OF_BODY).background(colors.glassBorder))
+                Text(
+                    text = when (hint) {
+                        ReorderHint.Failed -> stringResource(R.string.reorder_failed)
+                        ReorderHint.Move -> stringResource(R.string.reorder_hint_move)
+                        is ReorderHint.Marked -> stringResource(R.string.reorder_hint_marked, hint.count)
+                        ReorderHint.AllOpen -> stringResource(R.string.reorder_hint_all)
+                        ReorderHint.Pick -> stringResource(R.string.reorder_hint_pick)
+                    },
+                    style = castivioBodyStyle(m.frame.fsBody),
+                    color = when (hint) {
+                        ReorderHint.Failed -> colors.danger
+                        ReorderHint.AllOpen -> colors.onBackgroundMuted
+                        else -> colors.onBackground
+                    },
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
                 )
-                Text(
-                    text = stringResource(if (mode.held == null) R.string.reorder_hint_pick else R.string.reorder_hint_move),
-                    style = castivioBodyStyle(m.frame.fsBody),
-                    color = colors.onBackground,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                // Moving several at once, said once and where the eye already is: how to tick, and -- with ticks --
-                // what the next press does. Nothing about it while something is picked up: the line above says
-                // what the arrows do, and a group moves by them like one row.
-                if (mode.held == null) {
-                    Text(
-                        text = if (mode.marked.isEmpty()) {
-                            stringResource(R.string.reorder_hint_mark)
-                        } else {
-                            stringResource(R.string.reorder_hint_marked, mode.marked.size)
-                        },
-                        style = castivioBodyStyle(m.frame.fsBody),
-                        color = colors.onBackgroundMuted,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                // With "all" open there is no bouquet whose channels could be moved, and the bouquets
-                // are the only thing that can: said once, while nothing is held, so it is read.
-                if (mode.channelsOf == null && mode.held == null) {
-                    Text(
-                        text = stringResource(R.string.reorder_hint_all),
-                        style = castivioBodyStyle(m.frame.fsBody),
-                        color = colors.onBackgroundMuted,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                if (mode.failed) {
-                    Text(
-                        text = stringResource(R.string.reorder_failed),
-                        style = castivioBodyStyle(m.frame.fsBody),
-                        color = colors.danger,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
             }
             CastivioButton(
                 text = stringResource(R.string.reorder_cancel),
@@ -286,6 +271,9 @@ internal fun ReorderBar(
         }
     }
 }
+
+/** The rule between the band's word and its hint, as a share of the hint's type size: a little taller than a line of it. */
+private const val HINT_RULE_OF_BODY = 1.3f
 
 /** A tap on a held row, as a share of the row: big enough for a thumb, small enough to stay inside it. */
 internal const val ARROW_OF_ROW = 0.8f

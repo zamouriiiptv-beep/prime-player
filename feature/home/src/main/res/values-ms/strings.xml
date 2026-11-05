@@ -129,11 +129,10 @@
     <string name="reorder_entry">Susun</string>
     <string name="reorder_save">Simpan</string>
     <string name="reorder_cancel">Batal</string>
-    <string name="reorder_hint_pick">Tekan OK pada kategori atau saluran untuk mengangkatnya.</string>
+    <string name="reorder_hint_pick">Tekan OK untuk memilih kategori atau saluran; tekan lama OK untuk memilih beberapa baris.</string>
     <string name="reorder_hint_move">Alihkannya dengan ↑ dan ↓, kemudian tekan OK untuk meletakkannya.</string>
-    <string name="reorder_hint_all">Buka kategori dahulu untuk menyusun semula salurannya.</string>
-    <string name="reorder_hint_mark">Tekan lama OK pada beberapa baris untuk menanda dan menggerakkannya bersama.</string>
-    <string name="reorder_hint_marked">Ditanda: %1$d. Tekan OK pada salah satunya untuk mengangkat semuanya bersama.</string>
+    <string name="reorder_hint_all">Buka kategori dahulu untuk menyusun semula salurannya, atau tekan OK pada kategori untuk memilihnya.</string>
+    <string name="reorder_hint_marked">Dipilih: %1$d. Tekan OK pada salah satunya untuk menggerakkan semuanya bersama.</string>
     <string name="reorder_failed">Susunan tidak dapat disimpan. Cuba lagi.</string>
     <string name="reorder_move_up">Alih ke atas</string>
     <string name="reorder_move_down">Alih ke bawah</string>

@@ -129,11 +129,10 @@
     <string name="reorder_entry">เรียงลำดับ</string>
     <string name="reorder_save">บันทึก</string>
     <string name="reorder_cancel">ยกเลิก</string>
-    <string name="reorder_hint_pick">กด OK ที่หมวดหรือช่องเพื่อหยิบขึ้นมา</string>
+    <string name="reorder_hint_pick">กด OK เพื่อเลือกหมวดหรือช่อง กด OK ค้างเพื่อเลือกหลายแถว</string>
     <string name="reorder_hint_move">เลื่อนด้วย ↑ และ ↓ แล้วกด OK เพื่อวางลง</string>
-    <string name="reorder_hint_all">เปิดหมวดก่อนเพื่อจัดลำดับช่องในหมวดนั้น</string>
-    <string name="reorder_hint_mark">กด OK ค้างบนแถวเพื่อเลือกหลายรายการและย้ายไปด้วยกัน</string>
-    <string name="reorder_hint_marked">เลือกแล้ว: %1$d กด OK บนรายการใดรายการหนึ่งเพื่อยกขึ้นพร้อมกัน</string>
+    <string name="reorder_hint_all">เปิดหมวดก่อนเพื่อจัดลำดับช่องในหมวดนั้น หรือกด OK บนหมวดเพื่อเลือก</string>
+    <string name="reorder_hint_marked">เลือกแล้ว: %1$d กด OK บนรายการใดรายการหนึ่งเพื่อย้ายพร้อมกัน</string>
     <string name="reorder_failed">บันทึกลำดับไม่สำเร็จ ลองอีกครั้ง</string>
     <string name="reorder_move_up">เลื่อนขึ้น</string>
     <string name="reorder_move_down">เลื่อนลง</string>

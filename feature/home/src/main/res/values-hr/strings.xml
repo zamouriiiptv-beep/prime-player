@@ -129,11 +129,10 @@
     <string name="reorder_entry">Poredak</string>
     <string name="reorder_save">Spremi</string>
     <string name="reorder_cancel">Odustani</string>
-    <string name="reorder_hint_pick">Pritisnite OK na kategoriji ili kanalu da biste ga podigli.</string>
+    <string name="reorder_hint_pick">Pritisnite OK za odabir kategorije ili kanala; držite OK za odabir više redaka.</string>
     <string name="reorder_hint_move">Premjestite ga strelicama ↑ i ↓, a zatim pritisnite OK da biste ga spustili.</string>
-    <string name="reorder_hint_all">Prvo otvorite kategoriju da biste promijenili redoslijed njezinih kanala.</string>
-    <string name="reorder_hint_mark">Držite OK na recima da biste označili više njih i premjestili ih zajedno.</string>
-    <string name="reorder_hint_marked">Označeno: %1$d. Pritisnite OK na jednom od njih da ih podignete zajedno.</string>
+    <string name="reorder_hint_all">Prvo otvorite kategoriju da biste promijenili redoslijed njezinih kanala ili pritisnite OK na kategoriji da je odaberete.</string>
+    <string name="reorder_hint_marked">Odabrano: %1$d. Pritisnite OK na jednom od njih da ih premjestite zajedno.</string>
     <string name="reorder_failed">Redoslijed nije spremljen. Pokušajte ponovno.</string>
     <string name="reorder_move_up">Premjesti gore</string>
     <string name="reorder_move_down">Premjesti dolje</string>

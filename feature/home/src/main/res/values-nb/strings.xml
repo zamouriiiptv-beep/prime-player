@@ -129,11 +129,10 @@
     <string name="reorder_entry">Ordne</string>
     <string name="reorder_save">Lagre</string>
     <string name="reorder_cancel">Avbryt</string>
-    <string name="reorder_hint_pick">Trykk OK på en kategori eller kanal for å plukke den opp.</string>
+    <string name="reorder_hint_pick">Trykk OK for å velge en kategori eller kanal. Hold inne OK for å velge flere rader.</string>
     <string name="reorder_hint_move">Flytt den med ↑ og ↓, og trykk OK for å sette den ned.</string>
-    <string name="reorder_hint_all">Åpne en kategori først for å endre rekkefølgen på kanalene.</string>
-    <string name="reorder_hint_mark">Hold inne OK på rader for å merke flere og flytte dem sammen.</string>
-    <string name="reorder_hint_marked">Merket: %1$d. Trykk OK på en av dem for å løfte dem sammen.</string>
+    <string name="reorder_hint_all">Åpne en kategori først for å endre rekkefølgen på kanalene, eller trykk OK på en kategori for å velge den.</string>
+    <string name="reorder_hint_marked">Valgt: %1$d. Trykk OK på en av dem for å flytte dem sammen.</string>
     <string name="reorder_failed">Kunne ikke lagre rekkefølgen. Prøv igjen.</string>
     <string name="reorder_move_up">Flytt opp</string>
     <string name="reorder_move_down">Flytt ned</string>

@@ -129,11 +129,10 @@
     <string name="reorder_entry">ترتیب</string>
     <string name="reorder_save">ذخیره</string>
     <string name="reorder_cancel">انصراف</string>
-    <string name="reorder_hint_pick">برای برداشتن یک دسته یا کانال، روی آن OK را فشار دهید.</string>
+    <string name="reorder_hint_pick">برای انتخاب یک دسته یا کانال، OK را فشار دهید؛ برای انتخاب چند ردیف، OK را نگه دارید.</string>
     <string name="reorder_hint_move">با ↑ و ↓ جابه‌جایش کنید و برای گذاشتن آن OK را فشار دهید.</string>
-    <string name="reorder_hint_all">ابتدا یک دسته را باز کنید تا کانال‌هایش را مرتب کنید.</string>
-    <string name="reorder_hint_mark">برای علامت‌زدن چند ردیف و جابه‌جایی همزمان، روی آن‌ها OK را نگه دارید.</string>
-    <string name="reorder_hint_marked">علامت‌خورده: %1$d. روی یکی از آن‌ها OK بزنید تا همه با هم برداشته شوند.</string>
+    <string name="reorder_hint_all">ابتدا یک دسته را باز کنید تا کانال‌هایش را مرتب کنید، یا روی یک دسته OK بزنید تا انتخاب شود.</string>
+    <string name="reorder_hint_marked">انتخاب‌شده: %1$d. روی یکی از آن‌ها OK بزنید تا همه با هم جابه‌جا شوند.</string>
     <string name="reorder_failed">ترتیب ذخیره نشد. دوباره تلاش کنید.</string>
     <string name="reorder_move_up">انتقال به بالا</string>
     <string name="reorder_move_down">انتقال به پایین</string>

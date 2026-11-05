@@ -183,11 +183,10 @@
     <string name="reorder_entry">ترتيب</string>
     <string name="reorder_save">حفظ</string>
     <string name="reorder_cancel">إلغاء</string>
-    <string name="reorder_hint_pick">اضغط OK على باقة أو قناة لالتقاطها.</string>
+    <string name="reorder_hint_pick">اضغط OK لتحديد باقة أو قناة، وأبقِ OK مضغوطًا لتحديد عدة صفوف.</string>
     <string name="reorder_hint_move">حرّكها بالسهمين ↑ و↓ ثم اضغط OK لإسقاطها.</string>
-    <string name="reorder_hint_all">افتح باقة أولًا لترتيب قنواتها.</string>
-    <string name="reorder_hint_mark">أبقِ OK مضغوطًا على عدة صفوف لتحديدها وتحريكها معًا.</string>
-    <string name="reorder_hint_marked">المحدَّد: %1$d. اضغط OK على أحدها لالتقاطها معًا.</string>
+    <string name="reorder_hint_all">افتح باقة أولًا لترتيب قنواتها، أو اضغط OK على باقة لتحديدها.</string>
+    <string name="reorder_hint_marked">المحدَّد: %1$d. اضغط OK على أحدها لتحريكها معًا.</string>
     <string name="reorder_failed">تعذّر حفظ الترتيب. حاول مرة أخرى.</string>
     <string name="reorder_move_up">تحريك للأعلى</string>
     <string name="reorder_move_down">تحريك للأسفل</string>

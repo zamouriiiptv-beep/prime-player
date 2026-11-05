@@ -129,11 +129,10 @@
     <string name="reorder_entry">Ayusin</string>
     <string name="reorder_save">I-save</string>
     <string name="reorder_cancel">Kanselahin</string>
-    <string name="reorder_hint_pick">Pindutin ang OK sa kategorya o channel para buhatin ito.</string>
+    <string name="reorder_hint_pick">Pindutin ang OK para pumili ng kategorya o channel; pindutin nang matagal ang OK para pumili ng maraming row.</string>
     <string name="reorder_hint_move">Ilipat gamit ang ↑ at ↓, pagkatapos pindutin ang OK para ibaba ito.</string>
-    <string name="reorder_hint_all">Magbukas muna ng kategorya para ayusin ang mga channel nito.</string>
-    <string name="reorder_hint_mark">Pindutin nang matagal ang OK sa mga row para pumili ng marami at ilipat sila nang sabay.</string>
-    <string name="reorder_hint_marked">Napili: %1$d. Pindutin ang OK sa isa sa mga ito para kunin silang sabay.</string>
+    <string name="reorder_hint_all">Magbukas muna ng kategorya para ayusin ang mga channel nito, o pindutin ang OK sa kategorya para piliin ito.</string>
+    <string name="reorder_hint_marked">Napili: %1$d. Pindutin ang OK sa isa sa mga ito para ilipat silang sabay.</string>
     <string name="reorder_failed">Hindi na-save ang pagkakasunod. Subukan muli.</string>
     <string name="reorder_move_up">Ilipat pataas</string>
     <string name="reorder_move_down">Ilipat pababa</string>
