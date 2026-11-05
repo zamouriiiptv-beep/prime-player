@@ -62,7 +62,6 @@ import com.castivio.core.design.components.CastivioButton
 import com.castivio.core.design.components.CastivioSpinner
 import com.castivio.core.design.components.castivioBodyStyle
 import com.castivio.core.design.components.castivioChipStyle
-import com.castivio.core.design.components.ltrToken
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.domain.Channel
 import com.castivio.domain.DirectoryFailure
@@ -393,7 +392,7 @@ private fun WorldBoard(
 
 /**
  * The rail: the choice of source, the field that narrows the countries, the lists that are not a country, and then the countries -- or the
- * genres, once the viewer has asked for them. The directory's name stands under it, as the data's source.
+ * genres, once the viewer has asked for them. The directory's name is not drawn: the owner asked for the foot of the rail to be the countries'.
  */
 @Composable
 private fun WorldRail(
@@ -408,7 +407,6 @@ private fun WorldRail(
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val colors = CastivioTheme.colors
     Column(modifier) {
         RadioSourceSwitch(RadioSource.World, onSource, m)
 
@@ -489,16 +487,6 @@ private fun WorldRail(
                 }
             }
         }
-
-        Text(
-            text = stringResource(R.string.radio_world_credit, ltrToken(DIRECTORY_NAME)),
-            // A footnote, drawn smaller than the rows so that its whole line fits the rail: at the rows' size it was cut at "radio-browser.in…".
-            style = castivioBodyStyle(m.frame.fsBody * CREDIT_OF_BODY),
-            color = colors.onBackgroundMuted,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = m.railPadH, vertical = m.railEntryGap),
-        )
     }
 }
 
@@ -765,12 +753,6 @@ private fun WorldNotice(
         }
     }
 }
-
-/** What stands in the rail for the directory, in the credit line: its name, as it asks to be named. */
-internal const val DIRECTORY_NAME = "radio-browser.info"
-
-/** The credit line's size as a share of the rows' second line. */
-private const val CREDIT_OF_BODY = 0.8f
 
 /** How dim a resting station's row is drawn: still readable, plainly not the ones that play. */
 private const val DIMMED = 0.5f

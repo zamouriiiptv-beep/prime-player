@@ -119,8 +119,6 @@ class WorldRadioScreenTest {
         compose.onNodeWithText("Genres").assertIsDisplayed()
         compose.onNode(hasText("Morocco") and hasText("Total: 105", substring = true)).assertIsDisplayed()
         compose.onNode(hasText("France") and hasText("Total: 640", substring = true)).assertIsDisplayed()
-        // The directory's name is drawn inside a left-to-right isolate, so it is found by the name and not by the whole line.
-        compose.onNodeWithText("radio-browser.info", substring = true).assertExists()
     }
 
     @Test

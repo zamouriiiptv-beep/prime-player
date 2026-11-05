@@ -15,7 +15,6 @@
     <string name="radio_world_search_countries">Search countries</string>
     <string name="radio_world_search_genres">Search genres</string>
     <string name="radio_world_saved_list">From the saved list</string>
-    <string name="radio_world_credit">Directory: %1$s</string>
     <string name="radio_world_loading">Loading…</string>
     <string name="radio_world_empty">No stations here</string>
     <string name="radio_world_no_results">No results for “%1$s”</string>

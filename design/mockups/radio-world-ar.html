@@ -18,7 +18,7 @@
          - the field in the band searches the world's stations as the viewer types (120 ms, as everywhere), in World, and the subscription's in the other.
          - three states of the list the subscription's radio never had, because its list is on the device: **loading** (rows the shape of the rows to
            come, and the country list's own line), **nothing found** and **unreachable** (the sentence and a Retry that does what the rail's refresh does).
-         - the directory's name stands at the foot of the rail, quietly: it is a community directory, and the application says whose it is.
+         - the directory's name is no longer drawn (the owner removed it); it stood at the foot of the rail, quietly: it is a community directory, and the application says whose it is.
        `?frame=sheet` is the default. -->
 <html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>الراديو — دليل العالم</title>
 <style>
@@ -151,7 +151,6 @@ function rail(world, sel, opts){
   if(world){
     if(opts.saved){ r+=`<div class="rr" style="top:${y}px;height:25px;padding-top:5px;color:#aeb0cc">من القائمة المحفوظة</div>`; y+=27; }
     (opts.genres?GENRES:COUNTRIES).slice(opts.from||0).forEach(([n,c],i)=>{ if(y>308) return; const s=sel===10+i+(opts.from||0); r+=`<div class="rr ${s?'sel':''}" style="top:${y}px;height:33px">${n}<small>المجموع: ${c}</small></div>`; y+=35; });
-    r+=`<div class="attr">الدليل: radio-browser.info</div>`;
   } else {
     [['NL| RADIO LIVE',248],['TR| RADIO MIX',740]].forEach(([n,c])=>{ r+=`<div class="rr" style="top:${y}px;height:33px">${n}<small>المجموع: ${c}</small></div>`; y+=35; });
   }

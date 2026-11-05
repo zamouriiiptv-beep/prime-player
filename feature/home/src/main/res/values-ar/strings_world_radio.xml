@@ -15,7 +15,6 @@
     <string name="radio_world_search_countries">البحث في الدول</string>
     <string name="radio_world_search_genres">البحث في الأنواع</string>
     <string name="radio_world_saved_list">من القائمة المحفوظة</string>
-    <string name="radio_world_credit">الدليل: %1$s</string>
     <string name="radio_world_loading">جارٍ التحميل…</string>
     <string name="radio_world_empty">لا توجد محطات هنا</string>
     <string name="radio_world_no_results">لا نتائج لـ «%1$s»</string>
