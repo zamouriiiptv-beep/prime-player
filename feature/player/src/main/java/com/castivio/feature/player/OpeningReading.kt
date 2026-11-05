@@ -48,21 +48,41 @@ internal data class OpeningReading(
 
     val running: Boolean get() = status == OpeningStatus.WAITING
 
+    /** How the opening stands, as the colour of the panel's first line and of the card. */
+    private fun standing(): HudTone = when (status) {
+        OpeningStatus.WAITING -> HudTone.RUNNING
+        OpeningStatus.SHOWN -> HudTone.DONE
+        OpeningStatus.FAILED, OpeningStatus.REPLACED -> HudTone.FAILED
+    }
+
+    /** `≈` where the first frame is the engine's nearest word for one and not the picture itself. */
+    private fun approximately(): String = if (timing.marks.firstFrameExact) "" else "≈"
+
+    /** How the opening ended, or what it is waiting for: the last words of the panel's first line. */
+    private fun endingText(): String = when (status) {
+        OpeningStatus.WAITING -> "now ${waitingFor()}"
+        OpeningStatus.SHOWN -> "first frame${approximately()}"
+        OpeningStatus.FAILED -> "FAILED ${failure ?: DASH}"
+        OpeningStatus.REPLACED -> "replaced before it ended"
+    }
+
+    /**
+     * The opening in two short lines, for the card the panel is when it is closed: the number, the engine and the time, in the colour
+     * of how it stands, and under it how it was opened and how it ended. The channel's name is left out -- it is on the screen --
+     * and everything else is in [lines], which the card opens to.
+     */
+    fun glance(): Glance = Glance(
+        head = "#$attempt · ${engineName(timing.engine)} · ${seconds(totalMs)}${approximately()}",
+        detail = "${case.label} · ${endingText()}",
+        tone = standing(),
+    )
+
     /** The panel's lines for this opening: what it is, the stages, the events, the gaps, the main thread, the fault. */
     fun lines(): List<HudLine> {
-        val tone = when (status) {
-            OpeningStatus.WAITING -> HudTone.RUNNING
-            OpeningStatus.SHOWN -> HudTone.DONE
-            OpeningStatus.FAILED, OpeningStatus.REPLACED -> HudTone.FAILED
-        }
+        val tone = standing()
         val engine = engineName(timing.engine)
-        val approx = if (timing.marks.firstFrameExact) "" else "≈"
-        val ending = when (status) {
-            OpeningStatus.WAITING -> "now ${waitingFor()}"
-            OpeningStatus.SHOWN -> "first frame$approx"
-            OpeningStatus.FAILED -> "FAILED ${failure ?: DASH}"
-            OpeningStatus.REPLACED -> "replaced before it ended"
-        }
+        val approx = approximately()
+        val ending = endingText()
         val lines = ArrayList<HudLine>(8)
         lines += HudLine("#$attempt $channel · $engine · ${case.label} · ${seconds(totalMs)}$approx · $ending", tone)
 
@@ -398,6 +418,9 @@ internal data class MainThreadStalls(val count: Int = 0, val maxMs: Long = 0, va
 
 /** One line of the panel, and what it is about, which the screen turns into a colour. */
 internal data class HudLine(val text: String, val tone: HudTone)
+
+/** An opening in two lines, for the card: see [OpeningReading.glance]. */
+internal data class Glance(val head: String, val detail: String, val tone: HudTone)
 
 internal enum class HudTone { RUNNING, DONE, FAILED, MUTED }
 

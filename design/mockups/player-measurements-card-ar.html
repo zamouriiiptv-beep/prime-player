@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<!-- The player's measurements panel (development only), as it is and as a small card -- the way Home's measurement card is.
+     Phone geometry, 833x385dp, one px per dp; rendered at 2x. Not the app: a drawing of how the screen is meant to look.
+       **Why:** the panel is twenty lines wide over the picture, on the side of the screen the controls are on in Arabic, so what is being
+       changed in the player cannot be seen under it.
+       **What it becomes** (the same two sizes, one report as `LoadStrip`):
+         - collapsed, a card two lines tall, on the picture's left edge between the title and the playlist button -- the opening's
+           number, the engine and the time on the first line in the colour of how it stands, the case and how it ended under it, and
+           the two small marks, open and hide. About 46dp tall;
+         - a press on it opens it to every line there is -- the same lines the panel draws now, and the two buttons it has -- and a press on
+           its head closes it again; the mark hides it for the opening it shows, and the next opening brings it back, collapsed;
+         - it goes by itself 20 seconds after the opening ends, unless it is open;
+         - tap only, as the panel was: no focus, so the remote never lands on it.
+       `?frame=sheet` is the default: the three frames with their captions. -->
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>لوحة قياسات المشغّل</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#05040E;color:#fff;font-family:"Inter","DejaVu Sans",system-ui,sans-serif;width:833px}
+.cap{padding:14px 20px 8px;font-size:13px;line-height:1.7;color:#cfd0ea;direction:rtl}
+.cap b{color:#fff}
+.screen{position:relative;width:833px;height:385px;overflow:hidden;direction:ltr;background:radial-gradient(120% 90% at 50% 40%,#0a0b16,#020208)}
+.abs{position:absolute}
+svg{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ar{direction:rtl;unicode-bidi:plaintext}
+.round{border-radius:50%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;color:#d8d9ee}
+.chip{border-radius:999px;font-size:10px;padding:4px 10px;display:flex;align-items:center}
+.pill{border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);display:flex;align-items:center;gap:6px;font-size:11px;color:#d8d9ee;padding:0 12px}
+.mono{font-family:"DejaVu Sans Mono",ui-monospace,monospace}
+/* the panel as it is */
+.panel{background:rgba(0,0,0,.9);border-radius:8px;padding:7px 9px;font-size:9.6px;line-height:1.5;white-space:pre-wrap;width:560px}
+.g{color:#3ddf8c}.a{color:#ffb020}.r{color:#ff6b7a}.m{color:#e8e9f6}
+.btn{display:inline-block;background:#3b86ff;color:#fff;border-radius:4px;padding:3px 9px;font-size:9.6px;margin-right:8px;margin-bottom:5px}
+/* the card */
+.card{background:rgba(0,0,0,.9);border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:6px 8px 6px 10px;display:flex;align-items:center;gap:8px}
+.card .tx{flex:1;min-width:0;font-size:9.6px;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .mk{width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;color:#d8d9ee;flex:none}
+.tag{position:absolute;left:6px;top:4px;font-size:9px;background:#ff5b6b;color:#fff;border-radius:4px;padding:1px 5px;direction:rtl;z-index:9}
+.tag.ok{background:#1fc89a;color:#052018}
+</style></head><body>
+<script>
+const I={back:'<svg width="18" height="18" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>',
+ heart:'<svg width="15" height="15" viewBox="0 0 24 24"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2 4 4 0 0 1 7 2c0 5.5-7 10-7 10z"/></svg>',
+ vol:'<svg width="15" height="15" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9zM16 9a4 4 0 0 1 0 6"/></svg>',
+ gear:'<svg width="15" height="15" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>',
+ dots:'<svg width="15" height="15" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/></svg>',
+ list:'<svg width="14" height="14" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 10h10M7 14h6"/></svg>',
+ pause:'<svg width="18" height="18" viewBox="0 0 24 24"><path d="M9 5v14M15 5v14"/></svg>',
+ x:'<svg width="10" height="10" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+ chev:'<svg width="10" height="10" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>',
+ up:'<svg width="10" height="10" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg>'};
+function chrome(){return `
+ <div class="abs round" style="left:40px;top:40px;width:46px;height:46px">${I.back}</div>
+ <div class="abs" style="left:106px;top:42px;font-weight:700;font-size:15px;direction:ltr">FR| TF1 4K</div>
+ <div class="abs chip" style="left:106px;top:62px;background:#1fc89a;color:#052018;font-weight:700">مباشر</div>
+ <div class="abs chip ar" style="left:157px;top:62px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.05);color:#d8d9ee">المشغّل ٢</div>
+ <div class="abs round" style="left:560px;top:40px;width:46px;height:46px">${I.heart}</div>
+ <div class="abs round" style="left:622px;top:40px;width:46px;height:46px">${I.vol}</div>
+ <div class="abs round" style="left:684px;top:40px;width:46px;height:46px">${I.gear}</div>
+ <div class="abs round" style="left:746px;top:40px;width:46px;height:46px">${I.dots}</div>
+ <div class="abs" style="left:40px;top:238px;width:753px;height:2px;background:linear-gradient(90deg,#4c8bff 35%,#3b2f7a 35%)"></div>
+ <div class="abs pill ar" style="left:40px;top:289px;height:46px">${I.list}قائمة التشغيل</div>
+ <div class="abs round" style="left:392px;top:292px;width:44px;height:44px">${I.pause}</div>
+ <div class="abs pill ar" style="left:620px;top:289px;height:46px;opacity:.55">ملء الشاشة</div>
+ <div class="abs pill ar" style="left:716px;top:289px;height:46px;opacity:.55">قفل الشاشة</div>`;}
+const LINES=[
+ ['g','#14 FR| TF1 4K · LIBVLC · engine rebuilt · 1.86 s≈ · first frame≈'],
+ ['m','app (ms): press→open 0 · release 58 · setup 33 · other 0 = 91 before the engine was asked'],
+ ['m','@ server غير متاح · first buffer≈ 1.62 s · tracks 1.37 s · decoder غير متاح · ready (not a picture) 1.37 s · frame≈ (video output) 1.86 s · clock moving -'],
+ ['m','ready→frame≈ 494 ms · engine asked→frame≈ 1771 ms'],
+ ['a','main thread (from open): 1 stall(s) over 100 ms · longest 329 ms · total 329 ms'],
+ ['m','last 8:'],
+ ['m','#14 LIBVLC · engine rebuilt · 1.86 s≈ · FR| TF1 4K'],
+ ['m','#13 MEDIA3 · engine reused · 1.07 s · FR| W9 4K'],
+ ['m','#12 MEDIA3 · first play · 1.94 s · FR| FRANCE 4 4K'],
+ ['m','#11 MEDIA3 · first play · 1.31 s · FR| FRANCE 4 4K'],
+ ['m','#10 MEDIA3 · first play · 1.55 s · FR| FRANCE 4 4K'],
+ ['m','#9 MEDIA3 · first play · 1.17 s · FR| FRANCE 4 4K'],
+ ['m','#8 MEDIA3 · first play · 1.58 s · FR| FRANCE 4 4K'],
+ ['m','#7 MEDIA3 · first play · 1.68 s · FR| FRANCE 4 4K']];
+const body=(n)=>LINES.slice(0,n).map(([c,t])=>`<span class="${c}">${t.replace(/</g,'&lt;')}</span>`).join('\n');
+const A=`<div class="screen">${chrome()}<div class="abs panel mono" style="left:273px;top:25px;height:330px;overflow:hidden"><span class="btn ar">إعادة تجربة Media3 لهذه القناة</span>\n${body(14)}</div><span class="tag">الآن</span></div>`;
+const B=`<div class="screen">${chrome()}
+ <div class="abs card mono" style="left:40px;top:128px;width:256px;height:46px"><div class="tx"><span class="g">#14 · LIBVLC · 1.86 s≈</span><br><span class="m">engine rebuilt · first frame≈</span></div><span class="mk">${I.chev}</span><span class="mk">${I.x}</span></div>
+ <span class="tag ok">المقترح — مغلقة</span></div>`;
+const C=`<div class="screen">${chrome()}
+ <div class="abs card mono" style="left:40px;top:104px;width:560px;height:auto;flex-direction:column;align-items:stretch;gap:5px;padding:7px 62px 7px 9px">
+   <div style="position:absolute;right:9px;top:7px;display:flex;gap:4px"><span class="mk">${I.up}</span><span class="mk">${I.x}</span></div>
+   <div style="font-size:9.6px;line-height:1.5;white-space:pre-wrap"><span class="btn ar">إعادة تجربة Media3 لهذه القناة</span>\n${body(14)}</div></div>
+ <span class="tag ok">المقترح — مفتوحة بالضغط</span></div>`;
+const q=new URLSearchParams(location.search), frame=q.get('frame')||'sheet';
+let html='';
+if(frame==='now')html=A;else if(frame==='closed')html=B;else if(frame==='open')html=C;else{
+ html+=`<div class="cap"><b>١ — الآن:</b> عشرون سطرًا بعرض ٥٦٠dp فوق الصورة، من جهة أزرار التحكم في العربية: تغطّي الأيقونات الأربع وشريط التقدّم وزرّي «ملء الشاشة» و«قفل الشاشة».</div>`+A;
+ html+=`<div class="cap"><b>٢ — المقترح، مغلقة:</b> بطاقة سطرين بارتفاع ٤٦dp على حافّة الصورة اليسرى بين العنوان وزرّ قائمة التشغيل، لا تغطّي أيًّا منها. السطر الأول بلون حال الفتح (أخضر: عُرض أول إطار، كهرماني: ما زال ينتظر، أحمر: فشل)، تحته الحالة، ثم علامتان: فتح وإخفاء.</div>`+B;
+ html+=`<div class="cap"><b>٣ — المقترح، مفتوحة:</b> بالضغط عليها، فيها كل ما في اللوحة الآن بما في ذلك الزرّان، والعلامتان في ركنها: إغلاق وإخفاء (وبضغطة ثانية على البطاقة نفسها تُغلق أيضًا). تذهب وحدها بعد ٢٠ ثانية من انتهاء الفتح ما لم تكن مفتوحة، ويعيدها الفتح التالي مغلقة. للمس فقط كما كانت: لا تأخذ تركيز الريموت.</div>`+C;
+ html+='<div style="height:16px"></div>';
+}
+document.write(html);
+</script>
+</body></html>

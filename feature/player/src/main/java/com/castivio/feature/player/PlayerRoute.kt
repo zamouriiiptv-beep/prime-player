@@ -12,7 +12,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -412,7 +411,7 @@ fun PlayerRoute(
             channelList = channelList,
         )
         // The big player only: the compact one is a plate in somebody else's screen, with no room for lines.
-        if (!compact) OpeningPanel(Modifier.align(Alignment.CenterStart), onRetryOnMedia3 = model::retryOnPrimary)
+        if (!compact) OpeningPanel(Modifier.fillMaxSize(), onRetryOnMedia3 = model::retryOnPrimary)
     }
 }
 

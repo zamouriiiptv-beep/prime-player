@@ -3,8 +3,10 @@ package com.castivio.feature.player
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.playback.api.EngineId
 import com.castivio.playback.api.OpeningMarks
@@ -60,10 +62,25 @@ class OpeningPanelTest {
     }
 
     @Test
-    fun `an opening is drawn with the table of the last ones beneath it`() {
+    fun `an opening begins as a card of two lines, and the table is not drawn`() {
         OpeningDiagnostics.publish(reading(OpeningStatus.SHOWN))
 
         compose.setContent { CastivioTheme { OpeningPanel() } }
+
+        // How it stands, and how it was opened and ended -- the channel is on the screen, and the rest is under the press.
+        compose.onNodeWithText("#3 · MEDIA3 · 0.27 s", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("engine reused · first frame", substring = true).assertIsDisplayed()
+        compose.onAllNodesWithText("last 1:", substring = true).assertCountEquals(0)
+        compose.onAllNodesWithText("main thread (from open)", substring = true).assertCountEquals(0)
+    }
+
+    @Test
+    fun `a press opens it to every line, with the table of the last ones beneath`() {
+        OpeningDiagnostics.publish(reading(OpeningStatus.SHOWN))
+        compose.setContent { CastivioTheme { OpeningPanel() } }
+
+        compose.onNodeWithText("#3 · MEDIA3 · 0.27 s", substring = true).performClick()
+        compose.waitForIdle()
 
         // The opening's own line, and its row in the table beneath.
         compose.onAllNodesWithText("MEDIA3 · engine reused", substring = true).assertCountEquals(2)
@@ -72,17 +89,98 @@ class OpeningPanelTest {
     }
 
     @Test
-    fun `a failure is drawn as one`() {
+    fun `the mark at the corner of the opened card closes it again`() {
+        OpeningDiagnostics.publish(reading(OpeningStatus.SHOWN))
+        compose.setContent { CastivioTheme { OpeningPanel() } }
+        compose.onNodeWithTag(OPENING_OPEN_TAG).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("last 1:", substring = true).assertIsDisplayed()
+
+        compose.onNodeWithTag(OPENING_CLOSE_TAG).performClick()
+        compose.waitForIdle()
+
+        compose.onAllNodesWithText("last 1:", substring = true).assertCountEquals(0)
+        compose.onNodeWithText("#3 · MEDIA3 · 0.27 s", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun `a failure is drawn as one, in the card as it is opened`() {
         OpeningDiagnostics.publish(reading(OpeningStatus.FAILED, failure = "TIMEOUT"))
 
         compose.setContent { CastivioTheme { OpeningPanel() } }
 
+        compose.onNodeWithText("FAILED TIMEOUT", substring = true).assertIsDisplayed()
+        compose.onNodeWithTag(OPENING_OPEN_TAG).performClick()
+        compose.waitForIdle()
         compose.onAllNodesWithText("FAILED TIMEOUT", substring = true)[0].assertIsDisplayed()
     }
 
-    private fun reading(status: OpeningStatus, failure: String? = null) = OpeningReading(
-        id = 1,
-        attempt = 3,
+    @Test
+    fun `the hide mark takes the card away for that opening, and the next opening brings it back`() {
+        OpeningDiagnostics.publish(reading(OpeningStatus.SHOWN))
+        compose.setContent { CastivioTheme { OpeningPanel() } }
+
+        compose.onNodeWithTag(OPENING_HIDE_TAG).performClick()
+        compose.waitForIdle()
+        compose.onAllNodesWithText("#3 · MEDIA3", substring = true).assertCountEquals(0)
+
+        OpeningDiagnostics.publish(reading(OpeningStatus.SHOWN, id = 2, attempt = 4))
+        compose.waitForIdle()
+
+        compose.onNodeWithText("#4 · MEDIA3 · 0.27 s", substring = true).assertIsDisplayed()
+        compose.onAllNodesWithText("last 2:", substring = true).assertCountEquals(0)
+    }
+
+    @Test
+    fun `a new opening brings the card back collapsed, even if the last one was opened`() {
+        OpeningDiagnostics.publish(reading(OpeningStatus.SHOWN))
+        compose.setContent { CastivioTheme { OpeningPanel() } }
+        compose.onNodeWithTag(OPENING_OPEN_TAG).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("last 1:", substring = true).assertIsDisplayed()
+
+        OpeningDiagnostics.publish(reading(OpeningStatus.SHOWN, id = 2, attempt = 4))
+        compose.waitForIdle()
+
+        compose.onNodeWithText("#4 · MEDIA3 · 0.27 s", substring = true).assertIsDisplayed()
+        compose.onAllNodesWithText("last 2:", substring = true).assertCountEquals(0)
+    }
+
+    @Test
+    fun `it goes by itself after the opening ends, unless it is open`() {
+        OpeningDiagnostics.publish(reading(OpeningStatus.SHOWN))
+        compose.setContent { CastivioTheme { OpeningPanel() } }
+        compose.onNodeWithText("#3 · MEDIA3", substring = true).assertIsDisplayed()
+
+        compose.mainClock.advanceTimeBy(LINGER_MS + 100)
+        compose.waitForIdle()
+
+        compose.onAllNodesWithText("#3 · MEDIA3", substring = true).assertCountEquals(0)
+    }
+
+    @Test
+    fun `an open card stays however long it is left, and an opening that runs keeps its card`() {
+        OpeningDiagnostics.publish(reading(OpeningStatus.SHOWN))
+        compose.setContent { CastivioTheme { OpeningPanel() } }
+        compose.onNodeWithTag(OPENING_OPEN_TAG).performClick()
+        compose.waitForIdle()
+
+        compose.mainClock.advanceTimeBy(LINGER_MS * 2)
+        compose.waitForIdle()
+
+        compose.onNodeWithText("last 1:", substring = true).assertIsDisplayed()
+
+        OpeningDiagnostics.publish(reading(OpeningStatus.WAITING, id = 2, attempt = 4))
+        compose.waitForIdle()
+        compose.mainClock.advanceTimeBy(LINGER_MS * 2)
+        compose.waitForIdle()
+
+        compose.onNodeWithText("#4 · MEDIA3", substring = true).assertIsDisplayed()
+    }
+
+    private fun reading(status: OpeningStatus, failure: String? = null, id: Int = 1, attempt: Int = 3) = OpeningReading(
+        id = id,
+        attempt = attempt,
         channel = "Al Aoula",
         case = OpeningCase.REUSED,
         status = status,

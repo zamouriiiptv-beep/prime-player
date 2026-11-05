@@ -97,6 +97,50 @@ class OpeningReadingTest {
         assertEquals(HudTone.FAILED, failed.rowTone())
     }
 
+    // ------------------------------------------------------------------- the card
+
+    @Test
+    fun `a shown opening in a glance is its number, engine and time, and how it was opened and ended`() {
+        val reading = media3(status = OpeningStatus.SHOWN, totalMs = 270, marks = OpeningMarks(firstFrameMs = 210))
+
+        val glance = reading.glance()
+
+        assertEquals("#3 · MEDIA3 · 0.27 s", glance.head)
+        assertEquals("engine reused · first frame", glance.detail)
+        assertEquals(HudTone.DONE, glance.tone)
+        assertFalse("the channel is on the screen, not on the card", "Al Aoula" in glance.head + glance.detail)
+    }
+
+    @Test
+    fun `a glance says what a running opening waits for, in amber`() {
+        val reading = media3(status = OpeningStatus.WAITING, totalMs = 500, marks = OpeningMarks(serverAnsweredMs = 40))
+
+        val glance = reading.glance()
+
+        assertEquals("#3 · MEDIA3 · 0.50 s", glance.head)
+        assertTrue(glance.detail, "now the first bytes (the server answered)" in glance.detail)
+        assertEquals(HudTone.RUNNING, glance.tone)
+    }
+
+    @Test
+    fun `a glance of a failure names the reason, in red, and is never a success`() {
+        val reading = media3(status = OpeningStatus.FAILED, totalMs = 3_000, marks = OpeningMarks(), failure = "TIMEOUT")
+
+        val glance = reading.glance()
+
+        assertTrue(glance.detail, "FAILED TIMEOUT" in glance.detail)
+        assertEquals(HudTone.FAILED, glance.tone)
+    }
+
+    @Test
+    fun `a glance and the first line of the panel agree on how it stands`() {
+        for (status in OpeningStatus.entries) {
+            val reading = media3(status = status, totalMs = 500, marks = OpeningMarks(), failure = "TIMEOUT")
+
+            assertEquals(status.name, reading.lines().first().tone, reading.glance().tone)
+        }
+    }
+
     // -------------------------------------------------------------------- LibVLC
 
     @Test

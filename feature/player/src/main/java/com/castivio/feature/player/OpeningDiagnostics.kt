@@ -41,10 +41,24 @@ internal object OpeningDiagnostics {
     /** Forgets every reading: for a test, which begins from none. */
     fun reset() {
         ids = 0
+        hiddenCards.clear()
         _current.value = null
         _recent.value = emptyList()
         _panel.value = emptyList()
     }
+
+    /**
+     * The openings whose card the viewer hid: it is not drawn again, and the next opening is another. Here, and not in the card,
+     * because the card leaves the composition with the player and a viewer who hid one has not asked to see it on coming back.
+     * Used on the main thread, from the card's own press, and nowhere else.
+     */
+    private val hiddenCards = HashSet<Int>()
+
+    fun hideCard(id: Int) {
+        hiddenCards += id
+    }
+
+    fun cardHidden(id: Int): Boolean = id in hiddenCards
 
     private var ids = 0
 
