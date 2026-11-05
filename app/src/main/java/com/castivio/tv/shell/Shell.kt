@@ -40,6 +40,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -415,10 +416,17 @@ fun ShellScreen(
     val resumeWatching: (Channel) -> Unit = { channel ->
         val selection = channel.asSelection()
         if (selection != null) {
-            val start = {
+            val start: () -> Unit = {
                 dest = Dest.Live
                 board.select(channel, channel.number)
-                playInPreview(selection)
+                // **The picture is started on a board that has been drawn.** A press on a row finds the well laid out; this press
+                // makes the board and, in the same pass, its small player -- whose surface was then made while the well was still
+                // being sized, and drew the picture small in the well's corner with black beside it. A few frames are let go by,
+                // so that the board is composed and measured before the player is asked for, as it is for a row.
+                scope.launch {
+                    repeat(RESUME_SETTLE_FRAMES) { withFrameNanos { } }
+                    playInPreview(selection)
+                }
             }
             val id = selection.mediaId
             when (pressVerdictFor(live = selection.live, channelId = id, known = lockModel.locked.value)) {
@@ -910,6 +918,12 @@ private fun CatalogSelection.asPlayerRequest() = PlayerRequest(
 )
 
 /** Which rail entry a section belongs to, so Home's "see all" lands somewhere real. */
+/**
+ * How many frames the board is given to be drawn before the channel carried on from Home is started in its small player. Three:
+ * the first composes the board, the second lays it out and draws it, the third is the one the player's surface is then made in.
+ */
+private const val RESUME_SETTLE_FRAMES = 3
+
 private val CatalogSection.destination: Dest
     get() = when (this) {
         CatalogSection.Live -> Dest.Live
