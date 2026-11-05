@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<!-- The channels list's logos that are drawn in a dark ink: as they are, and with a light plate under the dark ones only.
+     Phone geometry, 833x385dp, one px per dp; rendered at 2x. Not the app: a drawing of how the screen is meant to look.
+       **What was seen:** France 2, 3, 4 and 5 show a small coloured dot and a ghost of a digit. They are not placeholders: they are the
+       provider's own logos -- a coloured dot and a digit in near-black -- on a ground that is near-black, so the digit is lost and only
+       the dot is left, which reads as a logo a third of the size of its neighbours'.
+       **What is drawn:** a logo whose opaque pixels are mostly dark gets a light plate behind it, the size of the logo's slot, and
+       nothing else changes: the slot, the row, the other logos (coloured or white, which stand off the ground as they are) are as they were.
+       The test is made once per picture, on a small sample of it, and kept: the mean luminance of its opaque pixels under a threshold
+       (0.30, drawn at 0.30 here), so a coloured logo with a little black in it stays as it is and a black wordmark does not.
+       `?frame=sheet` is the default. -->
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>الشعارات الداكنة — قائمة القنوات</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#05040E;color:#fff;font-family:"Inter","DejaVu Sans",system-ui,sans-serif;width:833px}
+.cap{padding:14px 20px 8px;font-size:13px;line-height:1.7;color:#cfd0ea;direction:rtl}
+.cap b{color:#fff}
+.row2{display:flex;gap:20px;padding:6px 24px 0;direction:ltr}
+.col{width:380px}
+.col h{display:block;font-size:12px;color:#cfd0ea;margin:0 0 6px;direction:rtl;text-align:right}
+.col h b{color:#fff}
+.panel{position:relative;width:380px;height:344px;border-radius:12px;background:linear-gradient(140deg,#1c1a41,#141a3b 60%,#0f1d3b);border:1px solid #393651;overflow:hidden}
+.panel .hd{position:absolute;left:0;right:0;top:11px;text-align:center;font-weight:700;font-size:13px;color:#e6e6f6}
+.lr{position:absolute;left:16px;right:16px;height:27px;display:flex;align-items:center;gap:12px;font-size:13px;font-weight:700}
+.no{width:30px;height:17px;border-radius:3px;background:rgba(255,255,255,.06);border:1px solid #4a4764;font-size:12px;text-align:center;line-height:15px;flex:none}
+.slot{width:27px;height:14px;display:flex;align-items:center;justify-content:center;flex:none;border-radius:4px}
+.slot.plate{background:rgba(238,240,248,.94)}
+.slot svg{width:100%;height:100%;overflow:visible}
+.tag{margin-left:auto;font-size:9.5px;color:#9b6bff}
+.ck{display:block;border-radius:50%;border:1.6px solid #a3a5bf;flex:none;margin-left:6px;width:11px;height:11px}
+/* close-ups */
+.close{padding:6px 24px 0;display:flex;gap:16px;direction:ltr}
+.cell{flex:1;background:linear-gradient(140deg,#1c1a41,#141a3b);border:1px solid #393651;border-radius:10px;padding:10px 12px}
+.cell .nm{font-size:11px;color:#cfd0ea;direction:rtl;margin-bottom:8px}
+.cell .nm b{color:#fff}
+.big{display:flex;gap:12px;align-items:center}
+.big .slot{zoom:2.8}
+.big .slot.plate{box-shadow:0 0 0 .3px rgba(255,255,255,.2)}
+</style></head><body>
+<script>
+const dot=(c,d)=>`<svg viewBox="0 0 54 28"><circle cx="13" cy="15" r="8" fill="${c}"/><text x="31" y="23" font-family="DejaVu Sans,sans-serif" font-weight="800" font-size="26" fill="#17161f">${d}</text></svg>`;
+const LOGO={
+ tf1:`<svg viewBox="0 0 54 28"><circle cx="27" cy="14" r="11" fill="#e8e8f2"/><circle cx="21" cy="14" r="8.5" fill="#2e56d6"/><circle cx="34" cy="14" r="8.5" fill="#e23a4a" opacity=".9"/><text x="27" y="17.4" text-anchor="middle" font-size="8.5" font-weight="800" fill="#fff" font-family="DejaVu Sans,sans-serif">TF1</text></svg>`,
+ f2:dot('#ee2b47','2'),f3:dot('#2f7bff','3'),f4:dot('#9b3bd6','4'),f5:dot('#17c46a','5'),
+ m6:`<svg viewBox="0 0 54 28"><text x="27" y="22" text-anchor="middle" font-size="19" font-weight="800" fill="#f4f4fa" font-family="DejaVu Sans,sans-serif">M<tspan fill="#ee2b47">6</tspan></text></svg>`,
+ arte:`<svg viewBox="0 0 54 28"><text x="27" y="22" text-anchor="middle" font-size="16" font-weight="800" fill="#ff7a2a" font-family="DejaVu Sans,sans-serif">arte</text></svg>`,
+ w9:`<svg viewBox="0 0 54 28"><text x="27" y="23" text-anchor="middle" font-size="22" font-weight="900" fill="#8f3fe6" font-family="DejaVu Sans,sans-serif">W9</text></svg>`,
+ c8:`<svg viewBox="0 0 54 28"><circle cx="27" cy="14" r="10" fill="#8d8e9e"/><text x="27" y="19" text-anchor="middle" font-size="12" font-weight="800" fill="#2a2a38" font-family="DejaVu Sans,sans-serif">8</text></svg>`,
+ tf1s:`<svg viewBox="0 0 54 28"><text x="27" y="20" text-anchor="middle" font-size="14" font-weight="900" fill="#2f7bff" font-family="DejaVu Sans,sans-serif">TF1</text></svg>`,
+ ter:`<svg viewBox="0 0 54 28"><text x="27" y="21" text-anchor="middle" font-size="16" font-weight="800" fill="#ff5a5a" font-family="DejaVu Sans,sans-serif">6ter</text></svg>`};
+const ROWS=[[2,'FR| TF1 4K','tf1'],[3,'FR| FRANCE 2 4K','f2',1,'FHD'],[4,'FR| FRANCE 3 4K','f3',1,'FHD'],[5,'FR| FRANCE 4 4K','f4',1,'FHD'],[6,'FR| FRANCE 5 4K','f5',1,'FHD'],[7,'FR| M6 4K','m6'],[8,'FR| ARTE 4K','arte'],[9,'FR| W9 4K','w9',0,'HD'],[10,'FR| C8 4K','c8'],[11,'FR| TF1 SERIES 4K','tf1s'],[12,'FR| 6TER 4K','ter']];
+function panel(plated){
+  let h='<div class="panel"><div class="hd">##### FRANCE 4K #####</div>';
+  ROWS.forEach(([no,nm,lg,dark,tag],i)=>{
+    h+=`<div class="lr" style="top:${36+i*27.5}px"><span class="no">${no}</span><span class="slot ${plated&&dark?'plate':''}">${LOGO[lg]}</span><span>${nm}</span>${tag?`<span class="tag">${tag}</span>`:'<span style="margin-left:auto"></span>'}<i class="ck"></i></div>`;
+  });
+  return h+'</div>';
+}
+const cell=(plated)=>['f2','f3','f4','f5'].map(k=>`<span class="slot ${plated?'plate':''}">${LOGO[k]}</span>`).join('');
+const q=new URLSearchParams(location.search);
+let html=`<div class="cap"><b>ما رأيتَه:</b> نقاط فرنسا ٢ و٣ و٤ و٥ ليست علامات وضعناها؛ هي شعارات المزوّد نفسها (نقطة ملوّنة ورقم شبه أسود) على أرضية شبه سوداء، فيضيع الرقم وتبقى النقطة. لذلك تبدو بثلث حجم جاراتها، ولا يُصلحها تكبير النقطة وحدها.</div>
+<div class="row2"><div class="col"><h><b>الآن</b></h><div>${panel(false)}</div></div><div class="col"><h><b>المقترح</b> — صفيحة فاتحة تحت الشعار الداكن فقط</h><div>${panel(true)}</div></div></div>
+<div class="cap"><b>عن قرب (×٢٫٨):</b> الصفيحة بحجم خانة الشعار نفسها، فلا يتحرّك شيء في الصف. باقي الشعارات (الملوّنة والبيضاء) كما هي.</div>
+<div class="close"><div class="cell"><div class="nm ar"><b>الآن</b></div><div class="big">${cell(false)}</div></div><div class="cell"><div class="nm ar"><b>المقترح</b></div><div class="big">${cell(true)}</div></div></div>
+<div class="cap"><b>القاعدة:</b> تُؤخذ عيّنة صغيرة من الصورة بعد تحميلها، وإن كان متوسط سطوع بكسلاتها المعتمة تحت <b>٠٫٣٠</b> رُسمت صفيحة تحتها. تُحسب مرة لكل صورة وتُحفظ. فشعار ملوّن فيه قليل من الأسود (تي إف ١) أو أبيض (إم ٦) لا يأخذ صفيحة، وكلمة سوداء على شفّاف تأخذها. لو أخطأ الكشف في شعار فالأثر صفيحة فاتحة تحت شعار يُقرأ — لا يضيع شيء.</div><div style="height:16px"></div>`;
+document.write(html);
+</script>
+</body></html>

@@ -355,6 +355,9 @@ private const val CARD_FOOT_ALPHA = 0.06f
 /** The card's edge: seen on the page and not a colour -- 2.3:1 against it, on either ground. */
 private const val CARD_EDGE_ALPHA = 0.5f
 
+/** How much of the logo plate is white: drawn at this in `design/mockups/channels-dark-logos-ar.html`. */
+private const val ARTWORK_PLATE_ALPHA = 0.94f
+
 /**
  * Semantic colour tokens. Screens use these names, never raw palette values,
  * so the whole app re-skins from one place.
@@ -837,6 +840,14 @@ class CastivioColors(
     /** The edge of [cardSurface]: the same indigo at [CARD_EDGE_ALPHA], one colour all the way round. */
     val cardSurfaceEdge: Color
         get() = cardIndigo.copy(alpha = CARD_EDGE_ALPHA)
+
+    /**
+     * The light plate a provider's logo is drawn on when its ink is too dark for the ground -- see [ArtworkInk]. Near-white and not
+     * quite opaque, so that it is a surface of the page and not a hole in it. One value for both grounds: what it is lit against is
+     * the ink of the logo, which is dark on either.
+     */
+    val artworkPlate: Color
+        get() = Palette.White.copy(alpha = ARTWORK_PLATE_ALPHA)
 
     /* --------------------------------------------------------------- over video
      *
