@@ -5,13 +5,8 @@ import android.graphics.drawable.Drawable
 import android.util.LruCache
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ImageNotSupported
-import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -22,7 +17,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.Constraints
 import androidx.core.graphics.drawable.toBitmap
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -31,6 +28,7 @@ import com.castivio.core.design.theme.Radius
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.roundToInt
 
 /**
  * A picture a provider shipped, drawn where the design reserves room for one.
@@ -48,20 +46,26 @@ import kotlinx.coroutines.withContext
  *
  * ## What it draws, and what it deliberately does not
  *
- * A picture, or a mark that says there is no picture. Providers are inconsistent about
+ * A picture, or a tile that says there is no picture. Providers are inconsistent about
  * artwork — the same subscription ships logos for one category and none for the next —
  * so "no logo" is a *common* state rather than an error, and an empty slot in a column of
- * pictures reads as something that failed to load. The crossed-out frame says the
+ * pictures reads as something that failed to load. The tile ([NoLogoTile]) says the
  * opposite: nothing is coming, and nothing is wrong.
  *
- * There is still no generated stand-in. A coloured square with the channel's initials in
- * it is not the channel's logo — it is a different picture wearing its place, and it was
- * removed from this list for that reason. A crossed-out frame claims nothing.
+ * It is the generic picture glyph in a tile, in one of the palette's four hues chosen from
+ * [seed], and it is larger than a crossed-out outline was. There is still no generated
+ * stand-in: a coloured square with the channel's initials in it is not the channel's logo —
+ * it is a different picture wearing its place, and it was removed from this list for that
+ * reason. The glyph is the same on every channel and claims nothing.
  *
  * It is drawn in two cases: the provider shipped no url, and the url failed. While a
- * request is in flight the slot is *empty*, deliberately — a mark that appeared for a
+ * request is in flight the slot is *empty*, deliberately — a tile that appeared for a
  * moment and was then replaced by the picture would flicker down a list a remote is
  * scrolling, and the slot keeps its exact size either way, so nothing moves.
+ *
+ * The tile is a *square*, and a logo's slot is usually a wide, short box: so it is drawn
+ * larger than the slot's height -- see [tileSized] -- and centred on the slot, which keeps
+ * its size: nothing around it moves.
  *
  * [LogoTile] still exists and is still right where a large surface would otherwise be
  * blank — the preview plate. It is wrong at 54×40 in a list, which is why this is a
@@ -84,6 +88,8 @@ import kotlinx.coroutines.withContext
  * not a frame it fills.
  *
  * @param url the provider's own `tvg-logo` / `stream_icon`, as imported.
+ * @param seed the channel's name, which picks the tile's hue so that a channel keeps its colour wherever it is drawn. Null is the
+ *   quiet grey tile.
  * @param description what the picture is, for a screen reader. Null where the name is
  *   already drawn beside it and reading the logo too would say everything twice.
  * @param imageScale how much larger than its fitted size the *picture* is drawn, about the slot's
@@ -97,6 +103,7 @@ fun ProviderArtwork(
     description: String?,
     modifier: Modifier = Modifier,
     imageScale: Float = 1f,
+    seed: String? = null,
 ) {
     // Keyed to the url, because a row in a `LazyColumn` is recycled: without the key a
     // channel whose logo failed would hand its failure to whichever channel scrolled
@@ -111,18 +118,9 @@ fun ProviderArtwork(
         contentAlignment = Alignment.Center,
     ) {
         if (url.isNullOrBlank() || failed) {
-            Icon(
-                imageVector = Icons.Rounded.ImageNotSupported,
-                // The mark states a fact about the picture, and the name beside it is
-                // already the row's label; announcing "no image" on every second row
-                // would make a screen reader unusable on this list.
-                contentDescription = null,
-                tint = colors.onBackgroundMuted,
-                // Square, and sized from the slot's height: an `Icon` is 24dp
-                // unless it is told otherwise, which on this row is nearly the
-                // whole slot on a phone and a third of it on a television.
-                modifier = Modifier.fillMaxHeight(MARK_OF_SLOT).aspectRatio(1f),
-            )
+            // Decorative: the name beside it is already the row's label, and announcing "no image" on every second row would make
+            // a screen reader unusable on this list.
+            NoLogoTile(seed, Modifier.tileSized())
         } else {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
@@ -173,10 +171,25 @@ private fun needsPlate(drawable: Drawable): Boolean {
 }
 
 /**
- * How much of the slot the "no picture" mark fills.
- *
- * Smaller than a logo would be. It is a note about an absence, and a note drawn at the
- * size of the thing it stands in for competes with the names down the column — which are
- * what the list is actually for.
+ * Sizes the tile of a channel with no logo: the largest square that fits the slot, and where the slot is a wide, short box -- a logo's
+ * -- larger than its height, up to [TILE_OF_WIDTH] of its width or [TILE_OF_HEIGHT] of its height, whichever is less, centred on it.
+ * So in a 27 by 11dp slot it is a 21dp square standing a little over the slot's top and bottom -- inside the row, which is taller -- and in
+ * a square slot it fills it. The slot reports its own size either way: nothing around it moves.
  */
-private const val MARK_OF_SLOT = 0.62f
+private fun Modifier.tileSized(): Modifier = layout { measurable, constraints ->
+    if (!constraints.hasBoundedWidth || !constraints.hasBoundedHeight) {
+        val placeable = measurable.measure(constraints)
+        return@layout layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+    }
+    val width = constraints.maxWidth
+    val height = constraints.maxHeight
+    val fitting = minOf(width, height)
+    val grown = minOf(width * TILE_OF_WIDTH, height * TILE_OF_HEIGHT).roundToInt()
+    val side = maxOf(fitting, grown)
+    val placeable = measurable.measure(Constraints.fixed(side, side))
+    layout(width, height) { placeable.place((width - side) / 2, (height - side) / 2) }
+}
+
+/** How much of a wide slot's width the tile takes, and how many times its height it may stand: the mockup's 21dp in 27 by 11. */
+private const val TILE_OF_WIDTH = 0.8f
+private const val TILE_OF_HEIGHT = 1.9f

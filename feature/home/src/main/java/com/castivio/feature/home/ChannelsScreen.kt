@@ -121,6 +121,7 @@ import com.castivio.core.design.components.CastivioMiddleEllipsisText
 import com.castivio.core.design.components.DelayedSpinner
 import com.castivio.core.design.components.EmptyState
 import com.castivio.core.design.components.ErrorState
+import com.castivio.core.design.components.NoLogoTile
 import com.castivio.core.design.components.ProviderArtwork
 import com.castivio.core.design.components.CastivioClock
 import com.castivio.core.design.components.castivioBodyStyle
@@ -2236,6 +2237,7 @@ internal fun ChannelRow(
                 description = null,
                 modifier = Modifier.width(m.logoWidth).height(m.rowMin * LOGO_OF_ROW),
                 imageScale = LOGO_SCALE,
+                seed = channel.title,
             )
         }
 
@@ -2731,7 +2733,7 @@ internal fun WellPicture(
 
 /**
  * What the plate shows while the channel has no picture: Castivio's own ground, and the
- * channel's logo on it -- or Castivio's mark where the provider shipped none.
+ * channel's logo on it -- or the channel's tile, in its colour, where the provider shipped none.
  *
  * It says nothing is playing by showing nothing playing: no badge, no frame, no title in a
  * corner. When opening has been silent long enough for the player to say so, a small spinner
@@ -2751,17 +2753,14 @@ private fun PlateGround(channel: Channel, waiting: Boolean) {
         contentAlignment = Alignment.Center,
     ) {
         if (channel.artworkUrl.isNullOrBlank()) {
-            Image(
-                painter = painterResource(DesignR.drawable.castivio_mark),
-                contentDescription = null,
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.fillMaxHeight(PLATE_MARK).aspectRatio(1f),
-            )
+            // The channel's own tile, large, in its colour: Castivio's mark stood here, which is not the channel's.
+            NoLogoTile(seed = channel.title, modifier = Modifier.fillMaxHeight(PLATE_MARK).aspectRatio(1f))
         } else {
             ProviderArtwork(
                 url = channel.artworkUrl,
                 description = null,
                 modifier = Modifier.fillMaxWidth(PLATE_MARK).fillMaxHeight(PLATE_MARK),
+                seed = channel.title,
             )
         }
         // **In the middle of the picture, by alignment and not by an offset.** It sat at the bottom
@@ -2863,12 +2862,13 @@ private fun ChannelFacts(
         ) {
             // The mark, at the row's own height rather than the list's smaller one: this
             // is the channel being watched, not one of eleven being scanned. Absent
-            // artwork draws the "no logo" mark the rows draw, so the name starts at the
+            // artwork draws the "no logo" tile the rows draw, so the name starts at the
             // same place either way.
             ProviderArtwork(
                 url = channel?.artworkUrl,
                 description = null,
                 modifier = Modifier.height(m.identity).aspectRatio(LOGO_BOX),
+                seed = channel?.title,
             )
             Text(
                 text = channel?.title ?: stringResource(R.string.channels_preview_none),

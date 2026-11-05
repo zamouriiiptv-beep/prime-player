@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<!-- The mark a channel without a logo is drawn with, as it is and as it is meant to be -- in the shape of the owner's reference picture:
+     a rounded tile with a picture glyph (a sun over two hills) in it, larger than the crossed-out frame it replaces.
+     Phone geometry, 833x385dp, one px per dp; rendered at 2x. Not the app: a drawing of how the screen is meant to look.
+       **What is the same:** it claims no picture. No initials and no generated tile stand in for a logo (that was removed from this list on
+       purpose, and stays removed): the glyph is the generic one for "a picture goes here", the same on every channel.
+       **What changes:**
+         - **the shape.** A tile (a quarter of its side for the corner) with the picture glyph filled in it, as in the reference, where it was a
+           thin crossed-out outline;
+         - **larger.** 21dp square in the list, where the logos beside it are 25dp by 11: a tile has to be square to be a tile, so it is taller
+           than the logo's slot and stands within the row (27.5dp). Drawn larger than its slot, which keeps its size: nothing in the row moves;
+         - **in a colour.** One of the product's four hues -- azure, violet, green, amber -- chosen from the channel's name, in the tile's tint
+           and its glyph, so a channel keeps its colour wherever it is drawn. The reference is grey; the grey is drawn beside it for comparison;
+         - **on the board's picture too.** While a channel has no picture the plate shows its logo on Castivio's ground; a channel with no logo
+           showed Castivio's mark, which is not the channel's. It shows this tile, large, in the channel's colour -- and beside the name under it.
+       The full-screen player draws no channel logo at all (no artwork is fetched there): "the player" here is the board's picture.
+       `?frame=sheet` is the default: both boards, then the tiles close up. -->
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>القنوات بلا شعار — لوحة القنوات</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#05040E;color:#fff;font-family:"Inter","DejaVu Sans",system-ui,sans-serif;width:833px}
+.cap{padding:14px 20px 8px;font-size:13px;line-height:1.7;color:#cfd0ea;direction:rtl}
+.cap b{color:#fff}
+.screen{position:relative;width:833px;height:385px;overflow:hidden;direction:ltr;background:linear-gradient(140deg,#1c1a41 0%,#141a3b 55%,#0f1d3b 100%)}
+.abs{position:absolute}
+svg{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ar{direction:rtl;unicode-bidi:plaintext}
+.top{left:0;top:0;width:833px;height:42px;background:rgba(6,9,20,.78)}
+.logo{left:58px;top:10px;display:flex;align-items:center;gap:6px;font-weight:700;font-size:17px}
+.logo i{display:block;width:22px;height:22px;border-radius:50%;background:conic-gradient(#e0407a,#6a4cff,#2c9cff,#e0407a)}
+.crumb{left:233px;top:6px;font-size:11px;color:#a58cff;direction:rtl}
+.crumb span{display:block;color:#e0e1f4;margin-top:1px;direction:ltr;text-align:left}
+.pill{display:flex;align-items:center;gap:6px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);direction:ltr;font-size:10.5px;color:#aeb0cc}
+.clock{right:21px;top:6px;text-align:center;font-weight:700;font-size:19px;line-height:1}
+.clock small{display:block;font-size:9.5px;font-weight:400;color:#c3c4e2;margin-top:2px}
+.frame{left:44px;top:42px;width:781px;height:335px;border-radius:10px;border:1px solid rgba(110,100,170,.45)}
+.rr{position:absolute;left:48px;width:180px;height:35px;border-radius:7px;padding:3px 4px 0;font-size:13px;font-weight:700;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rr small{display:block;font-size:10.5px;color:#d3d4ea;margin-top:1px;font-weight:400;direction:rtl;text-align:left}
+.rr.sel{background:#9b6bff}
+.list{left:239px;width:297px;top:46px;height:327px;border-radius:10px;background:rgba(35,35,61,.75);border:1px solid #393651;overflow:hidden}
+.lr{position:absolute;left:12px;right:12px;height:27px;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;white-space:nowrap}
+.lr.head{color:#a9aac3;font-weight:700;letter-spacing:.02em}
+.no{width:30px;height:17px;border-radius:3px;background:rgba(255,255,255,.06);border:1px solid #4a4764;font-size:12px;text-align:center;line-height:15px;flex:none}
+.slot{width:27px;height:14px;display:flex;align-items:center;justify-content:center;flex:none;overflow:visible}
+.tag{margin-left:auto;font-size:9.5px;color:#9b6bff}
+.ck{display:block;border-radius:50%;border:1.6px solid #a3a5bf;flex:none;margin-left:6px;width:11px;height:11px}
+.plate{left:543px;top:46px;width:277px;height:157px;border-radius:9px;overflow:hidden;background:linear-gradient(180deg,#2a2257,#141031);display:flex;align-items:center;justify-content:center}
+.info{left:543px;top:207px;width:277px;height:97px;border-radius:9px;background:rgba(255,255,255,.04);border:1px solid #2f3952;padding:5px 6px}
+.info .t{display:flex;align-items:center;gap:8px;font-weight:700;font-size:11px;height:36px;border-bottom:1px solid rgba(255,255,255,.14)}
+.info .q{margin-left:auto;font-size:9px;color:#9b6bff;background:rgba(155,107,255,.18);border-radius:8px;padding:1px 6px}
+.acts{left:543px;top:329px;width:277px;height:48px;display:flex;gap:5px}
+.acts div{flex:1;border-radius:7px;background:#2b334a;border:1px solid #3a4560}
+.tagcap{position:absolute;left:6px;top:4px;font-size:9px;background:#ff5b6b;color:#fff;border-radius:4px;padding:1px 5px;direction:rtl;z-index:5}
+.tagcap.ok{background:#1fc89a;color:#052018}
+.close{padding:6px 24px 0;display:flex;gap:16px;direction:ltr}
+.cell{flex:1;background:linear-gradient(140deg,#1c1a41,#141a3b);border:1px solid #393651;border-radius:10px;padding:10px 12px}
+.cell .nm{font-size:11px;color:#cfd0ea;direction:rtl;margin-bottom:10px}
+.cell .nm b{color:#fff}
+.marks{display:flex;gap:10px;align-items:center}
+</style></head><body>
+<script>
+/* the crossed-out picture as it is, and the tile as it is meant to be -- drawn once each; size and colour are the caller's */
+const MARK=(px,c)=>`<svg width="${px}" height="${px}" viewBox="0 0 24 24" style="color:${c}"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M3.5 16l4.5-4.5 3 3M13 11l3.5-3.5L20.5 12"/><circle cx="8.5" cy="9" r="1.3"/><path d="M4 4l16 16"/></svg>`;
+const TILE=(px,c,grey)=>{const r=Math.round(px*0.26);const bg=grey?'rgba(143,145,171,.22)':c+'2e';const bd=grey?'rgba(143,145,171,.45)':c+'66';const ink=grey?'#c3c5dc':c;
+ return `<span style="display:flex;align-items:center;justify-content:center;width:${px}px;height:${px}px;border-radius:${r}px;background:${bg};border:1px solid ${bd};flex:none"><svg width="${Math.round(px*0.6)}" height="${Math.round(px*0.6)}" viewBox="0 0 24 24" style="fill:${ink};stroke:none"><circle cx="16.5" cy="7.5" r="2.6"/><path d="M2.5 20l6.6-9.4 4.1 5.2 2.6-3.1L21.5 20z"/></svg></span>`};
+const HUES={a:'#4c9bff',v:'#9b6bff',g:'#3ddf8c',m:'#ffb020'};
+const GREY='#8f91ab';
+const RAIL=[["ES| CLUB PPV",50],["ES| RFEF PPV",5],["ES| DAZN EXCLUSIVE HD/R…",19],["ES| DAZN ESPAÑA",31,1],["ES| DAZN LALIGA",22],["ES| DAZN PPV",100],["ES| MAX PPV",100]];
+/* [number, name, hue-of-its-name, tag, kind] */
+const ROWS=[[1,'ES| DAZN MOTOGP FHD',null,'','logo'],[0,'##### DAZN E…A FHD #####',null,'','head'],[3,'ES| DAZN BAR 1 FHD','v','',''],[4,'ES| DAZN BAR 2 FHD','a','FHD',''],[5,'ES| DAZN 1 FHD','g','',''],[6,'ES| DAZN 2 FHD','m','',''],[7,'ES| DAZN 3 FHD','v','FHD','sel'],[8,'ES| DAZN 4 FHD','a','FHD',''],[9,'ES| DAZN F1 HEVC','g','FHD',''],[10,'ES| DAZN F1 FHD','m','','']];
+function screen(proposed){
+  let r=''; RAIL.forEach(([n,c,sel],i)=>{r+=`<div class="rr ${sel?'sel':''}" style="top:${74+i*35}px">${n}<small>المجموع: ${c}</small></div>`});
+  let l=''; ROWS.forEach(([no,nm,h,tag,kind],i)=>{
+    const top=6+i*30;
+    if(kind==='head'){l+=`<div class="lr head" style="top:${top}px"><span style="width:30px"></span><span class="slot"></span><span>${nm}</span></div>`;return;}
+    const mark = kind==='logo' ? `<svg viewBox="0 0 54 28" width="27" height="14"><rect x="9" y="1" width="36" height="26" rx="3" fill="#2a2840" stroke="#4a4764"/><text x="27" y="19" text-anchor="middle" font-size="10" font-weight="800" fill="#6a6a86" font-family="DejaVu Sans,sans-serif">DAZN</text></svg>`
+      : (proposed ? TILE(21,HUES[h]) : MARK(9,GREY));
+    l+=`<div class="lr" style="top:${top}px"><span class="no">${no}</span><span class="slot">${mark}</span><span>${nm}</span>${tag?`<span class="tag">${tag}</span>`:'<span style="margin-left:auto"></span>'}<i class="ck"></i></div>`;
+  });
+  const plate = proposed ? TILE(84,HUES.v)
+    : `<div style="width:64px;height:64px;border-radius:50%;background:conic-gradient(#e0407a,#6a4cff,#2c9cff,#e0407a);opacity:.9"></div>`;
+  const idMark = proposed ? TILE(30,HUES.v) : MARK(20,GREY);
+  return `<div class="screen"><div class="abs top"></div><div class="abs logo"><i></i>Castivio</div>
+  <div class="abs crumb ar">البث المباشر<span>ES| DAZN ESPAÑA</span></div>
+  <div class="abs pill" style="left:380px;top:11px;width:179px;height:21px;padding:0 13px"><svg width="12" height="12" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span class="ar" style="flex:1;text-align:right">البحث في القنوات</span></div>
+  <div class="abs clock">09:35<small>5-11-2026</small></div><div class="abs frame"></div>
+  <div class="abs pill" style="left:48px;top:46px;width:180px;height:24px;padding:0 13px"><svg width="13" height="13" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span class="ar" style="flex:1;text-align:right">البحث في الباقات</span></div>
+  ${r}<div class="abs list">${l}</div>
+  <div class="abs plate">${plate}</div>
+  <div class="abs info"><div class="t">${idMark}<span>ES| DAZN 3 FHD</span><span class="q">FHD</span></div></div>
+  <div class="abs acts"><div></div><div></div><div></div><div></div><div></div></div>
+  <span class="tagcap ${proposed?'ok':''}">${proposed?'المقترح':'الآن'}</span></div>`;
+}
+const tiles=(px,grey)=>['v','a','g','m'].map(h=>TILE(px,HUES[h],grey)).join('');
+const html=`<div class="cap"><b>١ — الآن:</b> علامة «لا صورة» مشطوبة رمادية صغيرة في الصفوف (٩dp)، وعلامة Castivio على لوحة الصورة، ونفس العلامة الصغيرة بجانب الاسم تحت الصورة.</div>${screen(false)}
+<div class="cap"><b>٢ — المقترح، بشكل صورتك:</b> بلاطة بزوايا مدوّرة فيها رمز الصورة (شمس فوق تلّين) مملوءًا، <b>أكبر</b> (٢١dp مربّعة في الصف، تعلو خانة الشعار قليلًا وتبقى داخل الصف فلا يتحرك شيء)، و<b>ملوّنة</b> بأحد ألوان المنتج الأربعة يُختار من اسم القناة فتحتفظ به أينما رُسمت، وعلى <b>لوحة الصورة</b> كبيرة بدل علامة Castivio، وبجانب الاسم تحتها. رمز الصورة العام ذاته في كل قناة: لا أحرف ولا شيء مولَّد. الشاشة الكاملة للمشغّل لا ترسم شعار القناة أصلًا فلا شيء يُطابَق فيها.</div>${screen(true)}
+<div class="cap"><b>٣ — عن قرب:</b> الحالي، وبلاطة رمادية كما في صورتك، وبلاطة ملوّنة (المقترح).</div>
+<div class="close"><div class="cell"><div class="nm"><b>الآن</b></div><div class="marks">${['','','',''].map(()=>MARK(14,GREY)).join('')}</div></div><div class="cell"><div class="nm"><b>رمادية — كصورتك</b></div><div class="marks">${tiles(26,true)}</div></div><div class="cell"><div class="nm"><b>ملوّنة — المقترح</b></div><div class="marks">${tiles(26,false)}</div></div></div><div style="height:16px"></div>`;
+document.write(html);
+</script>
+</body></html>

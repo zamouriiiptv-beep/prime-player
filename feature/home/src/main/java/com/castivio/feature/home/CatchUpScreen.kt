@@ -169,6 +169,7 @@ internal fun CatchUpOverlay(
                     url = channel.artworkUrl,
                     description = null,
                     modifier = Modifier.size(m.frame.fsLabel * LOGO_IN_LABELS),
+                    seed = channel.title,
                 )
                 Text(
                     text = channel.title,
@@ -245,6 +246,7 @@ internal fun CatchUpOverlay(
                                     ProgrammeCard(
                                         card = card,
                                         logo = channel.artworkUrl,
+                                        logoSeed = channel.title,
                                         m = m,
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -309,6 +311,7 @@ internal fun CatchUpOverlay(
 private fun ProgrammeCard(
     card: CatchUpCard,
     logo: String?,
+    logoSeed: String?,
     m: ChannelsMetrics,
     modifier: Modifier,
     onClick: () -> Unit,
@@ -333,6 +336,7 @@ private fun ProgrammeCard(
                     url = logo,
                     description = null,
                     modifier = Modifier.size(m.frame.fsLabel * LOGO_IN_CARD),
+                    seed = logoSeed,
                 )
             }
             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.BottomStart) {

@@ -511,6 +511,7 @@ private fun ChannelEntry(channel: Channel, m: ChannelsMetrics, onClick: () -> Un
                 url = channel.artworkUrl,
                 description = null,
                 modifier = Modifier.size(m.frame.fsLabel * LOGO_IN_ENTRY),
+                seed = channel.title,
             )
             Text(
                 text = channel.title,
