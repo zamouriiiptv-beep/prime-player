@@ -85,10 +85,14 @@ internal fun List<WorldRailEntry>.matching(filter: String): List<WorldRailEntry>
     return filter { it.label.contains(needle, ignoreCase = true) || (it.choice as? WorldChoice.Country)?.code.equals(needle, ignoreCase = true) }
 }
 
-/** A directory answer as the rail's content. */
-internal fun DirectoryResult<List<WorldRailEntry>>.asRail(): RailLoad = when (this) {
-    is DirectoryResult.Fresh -> RailLoad.Ready(value, fromSavedList = false)
-    is DirectoryResult.Stale -> RailLoad.Ready(value, fromSavedList = true)
+/**
+ * A directory answer as the rail's content -- on its way for none -- with [entries] naming what it holds. The name is not part of the answer:
+ * the same answer is named again when the application's language changes.
+ */
+internal fun <T> DirectoryResult<List<T>>?.asRail(entries: (List<T>) -> List<WorldRailEntry>): RailLoad = when (this) {
+    null -> RailLoad.Loading
+    is DirectoryResult.Fresh -> RailLoad.Ready(entries(value), fromSavedList = false)
+    is DirectoryResult.Stale -> RailLoad.Ready(entries(value), fromSavedList = true)
     is DirectoryResult.Unavailable -> RailLoad.Unavailable(reason)
 }
 

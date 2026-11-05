@@ -43,12 +43,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.core.os.ConfigurationCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
@@ -115,7 +117,10 @@ fun WorldRadioScreen(
         WorldChoice.Recents -> recents != null
         else -> true
     }
-    val locale = remember { Locale.getDefault() }
+    // The language the application is shown in -- the configuration its strings are read with -- and not the device's: the viewer chooses one
+    // for the application, and the countries are named in it. The holder is told, because it outlives a change of language.
+    val locale = ConfigurationCompat.getLocales(LocalConfiguration.current).get(0) ?: Locale.getDefault()
+    LaunchedEffect(locale) { model.useLocale(locale) }
     val tv = CastivioTheme.device.isTv
     var sleepOpen by remember { mutableStateOf(false) }
     var opened by remember { mutableStateOf(false) }

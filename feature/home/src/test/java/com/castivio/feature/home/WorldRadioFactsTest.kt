@@ -85,15 +85,18 @@ class WorldRadioFactsTest {
     // ---------------------------------------------------------------------------------- directory answers
 
     @Test
-    fun `a fresh answer is a list, a stale one is a list from the saved copy, and no answer is a failure`() {
-        val entries = countryEntries(countries, english)
+    fun `a fresh answer is a list, a stale one is a list from the saved copy, no answer is a failure, and none yet is a wait`() {
+        val all = listOf("a", "b")
+        val named = { names: List<String> -> names.map { WorldRailEntry("k:$it", it.uppercase(), 1, WorldChoice.Tag(it)) } }
+        val entries = named(all)
 
-        assertEquals(RailLoad.Ready(entries, fromSavedList = false), DirectoryResult.Fresh(entries).asRail())
-        assertEquals(RailLoad.Ready(entries, fromSavedList = true), DirectoryResult.Stale(entries, ageMs = 5).asRail())
+        assertEquals(RailLoad.Ready(entries, fromSavedList = false), DirectoryResult.Fresh(all).asRail(named))
+        assertEquals(RailLoad.Ready(entries, fromSavedList = true), DirectoryResult.Stale(all, ageMs = 5).asRail(named))
         assertEquals(
             RailLoad.Unavailable(DirectoryFailure.OFFLINE),
-            DirectoryResult.Unavailable(DirectoryFailure.OFFLINE).asRail(),
+            DirectoryResult.Unavailable(DirectoryFailure.OFFLINE).asRail(named),
         )
+        assertEquals(RailLoad.Loading, (null as DirectoryResult<List<String>>?).asRail(named))
     }
 
     // ---------------------------------------------------------------------------------- the line under a name

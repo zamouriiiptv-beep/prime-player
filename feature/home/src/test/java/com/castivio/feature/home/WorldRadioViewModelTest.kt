@@ -174,6 +174,21 @@ class WorldRadioViewModelTest {
     }
 
     @Test
+    fun `the rail is named again when the application's language changes, from the same answer`() = runTest(dispatcher) {
+        val vm = board()
+        val rails = watch(vm.rail)
+        runCurrent()
+        assertEquals(listOf("France", "Morocco"), (rails.last().load as RailLoad.Ready).entries.map { it.label })
+
+        vm.useLocale(Locale.forLanguageTag("ar")); runCurrent()
+        assertEquals(listOf("المغرب", "فرنسا").toSet(), (rails.last().load as RailLoad.Ready).entries.map { it.label }.toSet())
+
+        vm.useLocale(Locale.forLanguageTag("fr")); runCurrent()
+        assertEquals(listOf("France", "Maroc"), (rails.last().load as RailLoad.Ready).entries.map { it.label })
+        assertEquals("the directory was asked once, and not again for a language", 1, directory.countryAsks.size)
+    }
+
+    @Test
     fun `the field narrows the rail, and the genres replace the countries when asked for`() = runTest(dispatcher) {
         val vm = board()
         val rails = watch(vm.rail)

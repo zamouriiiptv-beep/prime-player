@@ -12,10 +12,12 @@ import com.castivio.domain.DirectoryResult
 import com.castivio.domain.NetworkTroubleGuard
 import com.castivio.domain.StationHealth
 import com.castivio.domain.Standing
+import com.castivio.domain.WorldCountry
 import com.castivio.domain.WorldListing
 import com.castivio.domain.WorldRadioDirectory
 import com.castivio.domain.WorldRadioLibrary
 import com.castivio.domain.WorldStation
+import com.castivio.domain.WorldTag
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -28,12 +30,12 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.util.Locale
 import javax.inject.Inject
 
@@ -63,8 +65,23 @@ class WorldRadioViewModel @Inject constructor(
     /** The clock, replaced by a test's. */
     internal var clock: () -> Long = System::currentTimeMillis
 
-    /** The language the rail's countries are named in, replaced by a test's. */
-    internal var locale: Locale = Locale.getDefault()
+    private val language = MutableStateFlow(Locale.getDefault())
+
+    /**
+     * The language the rail's countries and genres are named in: the one the application is shown in -- told by the screen, from the
+     * configuration its strings are read with -- and not the one this holder was made in. The holder outlives the screen, and changing the
+     * application's language remakes the screen and not the holder; a language read once, here, would leave the rail in the old one.
+     */
+    internal var locale: Locale
+        get() = language.value
+        set(value) {
+            language.value = value
+        }
+
+    /** The screen's language, told again whenever it changes: the rail is named again in it. */
+    fun useLocale(next: Locale) {
+        language.value = next
+    }
 
     private val guard = NetworkTroubleGuard()
     private var favoritesRefreshed = false
@@ -86,8 +103,18 @@ class WorldRadioViewModel @Inject constructor(
 
     private val _railFilter = MutableStateFlow("")
     private val _tagsShown = MutableStateFlow(false)
-    private val countries = MutableStateFlow<RailLoad>(RailLoad.Loading)
-    private val tags = MutableStateFlow<RailLoad>(RailLoad.Loading)
+
+    /** What the directory said, as it said it -- null while it is being asked -- and named in [language] only when drawn. */
+    private val rawCountries = MutableStateFlow<DirectoryResult<List<WorldCountry>>?>(null)
+    private val rawTags = MutableStateFlow<DirectoryResult<List<WorldTag>>?>(null)
+
+    private val countries: Flow<RailLoad> = combine(rawCountries, language) { raw, named ->
+        raw.asRail { countryEntries(it, named) }
+    }.flowOn(dispatchers.default)
+
+    private val tags: Flow<RailLoad> = combine(rawTags, language) { raw, named ->
+        raw.asRail { tagEntries(it, named) }
+    }.flowOn(dispatchers.default)
 
     /** The rail: the countries, or the tags, narrowed by what its own field holds. */
     val rail: StateFlow<WorldRailState> = combine(_tagsShown, _railFilter, countries, tags) { showTags, filter, c, t ->
@@ -180,28 +207,10 @@ class WorldRadioViewModel @Inject constructor(
     fun retryRail() = loadRail(force = true)
 
     private fun loadRail(force: Boolean) {
-        countries.value = RailLoad.Loading
-        tags.value = RailLoad.Loading
-        viewModelScope.launch {
-            val answer = directory.countries(force)
-            countries.value = withContext(dispatchers.default) {
-                when (answer) {
-                    is DirectoryResult.Fresh -> DirectoryResult.Fresh(countryEntries(answer.value, locale))
-                    is DirectoryResult.Stale -> DirectoryResult.Stale(countryEntries(answer.value, locale), answer.ageMs)
-                    is DirectoryResult.Unavailable -> answer
-                }.asRail()
-            }
-        }
-        viewModelScope.launch {
-            val answer = directory.tags(force)
-            tags.value = withContext(dispatchers.default) {
-                when (answer) {
-                    is DirectoryResult.Fresh -> DirectoryResult.Fresh(tagEntries(answer.value, locale))
-                    is DirectoryResult.Stale -> DirectoryResult.Stale(tagEntries(answer.value, locale), answer.ageMs)
-                    is DirectoryResult.Unavailable -> answer
-                }.asRail()
-            }
-        }
+        rawCountries.value = null
+        rawTags.value = null
+        viewModelScope.launch { rawCountries.value = directory.countries(force) }
+        viewModelScope.launch { rawTags.value = directory.tags(force) }
     }
 
     /** The favourites kept are refreshed with what the directory says now, once a visit: a station that moved is found where it moved. */
