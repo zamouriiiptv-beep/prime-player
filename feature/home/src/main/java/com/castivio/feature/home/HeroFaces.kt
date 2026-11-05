@@ -242,14 +242,20 @@ private fun HeroHeading(
     frame: CastivioMetrics,
 ) {
     val colors = CastivioTheme.colors
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(frame.chipPad)) {
+    // The two words at the two ends of the line, as drawn: space is left between them, and where there is none the words are cut
+    // and not pushed together -- each may take at most what the other leaves.
+    Row(
+        Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
         Text(
             text = start,
             style = castivioBodyStyle(frame.fsBody),
             color = colors.onBackgroundMuted,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f, fill = false),
+            modifier = Modifier.weight(1f, fill = false).padding(end = frame.chipPad),
         )
         Text(
             text = end,
