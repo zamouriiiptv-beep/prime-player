@@ -825,12 +825,19 @@ private fun BoardClock(m: ChannelsMetrics, modifier: Modifier) {
  * Unlike the header's — which asks the database, paused for 120 ms and answered by the
  * index — this one types into a few hundred names the holder is already holding, so there
  * is nothing to debounce and no query to cancel.
+ *
+ * **The header's field, drawn the same.** The mark and the words stand [FIELD_INSET] from the pill's
+ * ends, and the words start from the end the language starts from -- as the header's do, and not
+ * against the mark whatever the language, which is where this field drew them. Drawn first in
+ * `design/mockups/channels-search-fields-ar.html`.
  */
 @Composable
-private fun RailSearch(text: String, m: ChannelsMetrics, onType: (String) -> Unit) {
+internal fun RailSearch(text: String, m: ChannelsMetrics, onType: (String) -> Unit) {
     val colors = CastivioTheme.colors
     val (focused, focusModifier) = rememberFocusFlag()
     val shape = RoundedCornerShape(Radius.pill)
+    val direction = searchTextDirection(LocalConfiguration.current.layoutDirection == View.LAYOUT_DIRECTION_RTL)
+    val words = castivioBodyStyle(m.frame.fsBody).copy(textAlign = TextAlign.Start, textDirection = direction)
 
     Row(
         Modifier
@@ -839,7 +846,7 @@ private fun RailSearch(text: String, m: ChannelsMetrics, onType: (String) -> Uni
             .clip(shape)
             .background(colors.glassFill)
             .border(1.dp, if (focused) colors.focusRing else colors.glassBorderSoft, shape)
-            .padding(horizontal = m.railPadH),
+            .padding(horizontal = FIELD_INSET),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(m.factGap),
     ) {
@@ -853,7 +860,7 @@ private fun RailSearch(text: String, m: ChannelsMetrics, onType: (String) -> Uni
             value = text,
             onValueChange = onType,
             singleLine = true,
-            textStyle = castivioBodyStyle(m.frame.fsBody).copy(color = colors.onBackground),
+            textStyle = words.copy(color = colors.onBackground),
             cursorBrush = SolidColor(colors.secondary),
             modifier = Modifier.weight(1f).then(focusModifier),
             decorationBox = { field ->
@@ -862,10 +869,11 @@ private fun RailSearch(text: String, m: ChannelsMetrics, onType: (String) -> Uni
                 if (text.isEmpty()) {
                     Text(
                         text = stringResource(R.string.channels_rail_search),
-                        style = castivioBodyStyle(m.frame.fsBody),
+                        style = words,
                         color = colors.onBackgroundMuted,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
                 field()
@@ -938,7 +946,7 @@ internal fun HeaderSearchField(
             .clip(shape)
             .background(colors.glassFill)
             .border(1.dp, if (focused) colors.focusRing else colors.glassBorderSoft, shape)
-            .padding(start = if (markAsButton) MARK_PLATE_INSET else m.controlPadH, end = m.controlPadH),
+            .padding(start = if (markAsButton) MARK_PLATE_INSET else FIELD_INSET, end = FIELD_INSET),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(m.factGap),
     ) {
@@ -3921,6 +3929,13 @@ private const val MARK_EDGE_ALPHA = 0.45f
 
 /** The room a round mark has between the field's edge and itself: less than a glyph's, because the plate is its own edge. */
 private val MARK_PLATE_INSET = 3.dp
+
+/**
+ * How far the mark and the words of a search field stand from the pill's ends, in the band's field and the rail's alike. The band's
+ * was `controlPadH` -- 5dp at its floor on a phone -- and the rail's `railPadH` at 8: a mark and a hint against the end of a pill
+ * read as clipped. 13dp is what the mockup drew.
+ */
+internal val FIELD_INSET = 13.dp
 
 /**
  * The rail's field, against a rail entry's floor.

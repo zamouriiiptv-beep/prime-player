@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotFocused
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -28,6 +29,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.requestFocus
 import androidx.compose.ui.unit.dp
 import com.castivio.core.design.theme.CastivioTheme
+import com.castivio.core.design.theme.Sizing
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -236,7 +238,42 @@ class HeaderSearchTest {
         compose.onNode(hasText("No channels here")).assertExists()
     }
 
+    /**
+     * A search field's mark and words against the end of its pill read as clipped, so both fields stand [FIELD_INSET] from
+     * the ends -- the mark, then the gap, then the words, and the words' far end the same distance from the other. Measured
+     * left to right, which is how the test runs; the language only decides which end the words start from.
+     */
+    private fun assertClearOfTheEnds(hint: String, pill: () -> Unit) {
+        val m = channelsMetricsFor(tv = true, width = 960.dp, height = 540.dp)
+        compose.setContent {
+            CastivioTheme {
+                Box(Modifier.testTag(PILL)) { pill() }
+            }
+        }
+        compose.waitForIdle()
+
+        val box = compose.onNodeWithTag(PILL).getUnclippedBoundsInRoot()
+        val words = compose.onNode(hasText(hint)).getUnclippedBoundsInRoot()
+        val startsAfter = FIELD_INSET.value + Sizing.iconSm.value + m.factGap.value
+        assertEquals("the words start after the mark", startsAfter, (words.left - box.left).value, TOLERANCE)
+        assertEquals("and end the same distance from the other end", FIELD_INSET.value, (box.right - words.right).value, TOLERANCE)
+    }
+
+    @Test
+    fun `the band's field stands its mark and its words clear of the pill's ends`() {
+        val m = channelsMetricsFor(tv = true, width = 960.dp, height = 540.dp)
+        assertClearOfTheEnds("Search channels") { HeaderSearchField(text = "", m = m, onType = {}) }
+    }
+
+    @Test
+    fun `the rail's field is drawn the same`() {
+        val m = channelsMetricsFor(tv = true, width = 960.dp, height = 540.dp)
+        assertClearOfTheEnds("Search categories") { RailSearch(text = "", m = m, onType = {}) }
+    }
+
     private companion object {
         const val ROW = "test.row"
+        const val PILL = "test.pill"
+        const val TOLERANCE = 0.6
     }
 }
