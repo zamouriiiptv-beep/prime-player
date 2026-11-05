@@ -69,12 +69,22 @@ class ArtworkInkTest {
     }
 
     @Test
-    fun `a picture that fills its box brings its own ground and gets no plate`() {
-        val tile = sample { _, _ -> black }
-        val almost = sample { x, _ -> if (x < 30) black else null }
+    fun `a dark picture that fills its box is plated, as ACTION's black box with a grey word is`() {
+        // The box is the whole sample and the word is a band of grey across it: almost all black, so lost on a black ground.
+        val box = sample { x, y -> if (y in 11..20 && x in 3..28) grey else black }
+        val withMargin = sample { x, _ -> if (x < 30) black else null }
 
-        assertFalse("a black tile is its own ground", ArtworkInk.needsPlate(tile))
-        assertFalse("and so is one with a margin of a pixel or two", ArtworkInk.needsPlate(almost))
+        assertTrue("a black box with a grey word", ArtworkInk.needsPlate(box))
+        assertTrue("and a black tile with a margin of a pixel or two", ArtworkInk.needsPlate(withMargin))
+    }
+
+    @Test
+    fun `a light picture that fills its box brings its own ground and gets no plate`() {
+        val poster = sample { _, _ -> white }
+        val tile = sample { x, y -> if (y in 11..20 && x in 3..28) black else white }
+
+        assertFalse("a white tile", ArtworkInk.needsPlate(poster))
+        assertFalse("and a white one with a black word, which is mostly white", ArtworkInk.needsPlate(tile))
     }
 
     @Test
@@ -101,8 +111,7 @@ class ArtworkInkTest {
 
     @Test
     fun `the threshold is where it was drawn`() {
-        // Every opaque pixel the same grey, with the share of them under the own-ground limit: just under the threshold is dark,
-        // just over is not.
+        // Every opaque pixel the same grey: just under the threshold is dark, just over is not.
         fun grey(level: Int) = sample { x, y -> if (y in 8..23 && x in 4..27) (0xFF shl 24) or (level shl 16) or (level shl 8) or level else null }
 
         assertTrue(ArtworkInk.needsPlate(grey((ArtworkInk.DARK_BELOW * 255 - 3).toInt())))

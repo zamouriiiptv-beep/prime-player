@@ -534,7 +534,7 @@ class ChannelsMetricsTest {
         )
         assertNear("playerGap", 1280f * 18f / 2340f, m.playerGap)
         assertNear("edge", 1280f * 22f / 2340f, m.edge)
-        assertNear("logoWidth", 1280f * 60f / 2340f, m.logoWidth)
+        assertNear("logoWidth", 1280f * 74f / 2340f, m.logoWidth)
 
         assertNear("header", 720f * 76f / 1080f, m.header)
         assertNear("search", 1280f * 520f / 2340f, m.search)

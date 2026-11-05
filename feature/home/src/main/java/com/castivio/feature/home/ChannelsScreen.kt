@@ -3907,13 +3907,18 @@ private const val MARK_OF_ROW = 0.5f
 private const val MARK_GLYPH = 0.64f
 private val MARK_RING = 1.5.dp
 
-/** The logo slot's height as a share of the row — 28 of 68 in the reference. */
-private const val LOGO_OF_ROW = 28f / 68f
+/**
+ * The logo slot's height as a share of the row: 34 of 68, where it was 28 of 68 in the reference. A fifth taller, with the slot a
+ * fifth wider (`ChannelsMetrics.logoWidth`): the room a plated logo gives to its margin. The row does not grow -- the slot is at most
+ * half of its least height. See `design/mockups/channels-logo-plates-ar.html`, option B.
+ */
+private const val LOGO_OF_ROW = 34f / 68f
 
 /**
  * How much larger than its fitted size a row's logo is drawn: 5 per cent, in both directions alike.
  * Drawn only -- the slot ([LOGO_OF_ROW], `logoWidth`) is not touched, so the column, the row's height and
- * the gaps stay where they were.
+ * the gaps stay where they were. **Not on a logo that has a plate:** that one is drawn whole inside it, at its fitted
+ * size, because a dark logo drawn larger than its plate has its ends outside it, dark on dark -- `TOONAMI` read `TOONAM`.
  */
 private const val LOGO_SCALE = 1.05f
 

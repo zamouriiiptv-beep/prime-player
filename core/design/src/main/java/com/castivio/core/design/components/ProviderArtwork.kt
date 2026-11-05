@@ -20,11 +20,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.offset
 import androidx.core.graphics.drawable.toBitmap
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.castivio.core.design.theme.CastivioTheme
-import com.castivio.core.design.theme.Radius
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -80,6 +81,13 @@ import kotlin.math.roundToInt
  * back finds it already; until it is known there is no plate, and a plate that appears a moment after its logo is the only
  * movement it makes. Drawn first in `design/mockups/channels-dark-logos-ar.html`.
  *
+ * **The logo is drawn whole inside its plate.** The plate was a pill -- 8dp corners on a slot 13.6dp high -- and the logo was drawn
+ * 5% larger than its fitted size on it, so that the letters at either end of a wide wordmark stood over the rounded ends and past
+ * them, dark on the dark ground and so gone: `TOONAMI` read `TOONAM`, `CANAL+` lost the ends of its C and its plus. The plate has
+ * [PLATE_RADIUS] corners now, the picture stands in from its edges by [PLATE_INSET_V] and [PLATE_INSET_H] of the plate's height and
+ * is not enlarged, so none of it is outside. A picture that fills its box and is dark -- ACTION's black box with a grey word -- is
+ * plated too, and is framed by it. Drawn in `design/mockups/channels-logo-plates-ar.html`, option B.
+ *
  * ## Fit, not crop
  *
  * A channel logo is a piece of artwork with its own aspect ratio, usually wider than
@@ -95,7 +103,8 @@ import kotlin.math.roundToInt
  * @param imageScale how much larger than its fitted size the *picture* is drawn, about the slot's
  *   centre and in both directions alike, so its proportions do not change. It is a draw-time
  *   scale: the slot, and so everything laid out around it, keeps its size. The "no picture" mark
- *   is not scaled by it. 1 is the picture as fitted.
+ *   is not scaled by it, **and neither is a picture that is on a plate**, which is drawn whole inside it.
+ *   1 is the picture as fitted.
  */
 @Composable
 fun ProviderArtwork(
@@ -114,7 +123,7 @@ fun ProviderArtwork(
     val colors = CastivioTheme.colors
 
     Box(
-        modifier.then(if (onPlate) Modifier.background(colors.artworkPlate, RoundedCornerShape(Radius.xs)) else Modifier),
+        modifier.then(if (onPlate) Modifier.background(colors.artworkPlate, RoundedCornerShape(PLATE_RADIUS)) else Modifier),
         contentAlignment = Alignment.Center,
     ) {
         if (url.isNullOrBlank() || failed) {
@@ -148,13 +157,44 @@ fun ProviderArtwork(
                         }
                     }
                 },
-                modifier = Modifier.fillMaxSize().graphicsLayer {
-                    scaleX = imageScale
-                    scaleY = imageScale
-                },
+                modifier = Modifier.fillMaxSize().then(
+                    if (onPlate) {
+                        Modifier.insideThePlate()
+                    } else {
+                        Modifier.graphicsLayer {
+                            scaleX = imageScale
+                            scaleY = imageScale
+                        }
+                    },
+                ),
             )
         }
     }
+}
+
+/** The plate's corners: small, so that a rectangular logo's own corners are not outside them. It was the 8dp of a pill. */
+private val PLATE_RADIUS = 3.dp
+
+/**
+ * How far a plated picture stands in from the plate's edges, as shares of the plate's *height* -- so a large plate has a large margin
+ * and a small one a small: 1.8dp above and below on a slot 16.5dp high, and a little more at the sides.
+ */
+private const val PLATE_INSET_V = 0.11f
+private const val PLATE_INSET_H = 0.14f
+
+/**
+ * Draws what is on a plate inside a margin: the plate's own size less [PLATE_INSET_V] and [PLATE_INSET_H] of its height all round,
+ * the picture fitted into what is left and not enlarged. The plate, and the slot it fills, keep their size.
+ */
+private fun Modifier.insideThePlate(): Modifier = layout { measurable, constraints ->
+    if (!constraints.hasBoundedHeight) {
+        val placeable = measurable.measure(constraints)
+        return@layout layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+    }
+    val vertical = (constraints.maxHeight * PLATE_INSET_V).roundToInt()
+    val horizontal = (constraints.maxHeight * PLATE_INSET_H).roundToInt()
+    val placeable = measurable.measure(constraints.offset(horizontal = -2 * horizontal, vertical = -2 * vertical))
+    layout(placeable.width + 2 * horizontal, placeable.height + 2 * vertical) { placeable.place(horizontal, vertical) }
 }
 
 /** What [ArtworkInk] said of each address already judged: the most recent few hundred, which is more than a list shows. */

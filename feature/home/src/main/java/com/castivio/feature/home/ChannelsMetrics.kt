@@ -360,7 +360,7 @@ internal fun channelsMetricsFor(tv: Boolean, width: Dp, height: Dp): ChannelsMet
         controlPadH = width.boundedFraction(CONTROL_PAD_H, 5.dp, 16.dp),
         numberWidth = width.boundedFraction(NUMBER, 30.dp, 58.dp),
         numberHeight = height.boundedFraction(NUMBER_H, 18.dp, 34.dp),
-        logoWidth = width.boundedFraction(LOGO, 26.dp, 54.dp),
+        logoWidth = width.boundedFraction(LOGO, 32.dp, 66.dp),
         scrollbar = width.boundedFraction(SCROLLBAR, 3.dp, 8.dp),
 
         wellPad = width.boundedFraction(WELL_PAD, 5.dp, 14.dp),
@@ -738,7 +738,12 @@ private const val RAIL_PAD_H = 9f / 1280f
 private const val CONTROL_PAD_H = 12f / 2340f
 private const val NUMBER = 62f / 2340f
 private const val NUMBER_H = 40f / 1080f
-private const val LOGO = 60f / 2340f
+/**
+ * The logo slot's width. A fifth wider than it was (60 of 2340, bounded 26 to 54dp): a logo is drawn whole inside a margin now
+ * and a wide wordmark is limited by the width it has, so the slot gives back the size the margin takes. Chosen from
+ * `design/mockups/channels-logo-plates-ar.html`, option B: 32dp on a handset, where it was 26.
+ */
+private const val LOGO = 74f / 2340f
 private const val SCROLLBAR = 6f / 2340f
 
 private const val WELL_PAD = 10f / 2340f

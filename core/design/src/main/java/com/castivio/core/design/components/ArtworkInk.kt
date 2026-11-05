@@ -16,9 +16,11 @@ package com.castivio.core.design.components
  *    does not make a coloured logo look pale or a black one look pale-grounded. Luminance is the plain sRGB luma, 0 to 1, with
  *    no gamma: the threshold is a judgement of how it looks on a dark screen, not a measurement of light. A coloured logo with a
  *    little black in it stays over 0.30 and gets no plate; a white one is far above it; a black wordmark is far below.
- * 2. **Not when it fills its box.** A picture whose opaque pixels are [OWN_GROUND_SHARE] of the sample or more brings its own
- *    ground -- a poster, a black tile with a white mark -- and a plate under it would be hidden by it. It is judged by what it is
- *    drawn on, not by what it is made of.
+ * 2. **A picture that fills its box is judged the same way.** It used to be left alone as bringing "its own ground", and
+ *    ACTION's is a black box with a grey word on it: on this product's black ground the box is not seen and neither is the word.
+ *    The plate is drawn larger than the logo now, with a margin round it, so it frames such a picture instead of being hidden
+ *    by it -- a black box in a light frame. A light one that fills its box -- a poster, a white tile -- is over the threshold
+ *    and is left as it is.
  * 3. **Not when there is hardly anything.** Under [MIN_OPAQUE_SHARE] of the sample there is no mark to judge, and a plate under
  *    nothing is a light square on a dark list.
  *
@@ -35,9 +37,6 @@ object ArtworkInk {
 
     /** A pixel is the picture's, and not its margin, from this alpha up. */
     private const val OPAQUE_ALPHA = 128
-
-    /** A picture that is this much opaque or more is its own ground. */
-    const val OWN_GROUND_SHARE = 0.90
 
     /** A picture that is less opaque than this has no mark to judge. */
     const val MIN_OPAQUE_SHARE = 0.02
@@ -64,11 +63,7 @@ object ArtworkInk {
             luma += (RED_LUMA * red + GREEN_LUMA * green + BLUE_LUMA * blue) / BYTE
         }
         val share = opaque.toDouble() / argb.size
-        return when {
-            share < MIN_OPAQUE_SHARE -> false
-            share >= OWN_GROUND_SHARE -> false
-            else -> luma / opaque < DARK_BELOW
-        }
+        return share >= MIN_OPAQUE_SHARE && luma / opaque < DARK_BELOW
     }
 
     private const val ALPHA_SHIFT = 24
