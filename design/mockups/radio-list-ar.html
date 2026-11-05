@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<!-- The radio, laid out as the channels' board is: the categories at the start, the stations as a list of rows in a frame of their own, and
+     at the end of the board a picture that says radio, with the station that is playing and its controls under it.
+     Phone geometry, 833x385dp, one px per dp; rendered at 2x. Not the app: a drawing of how the screen is meant to look.
+       **What it replaces:** a wall of square cards with a bar of controls laid over its foot (`radio-board.html`). The wall hid its own
+       rows behind the bar, showed a station's logo big and its name small, and did not look like the board it sits beside.
+       **What it takes from the channels' board, place for place:**
+         - the rail, the band, the order control and the clock are as they are;
+         - the stations are rows in a frame like the channels' -- number plate, logo, name -- with the category under the name on the lists
+           that mix categories (All, Favourites, Recently played), the favourite's heart at the end, and the green disc on the one that sounds;
+         - **where the preview stood** there is a picture that says radio -- a set with its waves -- on the board's ground, with the live badge
+           when something sounds. A station has no picture to preview and nothing is drawn to stand in for one;
+         - **where the guide's card stood** there is the plate of what is playing: the station (logo, name, what it is doing), the controls --
+           previous, play or pause, next -- and under them the favourite, the sleep timer and the way into the full view. It had the foot of
+           the board to itself; it has the end of it now, and the foot is the list's.
+         - the five buttons under the guide card are the channels' own (guide, favourites, lock, hide, arrange) and a station has none of them
+           here, so the plate takes their room.
+       `?frame=sheet` is the default: the board with a station sounding, the board with nothing chosen, and the plate in its four states. -->
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>الراديو — قائمة المحطات</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#05040E;color:#fff;font-family:"Inter","DejaVu Sans",system-ui,sans-serif;width:833px}
+.cap{padding:14px 20px 8px;font-size:13px;line-height:1.7;color:#cfd0ea;direction:rtl}
+.cap b{color:#fff}
+.screen{position:relative;width:833px;height:385px;overflow:hidden;direction:ltr;background:linear-gradient(140deg,#1c1a41 0%,#141a3b 55%,#0f1d3b 100%)}
+.abs{position:absolute}
+svg{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ar{direction:rtl;unicode-bidi:plaintext}
+.top{left:0;top:0;width:833px;height:42px;background:rgba(6,9,20,.78)}
+.logo{left:58px;top:10px;display:flex;align-items:center;gap:6px;font-weight:700;font-size:17px}
+.logo i{display:block;width:22px;height:22px;border-radius:50%;background:conic-gradient(#e0407a,#6a4cff,#2c9cff,#e0407a)}
+.crumb{left:233px;top:6px;font-size:11px;color:#a58cff;direction:rtl}
+.crumb span{display:block;color:#e0e1f4;margin-top:1px}
+.pill{display:flex;align-items:center;gap:6px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);direction:ltr;font-size:10.5px;color:#aeb0cc}
+.clock{right:21px;top:6px;text-align:center;font-weight:700;font-size:19px;line-height:1}
+.clock small{display:block;font-size:9.5px;font-weight:400;color:#c3c4e2;margin-top:2px}
+.frame{left:44px;top:42px;width:781px;height:335px;border-radius:10px;border:1px solid rgba(110,100,170,.45)}
+.rr{position:absolute;left:48px;width:180px;border-radius:7px;padding:3px 6px 0;font-size:13px;font-weight:700;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rr small{display:block;font-size:10.5px;color:#d3d4ea;margin-top:1px;font-weight:400;direction:rtl;text-align:left}
+.rr.sel{background:#9b6bff;height:26px;padding-top:5px}
+.list{left:239px;width:297px;top:46px;height:327px;border-radius:10px;background:rgba(35,35,61,.75);border:1px solid #393651;overflow:hidden}
+.lr{position:absolute;left:8px;right:8px;height:31px;border-radius:7px;display:flex;align-items:center;gap:9px;font-size:12.5px;font-weight:700;white-space:nowrap;padding:0 6px}
+.lr.focus{background:linear-gradient(90deg,rgba(120,80,230,.55),rgba(80,60,170,.45));border:1px solid #8f78ff}
+.no{width:26px;height:16px;border-radius:3px;background:rgba(255,255,255,.06);border:1px solid #4a4764;font-size:11px;text-align:center;line-height:14px;flex:none}
+.lg{width:21px;height:21px;border-radius:5px;flex:none;display:flex;align-items:center;justify-content:center;font-size:7.5px;font-weight:900;overflow:hidden;color:#fff}
+.nm{flex:1;min-width:0;overflow:hidden;line-height:1.25}
+.nm b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700}
+.nm small{display:block;font-size:9.5px;font-weight:400;color:#9a9cb8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;direction:ltr;text-align:left}
+.cat{font-size:9.5px;font-weight:400;color:#9a9cb8;max-width:70px;overflow:hidden;text-overflow:ellipsis;flex:none}
+.heart{color:#7f819d}
+.heart.on{color:#ff6b8a;fill:#ff6b8a}
+.disc{width:15px;height:15px;border-radius:50%;background:#1fc89a;display:flex;align-items:center;justify-content:center;flex:none}
+.eq{display:flex;gap:1.5px;align-items:flex-end;height:9px;flex:none}
+.eq i{width:2px;background:#1fc89a;border-radius:1px;display:block}
+/* the picture that says radio */
+.pic{left:543px;top:46px;width:277px;height:157px;border-radius:9px;overflow:hidden;background:linear-gradient(180deg,#2a2257,#141031);display:flex;align-items:center;justify-content:center}
+.livebadge{position:absolute;left:8px;bottom:8px;background:#26b88c;color:#fff;font-size:9px;font-weight:700;border-radius:9px;padding:2px 8px}
+/* the plate of what is playing */
+.plate{left:543px;top:207px;width:277px;height:170px;border-radius:9px;background:rgba(255,255,255,.045);border:1px solid #3a4560;padding:9px 10px;display:flex;flex-direction:column;gap:8px}
+.id{display:flex;align-items:center;gap:9px}
+.id .lg{width:34px;height:34px;border-radius:8px;font-size:9px}
+.id .t{flex:1;min-width:0}
+.id .t b{display:block;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.id .t span{display:block;font-size:10px;color:#aeb0cc;margin-top:2px}
+.ctl{display:flex;align-items:center;justify-content:center;gap:14px}
+.cb{width:40px;height:40px;border-radius:11px;background:#2b334a;border:1px solid #3a4560;display:flex;align-items:center;justify-content:center;color:#d6d8ea}
+.cb.main{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#2e6bff,#4c9bff);border:none;color:#fff}
+.cb.off{opacity:.45}
+.sub{display:flex;gap:8px}
+.sub .cb{flex:1;width:auto;height:30px;border-radius:9px;font-size:10px;gap:5px}
+.tagcap{position:absolute;left:6px;top:4px;font-size:9px;background:#1fc89a;color:#052018;border-radius:4px;padding:1px 5px;direction:rtl;z-index:5}
+.cell{margin:6px 24px 0;direction:ltr;display:flex;flex-wrap:wrap;gap:12px}
+.cell>div{width:381px}
+.cell .plate{position:relative;left:auto;top:auto;flex:1;height:auto;min-height:150px}
+.cell .nmx{font-size:11px;color:#cfd0ea;direction:rtl;margin:0 0 5px}
+.cell .nmx b{color:#fff}
+</style></head><body>
+<script>
+const I={
+ search:'<svg width="12" height="12" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>',
+ sort:'<svg width="12" height="12" viewBox="0 0 24 24"><path d="M4 7h10M4 12h6M4 17h10M17 9v8M14 14l3 3 3-3"/></svg>',
+ prev:'<svg width="17" height="17" viewBox="0 0 24 24" style="fill:currentColor;stroke:none"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg>',
+ next:'<svg width="17" height="17" viewBox="0 0 24 24" style="fill:currentColor;stroke:none"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg>',
+ pause:'<svg width="22" height="22" viewBox="0 0 24 24" style="fill:currentColor;stroke:none"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg>',
+ play:'<svg width="22" height="22" viewBox="0 0 24 24" style="fill:currentColor;stroke:none"><path d="M8 5v14l11-7z"/></svg>',
+ heart:'<svg width="14" height="14" viewBox="0 0 24 24"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2 4 4 0 0 1 7 2c0 5.5-7 10-7 10z"/></svg>',
+ timer:'<svg width="14" height="14" viewBox="0 0 24 24"><circle cx="12" cy="13" r="7"/><path d="M12 9v4l3 2M9 3h6"/></svg>',
+ up:'<svg width="14" height="14" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg>',
+ spin:'<svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9"/></svg>'};
+const EQ='<span class="eq"><i style="height:5px"></i><i style="height:9px"></i><i style="height:6px"></i></span>';
+const LOGOS={
+ mix:['#f4c430','MIX','#c0392b'],pl:['linear-gradient(#b0373f 33%,#fff 33% 66%,#2a4a9c 66%)','',''],npo1:['#1f3c88','radio 1','#fff'],pw:['#f4c430','MIX','#c0392b'],r538:['#222','538','#8f3fe6'],npo2:['#d52b1e','radio 2','#fff'],vir:['#f4c430','MIX','#c0392b'],q:['#d52b1e','Q','#fff'],npo5:['#f0a30a','radio 5','#fff']};
+const lg=(k)=>{const [bg,t,c]=LOGOS[k];return `<span class="lg" style="background:${bg};color:${c}">${t}</span>`};
+const ST=[[1,'TR| RADYO FENOMEN','mix','TR| RADIO MIX'],[2,'####### RADIO LIVE #######','pl','NL| RADIO LIVE'],[3,'T2| NPO RADIO 1 RAW','npo1','NL| TELE2 RADIO'],[4,'TR| POWER FM','pw','TR| RADIO MIX'],[5,'NL| RADIO 538','r538','NL| RADIO LIVE'],[6,'T2| NPO RADIO 2 RAW','npo2','NL| TELE2 RADIO'],[7,'TR| VIRGIN RADIO','vir','TR| RADIO MIX'],[8,'NL| QMUSIC','q','NL| RADIO LIVE',1],[9,'T2| NPO RADIO 5 RAW','npo5','NL| TELE2 RADIO'],[10,'TR| SLOW TÜRK','mix','TR| RADIO MIX']];
+const RAIL=[['جميع المحطات',1,0],['المفضلة',0,1],['استمع مؤخرًا',0,2]];
+const B=[['NL| TELE2 RADIO RAW GOLD',95],['NL| RADIO LIVE',248],['TR| RADIO MIX',740]];
+const radioArt=`<svg width="150" height="120" viewBox="0 0 150 120">
+  <g stroke-width="3.5" style="color:#4c9bff" opacity=".9"><path d="M22 52c-8 6-8 22 0 28M12 44c-14 11-14 37 0 48"/></g>
+  <g stroke-width="3.5" style="color:#9b6bff" opacity=".9"><path d="M128 52c8 6 8 22 0 28M138 44c14 11 14 37 0 48"/></g>
+  <path d="M44 36l50-22" stroke="#cfd0ea" stroke-width="3"/>
+  <rect x="34" y="34" width="82" height="62" rx="12" fill="#1c1840" stroke="#8f78ff" stroke-width="3"/>
+  <circle cx="60" cy="65" r="17" fill="#141031" stroke="#4c9bff" stroke-width="3"/>
+  <path d="M52 58h16M52 65h16M52 72h16" stroke="#4c9bff" stroke-width="2.4"/>
+  <circle cx="98" cy="52" r="5" fill="#9b6bff" stroke="none"/><circle cx="98" cy="75" r="5" fill="#4c9bff" stroke="none"/>
+  <path d="M86 63h24" stroke="#8f78ff" stroke-width="3"/></svg>`;
+function screen(mode){
+  const playing = mode==='play';
+  let r=''; let y=76;
+  RAIL.forEach(([n,sel],i)=>{r+=`<div class="rr ${sel?'sel':''}" style="top:${y}px;${sel?'':'height:26px;padding-top:5px'}">${n}</div>`; y+=sel?30:30;});
+  y=172;
+  r+=`<div class="abs" style="left:52px;width:172px;top:${y-6}px;height:1px;background:rgba(255,255,255,.2)"></div>`;
+  B.forEach(([n,c])=>{r+=`<div class="rr" style="top:${y+2}px;height:35px">${n}<small>المجموع: ${c}</small></div>`; y+=38;});
+  let l='';
+  ST.forEach(([no,nm,lk,cat,on],i)=>{
+    const top=4+i*33;
+    const focus = i===(playing?7:2);
+    const sounding = playing && i===7;
+    l+=`<div class="lr ${focus?'focus':''}" style="top:${top}px"><span class="no">${no}</span>${lg(lk)}<span class="nm"><b>${nm}</b><small>${cat}</small></span>${sounding?`<span class="disc"><svg width="8" height="8" viewBox="0 0 24 24" style="fill:#052018;stroke:none"><path d="M7 4v16l13-8z"/></svg></span>`:''}<span class="heart ${i===1||i===7?'on':''}">${I.heart}</span></div>`;
+  });
+  const pic = `<div class="abs pic">${radioArt}${playing?'<span class="livebadge ar">مباشر</span>':''}</div>`;
+  const plate = plateHtml(playing?'play':'idle', false);
+  return `<div class="screen"><div class="abs top"></div><div class="abs logo"><i></i>Castivio</div>
+  <div class="abs crumb ar">الراديو<span>جميع المحطات</span></div>
+  <div class="abs pill" style="left:380px;top:11px;width:179px;height:21px;padding:0 13px">${I.search}<span class="ar" style="flex:1;text-align:right">البحث في المحطات</span></div>
+  <div class="abs pill" style="left:592px;top:5px;width:145px;height:34px;padding:0 12px">${I.sort}<span class="ar" style="flex:1;text-align:right;font-size:10px">الترتيب: حسب المزوّد</span></div>
+  <div class="abs clock">09:45<small>5-11-2026</small></div><div class="abs frame"></div>
+  <div class="abs pill" style="left:48px;top:46px;width:180px;height:24px;padding:0 13px">${I.search}<span class="ar" style="flex:1;text-align:right">البحث في الباقات</span></div>
+  ${r}<div class="abs list">${l}</div>${pic}${plate}
+  <span class="tagcap">${playing?'محطة تعمل':'لم تُختر محطة'}</span></div>`;
+}
+/* the plate: idle, connecting, playing, paused, failed */
+function plateHtml(state, inline){
+  const idle=state==='idle';
+  const sub = idle?'<span class="ar">اضغط على محطة لتستمع إليها</span>'
+   : state==='conn'?'<span class="ar">NL| RADIO LIVE · جارٍ الاتصال…</span>'
+   : state==='paused'?'<span class="ar">NL| RADIO LIVE · متوقفة مؤقتًا</span>'
+   : state==='fail'?'<span class="ar" style="color:#ff6b7a">تعذّر تشغيل هذه المحطة</span>'
+   : '<span class="ar">NL| RADIO LIVE · مباشر</span>';
+  const name = idle?'<b class="ar" style="color:#aeb0cc">اختر محطة</b>':'<b>NL| QMUSIC</b>';
+  const logo = idle?'<span class="lg" style="background:rgba(255,255,255,.06);border:1px dashed #4a4764"></span>':lg('q');
+  const dots = state==='play'?EQ:'';
+  const main = state==='play'?I.pause: state==='conn'?I.spin: I.play;
+  const dis = idle?' off':'';
+  return `<div class="${inline?'':'abs '}plate"><div class="id">${logo}<div class="t">${name}${sub}</div>${dots}</div>
+   <div class="ctl"><span class="cb${dis}">${I.prev}</span><span class="cb main${dis}">${main}</span><span class="cb${dis}">${I.next}</span></div>
+   <div class="sub"><span class="cb${dis} ar" style="color:${state==='play'?'#ff6b8a':'#d6d8ea'}">${I.heart}المفضلة</span><span class="cb${dis} ar">${I.timer}مؤقّت النوم</span><span class="cb${dis} ar">${I.up}فتح</span></div></div>`;
+}
+const q=new URLSearchParams(location.search), frame=q.get('frame')||'sheet';
+let html='';
+if(frame==='play')html=screen('play'); else if(frame==='idle')html=screen('idle'); else {
+ html+=`<div class="cap"><b>١ — محطة تعمل:</b> الفئات في أول اللوحة كما هي، والمحطات <b>صفوف في إطار</b> كإطار القنوات (رقم، شعار، اسم، وتحته فئة المحطة في القوائم المخلوطة، قلب المفضلة في الآخر، والقرص الأخضر على التي تُسمَع). <b>مكان المعاينة:</b> صورة تقول «راديو» (جهاز بموجتين) وشارة «مباشر» حين يعمل شيء. <b>مكان بطاقة الدليل:</b> لوحة المحطة التي تعمل: شعارها واسمها وحالها، والتحكّم (السابقة، إيقاف/تشغيل، التالية)، وتحتها المفضلة ومؤقّت النوم وفتح العرض الكامل. لا أزرار الدليل والمفضلة والقفل والإخفاء والترتيب للقنوات هنا فاللوحة تأخذ مكانها.</div>`+screen('play');
+ html+=`<div class="cap"><b>٢ — لم تُختر محطة:</b> الصورة نفسها بلا شارة، واللوحة تقول «اختر محطة» وأزرارها خافتة لا تعمل.</div>`+screen('idle');
+ html+=`<div class="cap"><b>٣ — اللوحة في حالاتها:</b> تعمل، جارٍ الاتصال، متوقفة مؤقتًا، تعذّر التشغيل (الجمل هي نصوص الراديو الموجودة).</div>
+ <div class="cell">${['play','conn','paused','fail'].map(s=>`<div><div class="nmx"><b>${{play:'تعمل',conn:'جارٍ الاتصال',paused:'متوقفة مؤقتًا',fail:'تعذّر التشغيل'}[s]}</b></div>${plateHtml(s,true)}</div>`).join('')}</div><div style="height:16px"></div>`;
+}
+document.write(html);
+</script>
+</body></html>

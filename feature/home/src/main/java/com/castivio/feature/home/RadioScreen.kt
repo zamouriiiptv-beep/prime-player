@@ -3,9 +3,7 @@ package com.castivio.feature.home
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -18,23 +16,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyGridState
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
-import androidx.compose.material.icons.rounded.Radio
 import androidx.compose.material.icons.rounded.Tune
-import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -43,14 +36,10 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -58,20 +47,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
-import com.castivio.core.design.components.CardShape
 import com.castivio.core.design.components.CastivioChip
 import com.castivio.core.design.components.CastivioChoiceDialog
 import com.castivio.core.design.components.ChoiceOption
-import com.castivio.core.design.components.Equaliser
-import com.castivio.core.design.components.MediaCard
-import com.castivio.core.design.components.MetaChip
-import com.castivio.core.design.components.PosterPrefetch
-import com.castivio.core.design.components.WatchState
-import com.castivio.core.design.components.castivioBodyStyle
 import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.ltrToken
 import com.castivio.core.design.theme.CastivioTheme
-import com.castivio.core.design.theme.boundedFraction
 import com.castivio.core.platform.LoadTrace
 import com.castivio.core.platform.PerfSection
 import com.castivio.domain.Channel
@@ -80,8 +61,12 @@ import com.castivio.domain.SectionLoad
 import kotlinx.coroutines.delay
 
 /**
- * The radio, on the channels board's own frame: the same band over the same panel, the same rail on the leading
- * side, and a wall of station cards where the channel list is -- with the sound kept in view under it, or beside it.
+ * The radio, laid out as the channels' board is: the same band over the same panel, the same rail on the leading side, the stations as
+ * rows in a frame of their own, and at the board's end a picture that says radio with the plate of what is playing under it.
+ *
+ * It was a wall of square cards with a bar of controls laid over its foot (a panel at the end on a television). The wall hid its rows
+ * behind the bar, showed a logo big and a name small, and did not look like the board it sits beside. Drawn first in
+ * `design/mockups/radio-list-ar.html`.
  *
  * ## One board, three sections
  *
@@ -91,26 +76,23 @@ import kotlinx.coroutines.delay
  * `CategoryRail` -- given this section's words, and the stations are read through [BrowseViewModel], keyed as the
  * generic section screen keys it, so the category a viewer had open survives a trip away and back.
  *
- * ## The wall
+ * ## The rows
  *
- * Square cards, because a station's logo is square and is the whole of what it has to show: no guide, no preview.
- * The logo is shown whole over the blurred colours of itself, as a film's poster is, and a station with no logo
- * keeps the card's own ground and a radio mark -- nothing is drawn to stand in for the artwork. The number is in
- * a corner, the heart of a favourite in the other, and the station that is sounding has the playing edge and the
- * moving mark. The card's second line is the category, and only on the lists that mix categories.
+ * The channels' own row ([ChannelRow]): the number on its plate, the logo -- or the tile of a station with none -- the name, the green
+ * disc on the one that sounds, a heart on a favourite. The category stands under the name, and only on the lists that mix categories.
+ * A press starts the station at once, in place: there is no page per station.
  *
- * ## The sound
+ * ## The end of the board
  *
- * A press on a card starts the station at once, in place: there is no page per station. What is playing stands in
- * the plate -- a bar under the wall on a handset or a tablet, a panel at the board's end on a television -- with the
- * station before, play or pause, the station after, the favourite and a sleep timer. The sound is [session]'s and the
- * shell's, and it lasts as long as this screen does: leaving the radio, or the application going to the background,
- * lets it go.
+ * A station has no picture to preview, so where the channels have one there is [RadioPicture], the section's own; and where the guide's
+ * card stands there is the plate -- the station before, play or pause, the station after, the favourite and a sleep timer -- on every
+ * device. The sound is [session]'s and the shell's, and it lasts as long as this screen does: leaving the radio, or the application
+ * going to the background, lets it go.
  *
  * ## What is not here
  *
  * No country, genre, bitrate, codec or waveform. A panel sends a station as a name, a logo, a number and a category;
- * a fact that was not in the data is not made up to fill a card.
+ * a fact that was not in the data is not made up to fill a row.
  */
 @Composable
 fun RadioScreen(
@@ -132,10 +114,10 @@ fun RadioScreen(
     // The first station, from the device or from the load: told once, to the session of the press that opened this.
     val hasRows = rows.itemCount > 0
     LaunchedEffect(hasRows) { if (hasRows) LoadTrace.contentShown(PerfSection.RADIO) }
-    val gridState = rememberLazyGridState()
-    // A new list starts at its first card; the same list keeps its place.
+    val listState = rememberLazyListState()
+    // A new list starts at its first row; the same list keeps its place.
     LaunchedEffect(state.selectedGroup, state.favorites, state.recent, state.search, state.sort) {
-        gridState.scrollToItem(0)
+        listState.scrollToItem(0)
     }
     val tv = CastivioTheme.device.isTv
     var sleepOpen by remember { mutableStateOf(false) }
@@ -227,12 +209,11 @@ fun RadioScreen(
                 skeleton = skeleton,
                 model = model,
                 rows = rows,
-                gridState = gridState,
+                listState = listState,
                 playingUrl = session.status.soundingUrl,
                 favoriteIds = favoriteIds,
                 plate = plate,
                 actions = actions,
-                tv = tv,
                 onPress = session::play,
                 modifier = Modifier.weight(1f),
             )
@@ -267,8 +248,8 @@ private fun step(session: RadioSession, rows: LazyPagingItems<MediaItem>, by: In
 }
 
 /**
- * The panel: the rail, the wall beside it, and on a television the plate's panel at the end -- the channels' panel,
- * drawn the same way, with the same frame, padding and rail width.
+ * The panel: the rail, the stations beside it as rows, and at the end the picture that says radio with the plate of what is
+ * playing under it -- the channels' panel, drawn the same way, with the same frame, padding, rail width and column at the end.
  *
  * Drawn left to right whatever the language, as the channels' columns are. The line about a refresh that is running
  * or failed sits over all of it, as it does on the channels.
@@ -280,12 +261,11 @@ private fun RadioBoard(
     skeleton: CatalogMetrics,
     model: BrowseViewModel,
     rows: LazyPagingItems<MediaItem>,
-    gridState: LazyGridState,
+    listState: LazyListState,
     playingUrl: String?,
     favoriteIds: Set<String>,
     plate: RadioPlateState?,
     actions: RadioPlateActions,
-    tv: Boolean,
     onPress: (Channel) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -304,67 +284,45 @@ private fun RadioBoard(
         FetchNotice(fetch = state.fetch, firstLoad = state.firstLoad, m = m, onRetry = model::refresh)
 
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-            BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
-                val panelWidth = maxWidth.boundedFraction(PANEL_SHARE, PANEL_MIN, PANEL_MAX)
+            Row(Modifier.fillMaxWidth().weight(1f)) {
+                CategoryRail(
+                    state = state,
+                    m = m,
+                    onChoose = model::choose,
+                    onFilter = model::filterGroups,
+                    onRefresh = model::refresh,
+                    onFavorites = model::openFavorites,
+                    onRecent = model::openRecent,
+                    allLabel = stringResource(R.string.radio_all),
+                    recentLabel = stringResource(R.string.radio_recent),
+                    modifier = Modifier.width(m.rail).fillMaxHeight(),
+                )
 
-                Row(Modifier.fillMaxSize()) {
-                    CategoryRail(
-                        state = state,
-                        m = m,
-                        onChoose = model::choose,
-                        onFilter = model::filterGroups,
-                        onRefresh = model::refresh,
-                        onFavorites = model::openFavorites,
-                        onRecent = model::openRecent,
-                        allLabel = stringResource(R.string.radio_all),
-                        recentLabel = stringResource(R.string.radio_recent),
-                        modifier = Modifier.width(m.rail).fillMaxHeight(),
-                    )
+                Spacer(Modifier.width(m.railGap))
 
-                    Spacer(Modifier.width(m.railGap))
+                RadioPane(
+                    state = state,
+                    m = m,
+                    skeleton = skeleton,
+                    model = model,
+                    rows = rows,
+                    listState = listState,
+                    playingUrl = playingUrl,
+                    favoriteIds = favoriteIds,
+                    onPress = onPress,
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                )
 
-                    // On a handset the bar stands inside the wall's space, under the cards, and the cards stop above it.
-                    val bar = plate != null && !tv
-                    Box(Modifier.weight(1f).fillMaxHeight()) {
-                        RadioPane(
-                            state = state,
-                            m = m,
-                            skeleton = skeleton,
-                            model = model,
-                            rows = rows,
-                            gridState = gridState,
-                            playingUrl = playingUrl,
-                            favoriteIds = favoriteIds,
-                            maxColumns = if (tv) TV_COLUMNS else HANDSET_COLUMNS,
-                            bottomReserve = if (bar) radioBarHeight(m, tv = false) + m.nameGap * 2 else 0.dp,
-                            onPress = onPress,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                        if (bar && plate != null) {
-                            RadioBar(
-                                plate = plate,
-                                actions = actions,
-                                m = m,
-                                modifier = Modifier.align(Alignment.BottomCenter).padding(m.nameGap),
-                            )
-                        }
-                    }
+                Spacer(Modifier.width(m.playerGap))
 
-                    if (tv) {
-                        Spacer(Modifier.width(m.railGap))
-                        RadioPanel(plate = plate, actions = actions, m = m, modifier = Modifier.width(panelWidth).fillMaxHeight())
-                    }
-                }
+                RadioSide(plate = plate, actions = actions, m = m, modifier = Modifier.width(m.player).fillMaxHeight())
             }
         }
     }
 }
 
 /**
- * The wall's frame: the channel list's own frame and padding, with the cards in it.
- *
- * As many cards to a row as the width allows, none narrower than [MIN_STATION_WIDTH] and no more than [maxColumns];
- * the cells share the whole of what is left, so the wall fills the space the list takes on the channels.
+ * The stations' frame: the channel list's own frame and padding, with the rows in it.
  */
 @Composable
 private fun RadioPane(
@@ -373,11 +331,9 @@ private fun RadioPane(
     skeleton: CatalogMetrics,
     model: BrowseViewModel,
     rows: LazyPagingItems<MediaItem>,
-    gridState: LazyGridState,
+    listState: LazyListState,
     playingUrl: String?,
     favoriteIds: Set<String>,
-    maxColumns: Int,
-    bottomReserve: Dp,
     onPress: (Channel) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -389,167 +345,64 @@ private fun RadioPane(
     val shape = RoundedCornerShape(m.wellRadius)
 
     Box(modifier.clip(shape).border(1.dp, CastivioTheme.colors.glassBorderSoft, shape)) {
-        BoxWithConstraints(Modifier.fillMaxSize().padding(m.wellPad / 2)) {
-            // The space between cards is the one the rows have between them, so the wall reads as an even grid and
-            // gives its width to the cards rather than to the gutters.
-            val gutter = m.nameGap
-            val columns = posterColumns(maxWidth, gutter, MIN_STATION_WIDTH).coerceAtMost(maxColumns)
-            val cardWidth = posterCardWidth(maxWidth, gutter, columns)
-            Paged(
-                paged = rows,
-                section = CatalogSection.Radio,
-                state = state,
-                m = skeleton,
-                onShowAll = { model.choose(null) },
-                onClearSearch = { model.search("") },
-            ) {
-                StationWall(
-                    rows = rows,
-                    // The category is said on the lists that mix them, where it is what tells two stations apart.
-                    categories = state.categoryNames.takeIf { state.mixesCategories() },
-                    m = m,
-                    columns = columns,
-                    cardWidth = cardWidth,
-                    bottomReserve = bottomReserve,
-                    gridState = gridState,
-                    playingUrl = playingUrl,
-                    favoriteIds = favoriteIds,
-                    onPress = onPress,
-                )
-            }
-        }
-    }
-}
-
-/** The stations: the provider's logo on each card, the name under it, and a second line where it says something. */
-@Composable
-private fun StationWall(
-    rows: LazyPagingItems<MediaItem>,
-    categories: Map<String, String>?,
-    m: ChannelsMetrics,
-    columns: Int,
-    cardWidth: Dp,
-    bottomReserve: Dp,
-    gridState: LazyGridState,
-    playingUrl: String?,
-    favoriteIds: Set<String>,
-    onPress: (Channel) -> Unit,
-) {
-    // The logos of the next rows are asked for while the wall is still, so they are on the device when it scrolls.
-    PosterPrefetch(
-        state = gridState,
-        ahead = columns * PREFETCH_ROWS,
-        itemCount = { rows.itemCount },
-        urlAt = { index -> (rows.peek(index) as? Channel)?.artworkUrl },
-    )
-    LazyVerticalGrid(
-        state = gridState,
-        columns = GridCells.Fixed(columns),
-        modifier = Modifier.fillMaxSize(),
-        horizontalArrangement = Arrangement.spacedBy(m.nameGap),
-        verticalArrangement = Arrangement.spacedBy(m.nameGap),
-        contentPadding = PaddingValues(bottom = maxOf(m.wellPad, bottomReserve)),
-    ) {
-        items(rows.itemCount, key = rows.itemKey { it.id }) { index ->
-            val station = rows[index] as? Channel ?: return@items
-            // Centred in its column, so what a card narrower than its column leaves is shared out evenly.
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-                StationCard(
-                    station = station,
-                    index = index,
-                    categories = categories,
-                    width = cardWidth,
-                    m = m,
-                    playing = playingUrl != null && station.streamUrl == playingUrl,
-                    favorite = station.id in favoriteIds,
-                    onClick = { onPress(station) },
-                )
-            }
+        Paged(
+            paged = rows,
+            section = CatalogSection.Radio,
+            state = state,
+            m = skeleton,
+            onShowAll = { model.choose(null) },
+            onClearSearch = { model.search("") },
+        ) {
+            StationList(
+                rows = rows,
+                // The category is said on the lists that mix them, where it is what tells two stations apart.
+                categories = state.categoryNames.takeIf { state.mixesCategories() },
+                m = m,
+                listState = listState,
+                playingUrl = playingUrl,
+                favoriteIds = favoriteIds,
+                onPress = onPress,
+            )
         }
     }
 }
 
 /**
- * One station: the shared card at the logo's own square, with the number, the heart and the mark of what sounds
- * placed over its artwork, and the category on its second line where the list mixes them.
+ * The stations, one per row, in the order the list has them -- the channels' own row: the number on its plate, the logo, the name, and
+ * the green disc on the one that sounds, with the category under the name on the lists that mix them and a heart after it on a favourite.
  */
 @Composable
-private fun StationCard(
-    station: Channel,
-    index: Int,
+private fun StationList(
+    rows: LazyPagingItems<MediaItem>,
     categories: Map<String, String>?,
-    width: Dp,
     m: ChannelsMetrics,
-    playing: Boolean,
-    favorite: Boolean,
-    onClick: () -> Unit,
+    listState: LazyListState,
+    playingUrl: String?,
+    favoriteIds: Set<String>,
+    onPress: (Channel) -> Unit,
 ) {
-    val colors = CastivioTheme.colors
-    val titleStep = m.frame.fsLabel * TITLE_OF_LABEL
-    val number: (@Composable BoxScope.() -> Unit)? = station.number?.let { value ->
-        { MetaChip(text = ltrToken(value.toString())) }
-    }
-    MediaCard(
-        title = station.title,
-        shape = CardShape.Square,
-        artworkSeed = index,
-        onClick = onClick,
-        width = width,
-        gap = m.nameGap,
-        titleStyle = castivioChipStyle(titleStep),
-        captionStyle = castivioBodyStyle(m.frame.fsBody * CAPTION_OF_BODY),
-        // A line is kept on every card of a list that mixes categories, so a station filed under none does not
-        // stand a line shorter than the cards beside it.
-        caption = categories?.let { station.categoryIn(it) ?: EMPTY_LINE },
-        artworkUrl = station.artworkUrl,
-        posterHeight = width,
-        titleLines = TITLE_LINES,
-        titleHeight = titleStep * LABEL_LINE * TITLE_LINES,
-        focusBrush = focusBrush(),
-        focusScale = 1f,
-        artworkScale = ContentScale.Fit,
-        cardFill = colors.glassFill,
-        cinematicBackdrop = true,
-        ground = { StationGround() },
-        watchState = if (playing) WatchState.Playing else WatchState.None,
-        badge = number,
-        overlay = {
-            if (favorite) HeartMark(m, Modifier.align(Alignment.TopEnd).padding(m.nameGap))
-            // Drawn larger than the pill's own: on a card it is the one mark that says this station sounds.
-            if (playing) Box(Modifier.align(Alignment.BottomEnd).padding(m.nameGap * 3)) { Equaliser(Modifier.scale(EQUALISER_SCALE)) }
-        },
-    )
-}
-
-/** What a station's card stands on where it has no logo, or before the logo arrives: the ground and a radio mark. */
-@Composable
-private fun StationGround() {
-    val colors = CastivioTheme.colors
-    Box(Modifier.fillMaxSize().background(colors.backgroundElevated), contentAlignment = Alignment.Center) {
-        Icon(
-            imageVector = Icons.Rounded.Radio,
-            contentDescription = null,
-            tint = colors.onBackgroundMuted.copy(alpha = GROUND_MARK),
-            modifier = Modifier.fillMaxSize(GROUND_MARK_SIZE),
-        )
-    }
-}
-
-/** The heart of a favourite, on a dim disc so it reads over a logo of any colour. */
-@Composable
-private fun HeartMark(m: ChannelsMetrics, modifier: Modifier = Modifier) {
-    val colors = CastivioTheme.colors
-    val disc = m.frame.fsLabel * HEART_DISC
-    Box(
-        modifier.size(disc).clip(CircleShape).background(colors.scrim.copy(alpha = HEART_GROUND)),
-        contentAlignment = Alignment.Center,
+    LazyColumn(
+        state = listState,
+        modifier = Modifier.fillMaxSize().padding(m.wellPad / 2),
+        contentPadding = PaddingValues(bottom = m.wellPad),
     ) {
-        Icon(
-            imageVector = Icons.Rounded.Favorite,
-            contentDescription = null,
-            tint = colors.secondary,
-            modifier = Modifier.size(disc * HEART_OF_DISC),
-        )
+        items(rows.itemCount, key = rows.itemKey { it.id }) { index ->
+            val station = rows[index] as? Channel ?: return@items
+            val playing = playingUrl != null && station.streamUrl == playingUrl
+            ChannelRow(
+                channel = station,
+                number = station.number ?: (index + 1),
+                playing = playing,
+                m = m,
+                onClick = { onPress(station) },
+                favorite = station.id in favoriteIds,
+                favoriteIcon = Icons.Rounded.Favorite,
+                // The name of the station that sounds scrolls to be read whole, as the row the remote is on does.
+                pressed = playing,
+                // A line is kept only where the list says something with it: the category the station is filed under.
+                caption = categories?.let { station.categoryIn(it) },
+            )
+        }
     }
 }
 
@@ -591,47 +444,6 @@ private fun SleepDialog(session: RadioSession, onClose: () -> Unit) {
         onClose = onClose,
     )
 }
-
-/** Five cards to a row on a handset or a tablet, the most the wall draws, as the films' wall has it. */
-private const val HANDSET_COLUMNS = 5
-
-/** Four beside the panel: the wall is narrower by what the panel takes. */
-private const val TV_COLUMNS = 4
-
-/**
- * The narrowest column a card may be given before its name stops being readable in two lines: a narrower surface
- * gets fewer columns, not narrower cards.
- */
-private val MIN_STATION_WIDTH = 96.dp
-
-/** A station's name is set a little under the label step, as a film's is, so a long one reaches its second line whole. */
-private const val TITLE_OF_LABEL = 0.94f
-
-/**
- * The second line of a card whose station is filed under no category: a no-break space, which keeps the line's
- * height without drawing anything, so the cards of a row are one height.
- */
-private const val EMPTY_LINE = " "
-
-/** A card's second line is set a little under the body step, so a category of ordinary length reaches its end whole. */
-private const val CAPTION_OF_BODY = 0.9f
-
-/** How much larger the equaliser is drawn on a card than in the plate. */
-private const val EQUALISER_SCALE = 1.6f
-
-/** The radio mark behind a logo, and how dim and how large it is: a ground, not a picture of the station. */
-private const val GROUND_MARK = 0.5f
-private const val GROUND_MARK_SIZE = 0.4f
-
-/** The heart's disc as a share of the label step, the disc's own darkness, and the heart's share of the disc. */
-private const val HEART_DISC = 1.6f
-private const val HEART_GROUND = 0.55f
-private const val HEART_OF_DISC = 0.62f
-
-/** The television's panel: a share of the board, bounded so it is neither a sliver nor most of the wall. */
-private const val PANEL_SHARE = 0.28f
-private val PANEL_MIN = 220.dp
-private val PANEL_MAX = 340.dp
 
 /** How often the sleep dialog redraws what is left, in milliseconds: often enough that a second never skips. */
 private const val TICK_MS = 500L

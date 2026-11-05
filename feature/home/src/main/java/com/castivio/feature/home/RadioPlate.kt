@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -70,10 +69,10 @@ import com.castivio.domain.RadioPhase
 /**
  * The plate that keeps the sound in view: what is playing, and the few things a viewer does about it.
  *
- * ## One plate, three places
+ * ## One plate, two places
  *
- * A bar under the wall on a handset or a tablet; the panel at the board's end on a television; and, from the
- * bar, the plate opened -- the same station and the same controls, larger. The controls are the same on all of
+ * The plate at the board's end, on every device ([RadioSide]); and, from it on a handset, the plate opened -- the
+ * same station and the same controls, larger. The controls are the same on all of
  * them and are the whole of what the radio offers: the station before, play or pause, the station after, the
  * favourite and a sleep timer. A control that has nothing to do is not drawn dim but not drawn -- the station
  * before the first one of a list has no meaning -- and its place is kept, so the play control does not move under
@@ -113,67 +112,6 @@ internal class RadioPlateActions(
     val onSleep: () -> Unit,
     val onOpen: (() -> Unit)? = null,
 )
-
-/**
- * How tall the bar is: a touch target and the breathing room a card has above and below it, so the bar's
- * buttons are as large as a thumb needs and no larger.
- */
-internal fun radioBarHeight(m: ChannelsMetrics, tv: Boolean): Dp = Sizing.minTarget(tv) + m.nameGap * 2
-
-/** The bar: the station, what the sound is doing, and the controls, in one line under the wall. */
-@Composable
-internal fun RadioBar(
-    plate: RadioPlateState,
-    actions: RadioPlateActions,
-    m: ChannelsMetrics,
-    modifier: Modifier = Modifier,
-) {
-    val colors = CastivioTheme.colors
-    val shape = RoundedCornerShape(m.previewRadius)
-    val button = Sizing.minTarget(false)
-
-    Row(
-        modifier
-            .fillMaxWidth()
-            .height(radioBarHeight(m, tv = false))
-            .clip(shape)
-            .background(colors.backgroundElevated)
-            .border(1.dp, colors.selectedBorder, shape)
-            .padding(horizontal = m.nameGap * 2),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(m.nameGap),
-    ) {
-        StationLogo(plate.station, size = button - m.nameGap)
-        Column(Modifier.weight(1f)) {
-            Text(
-                text = plate.station.title,
-                style = castivioChipStyle(m.frame.fsLabel),
-                color = colors.onBackgroundStrong,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = plateLine(plate),
-                style = castivioBodyStyle(m.frame.fsBody),
-                color = colors.onBackgroundVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        StreamQualityIcon(quality = plate.quality)
-        if (plate.phase == RadioPhase.PLAYING) Equaliser()
-        RadioControls(plate, actions, button = button)
-        FavoriteButton(plate, actions)
-        SleepButton(plate, actions)
-        actions.onOpen?.let { open ->
-            CastivioIconButton(
-                icon = Icons.Rounded.KeyboardArrowUp,
-                contentDescription = stringResource(R.string.radio_open_player),
-                onClick = open,
-            )
-        }
-    }
-}
 
 /** The station before, play or pause, and the station after: the three controls the sound is driven with. */
 @Composable
@@ -306,32 +244,93 @@ private fun StationLogo(station: Channel, size: Dp, modifier: Modifier = Modifie
 }
 
 /**
- * The panel at a television's board end: the station in a large frame, what it is, what the sound is doing, and
- * the controls with the favourite and the sleep timer named. With nothing playing, it says what to do instead.
+ * The board's end: a picture that says radio where the channels' board has its preview, and under it the plate of what is playing where
+ * the guide's card stands -- on every device, as the board is the channels' own.
+ *
+ * It had the foot of the board on a handset (a bar laid over the wall) and a panel on a television; the stations are rows now, and what is
+ * playing has the end of the board whatever the screen. The five buttons the channels keep under their guide card -- guide, favourites,
+ * lock, hide, arrange -- are not a station's, and the plate takes their room. Drawn first in `design/mockups/radio-list-ar.html`.
  */
 @Composable
-internal fun RadioPanel(
+internal fun RadioSide(
+    plate: RadioPlateState?,
+    actions: RadioPlateActions,
+    m: ChannelsMetrics,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(m.guideGap)) {
+        RadioPicture(
+            live = plate?.phase == RadioPhase.PLAYING,
+            m = m,
+            modifier = Modifier.fillMaxWidth().weight(PICTURE_SHARE),
+        )
+        RadioPlateCard(plate, actions, m, Modifier.fillMaxWidth().weight(1f - PICTURE_SHARE))
+    }
+}
+
+/**
+ * What is playing: the station -- its logo, its name, what the sound is doing -- the controls the sound is driven with, and under them the
+ * favourite, the sleep timer and, on a handset, the way into the full view. With nothing playing it says what to do instead.
+ */
+@Composable
+private fun RadioPlateCard(
     plate: RadioPlateState?,
     actions: RadioPlateActions,
     m: ChannelsMetrics,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
-    val shape = RoundedCornerShape(m.wellRadius)
+    val shape = RoundedCornerShape(m.previewRadius)
     Column(
         modifier
             .clip(shape)
+            .background(colors.glassFill)
             .border(1.dp, colors.glassBorderSoft, shape)
             .padding(m.wellPad),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(m.nameGap * 2),
+        verticalArrangement = Arrangement.spacedBy(m.nameGap, Alignment.CenterVertically),
     ) {
         if (plate == null) {
             RadioIdle(m, Modifier.fillMaxSize())
             return@Column
         }
-        StationLogo(plate.station, size = PANEL_LOGO)
-        RadioNowPlayingInfo(plate, actions, m, onBack = null, modifier = Modifier.fillMaxWidth())
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(m.nameGap),
+        ) {
+            StationLogo(plate.station, size = PLATE_LOGO)
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = plate.station.title,
+                    style = castivioChipStyle(m.frame.fsLabel),
+                    color = colors.onBackgroundStrong,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = plateLine(plate),
+                    style = castivioBodyStyle(m.frame.fsBody),
+                    color = colors.onBackgroundVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            StreamQualityIcon(quality = plate.quality)
+            if (plate.phase == RadioPhase.PLAYING) Equaliser()
+        }
+        RadioControls(plate, actions, button = Sizing.minTarget(CastivioTheme.device.isTv))
+        Row(horizontalArrangement = Arrangement.spacedBy(m.nameGap), verticalAlignment = Alignment.CenterVertically) {
+            FavoriteButton(plate, actions)
+            SleepButton(plate, actions)
+            actions.onOpen?.let { open ->
+                CastivioIconButton(
+                    icon = Icons.Rounded.KeyboardArrowUp,
+                    contentDescription = stringResource(R.string.radio_open_player),
+                    onClick = open,
+                )
+            }
+        }
     }
 }
 
@@ -512,6 +511,12 @@ private fun RadioNowPlayingBody(
 }
 
 private const val SEPARATOR = " · "
+
+/** How much of the board's end the picture takes, and the plate the rest: the channels' preview and its guide card, about. */
+private const val PICTURE_SHARE = 0.46f
+
+/** The station's logo on the plate: a touch target's size, so it is the thing the eye lands on and leaves the controls room. */
+private val PLATE_LOGO = 40.dp
 
 /** The share of a logo's frame left empty around it, as the divisor of the frame: a ninth each side. */
 private const val LOGO_INSET = 9

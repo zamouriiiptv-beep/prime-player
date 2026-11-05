@@ -38,8 +38,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The radio, composed with the channels board's own band and rail over the holder's state: the wall draws the
- * stations the provider listed, a press starts one in the session and puts it on the plate, and the plate's
+ * The radio, composed with the channels board's own band and rail over the holder's state: the list draws the
+ * stations the provider listed as the channels' own rows, a press starts one in the session and puts it on the plate, and the plate's
  * controls do what they say -- hold the sound, step through the open list, keep a favourite, set the sleep timer.
  *
  * What the lists hold is `BrowseSearchTest`'s and the data layer's; what the sound does is the shell's. Here the
@@ -69,7 +69,7 @@ class RadioScreenTest {
     private val nova = station("r2", "Nova FM", 2)
     private val sahara = station("r3", "Sahara FM", 3)
 
-    /** A pager whose every list is [stations], so the wall has something to draw. */
+    /** A pager whose every list is [stations], so the list has something to draw. */
     private class WallPager(private val stations: List<MediaItem>) : CatalogPager by FakePager() {
         override fun items(query: CatalogQuery): Flow<PagingData<MediaItem>> = flowOf(PagingData.from(stations))
     }
@@ -103,7 +103,7 @@ class RadioScreenTest {
         val pager: CatalogPager = if (stations.isEmpty()) FakePager() else WallPager(stations)
         val holder = BrowseViewModel(FakeCatalogue(listOf(maroc, talk)), pager, loads, FakeSources(), FakeOrder())
         compose.setContent {
-            // Motion off: the equaliser on the playing card and the plate turns for as long as it sounds, and a
+            // Motion off: the equaliser on the plate turns for as long as it sounds, and a
             // composition that never settles is one the test can never wait for.
             CastivioTheme(motionLevel = MotionLevel.DISABLED) {
                 RadioScreen(session = session, model = holder, favorites = ChannelFavoritesViewModel(store))
@@ -140,24 +140,30 @@ class RadioScreenTest {
         compose.onNodeWithText("MAROC TALK").assertIsDisplayed()
     }
 
-    // ----------------------------------------------------------------------------- the wall
+    // ----------------------------------------------------------------------------- the list
 
     @Test
-    fun `the wall draws the stations the provider listed, each with its number`() {
+    fun `the list draws the stations the provider listed, each on a row of its own`() {
         show()
 
-        // A card says its name and its category as one description, so that is what a reader -- and this test --
-        // finds it by. The list is all of them, so each names the category it is filed under.
-        compose.onNodeWithContentDescription("Radio Atlas, MAROC RADIO").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Nova FM, MAROC RADIO").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Sahara FM, MAROC RADIO").assertIsDisplayed()
+        compose.onNodeWithText("Radio Atlas").assertIsDisplayed()
+        compose.onNodeWithText("Nova FM").assertIsDisplayed()
+        compose.onNodeWithText("Sahara FM").assertIsDisplayed()
+    }
+
+    @Test
+    fun `on the list of all, each row names the category it is filed under, under its name`() {
+        show()
+
+        // The rail's own entry and the three rows' second lines: four places say it.
+        assertTrue(compose.onAllNodesWithText("MAROC RADIO").fetchSemanticsNodes().size >= 4)
     }
 
     @Test
     fun `a station filed under no category names none, and nothing is made up`() {
         show(stations = listOf(station("r9", "Loose FM", 9, group = null)))
 
-        compose.onNodeWithContentDescription("Loose FM").assertIsDisplayed()
+        compose.onNodeWithText("Loose FM").assertIsDisplayed()
     }
 
     @Test
@@ -173,14 +179,43 @@ class RadioScreenTest {
     fun `a press on a station starts it and puts it on the plate`() {
         show()
 
-        compose.onNodeWithContentDescription("Nova FM", substring = true).performClick()
+        compose.onNodeWithText("Nova FM").performClick()
         compose.waitForIdle()
 
         assertEquals(nova, session.station)
-        // The station's name is on the plate, whose controls are drawn.
-        compose.onNodeWithText("Nova FM").assertIsDisplayed()
+        // The station's name is on its row and on the plate, whose controls are drawn.
+        assertEquals(2, compose.onAllNodesWithText("Nova FM").fetchSemanticsNodes().size)
         compose.onNodeWithContentDescription("Sleep timer").assertIsDisplayed()
         compose.onNodeWithContentDescription("Add to favourites").assertIsDisplayed()
+    }
+
+    // ----------------------------------------------------------------------------- the end of the board
+
+    @Test
+    fun `before a station is pressed the plate invites one, and the picture has no live badge`() {
+        show()
+
+        compose.onNodeWithText("Choose a station").assertIsDisplayed()
+        assertTrue(compose.onAllNodesWithText("LIVE").fetchSemanticsNodes().isEmpty())
+    }
+
+    @Test
+    fun `a station that sounds puts the live badge on the picture, and the plate under it`() {
+        show()
+        compose.onNodeWithText("Nova FM").performClick()
+        sound(nova, RadioPhase.PLAYING)
+
+        compose.onNodeWithText("LIVE").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Pause").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a station held has no live badge, since nothing sounds`() {
+        show()
+        compose.onNodeWithText("Nova FM").performClick()
+        sound(nova, RadioPhase.PAUSED)
+
+        assertTrue(compose.onAllNodesWithText("LIVE").fetchSemanticsNodes().isEmpty())
     }
 
     // ----------------------------------------------------------------------------- the plate
@@ -188,7 +223,7 @@ class RadioScreenTest {
     @Test
     fun `the play control holds the sound, and lets it go again`() {
         show()
-        compose.onNodeWithContentDescription("Nova FM", substring = true).performClick()
+        compose.onNodeWithText("Nova FM").performClick()
         sound(nova, RadioPhase.PLAYING)
 
         compose.onNodeWithContentDescription("Pause").performClick()
@@ -204,7 +239,7 @@ class RadioScreenTest {
     @Test
     fun `the plate says live while the station sounds, and names its category`() {
         show()
-        compose.onNodeWithContentDescription("Nova FM", substring = true).performClick()
+        compose.onNodeWithText("Nova FM").performClick()
         sound(nova, RadioPhase.PLAYING)
 
         compose.onNodeWithText("MAROC RADIO \u00B7 Live").assertIsDisplayed()
@@ -213,7 +248,7 @@ class RadioScreenTest {
     @Test
     fun `a station that failed says so, and the control asks for it again`() {
         show()
-        compose.onNodeWithContentDescription("Nova FM", substring = true).performClick()
+        compose.onNodeWithText("Nova FM").performClick()
         sound(nova, RadioPhase.FAILED)
 
         compose.onNodeWithText("This station can't be played").assertIsDisplayed()
@@ -227,9 +262,9 @@ class RadioScreenTest {
     @Test
     fun `the controls step to the station before and after in the open list, and not past its ends`() {
         show()
-        compose.onNodeWithContentDescription("Radio Atlas", substring = true).performClick()
+        compose.onNodeWithText("Radio Atlas").performClick()
         compose.waitForIdle()
-        assertTrue("nothing comes before the first card", compose.onAllNodesWithContentDescription("Previous station").fetchSemanticsNodes().isEmpty())
+        assertTrue("nothing comes before the first row", compose.onAllNodesWithContentDescription("Previous station").fetchSemanticsNodes().isEmpty())
 
         compose.onNodeWithContentDescription("Next station").performClick()
         compose.waitForIdle()
@@ -239,15 +274,15 @@ class RadioScreenTest {
         compose.waitForIdle()
         assertEquals(atlas, session.station)
 
-        compose.onNodeWithContentDescription("Sahara FM", substring = true).performClick()
+        compose.onNodeWithText("Sahara FM").performClick()
         compose.waitForIdle()
-        assertTrue("nothing comes after the last card", compose.onAllNodesWithContentDescription("Next station").fetchSemanticsNodes().isEmpty())
+        assertTrue("nothing comes after the last row", compose.onAllNodesWithContentDescription("Next station").fetchSemanticsNodes().isEmpty())
     }
 
     @Test
-    fun `the favourite is kept from the press, and a favourite is hearted on its card`() {
+    fun `the favourite is kept from the press, and a favourite is hearted on its row`() {
         show()
-        compose.onNodeWithContentDescription("Nova FM", substring = true).performClick()
+        compose.onNodeWithText("Nova FM").performClick()
         compose.waitForIdle()
 
         compose.onNodeWithContentDescription("Add to favourites").performClick()
@@ -263,7 +298,7 @@ class RadioScreenTest {
     @Test
     fun `the sleep timer offers its times, and a press sets one and closes the dialog`() {
         show()
-        compose.onNodeWithContentDescription("Nova FM", substring = true).performClick()
+        compose.onNodeWithText("Nova FM").performClick()
         compose.waitForIdle()
 
         compose.onNodeWithContentDescription("Sleep timer").performClick()
@@ -284,7 +319,7 @@ class RadioScreenTest {
     @Test
     fun `choosing off in the dialog lets the timer go`() {
         show()
-        compose.onNodeWithContentDescription("Nova FM", substring = true).performClick()
+        compose.onNodeWithText("Nova FM").performClick()
         compose.runOnIdle { session.sleepIn(minutes = 15, nowMs = System.currentTimeMillis()) }
         compose.waitForIdle()
 

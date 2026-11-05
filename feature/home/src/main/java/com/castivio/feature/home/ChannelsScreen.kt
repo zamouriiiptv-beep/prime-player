@@ -2139,6 +2139,13 @@ internal fun ChannelRow(
      * the violet, which stays the remote's.
      */
     pick: RowPick? = null,
+    /**
+     * A second, quieter line under the name: what the radio says on the lists that mix categories -- the category the station is filed
+     * under. Null on a channel row, which is one line.
+     */
+    caption: String? = null,
+    /** The mark of a favourite. The star for a channel; the radio draws its own, which is a heart. */
+    favoriteIcon: ImageVector = Icons.Rounded.Star,
 ) {
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(m.previewRadius)
@@ -2279,29 +2286,44 @@ internal fun ChannelRow(
         // whole name and scrolls it. Scrolling all twelve at once would make the
         // column unreadable and would animate twelve texts on a stick that has to
         // hold 60fps while paging a catalogue.
-        if (nameScrolls(focused = focused, pressed = pressed)) {
-            Text(
-                text = name,
-                style = nameStyle,
-                color = ink,
-                maxLines = 1,
-                overflow = TextOverflow.Clip,
-                modifier = Modifier
-                    .weight(1f)
-                    .basicMarquee(iterations = Int.MAX_VALUE),
-            )
+        val nameBox: @Composable (Modifier) -> Unit = { nameModifier ->
+            if (nameScrolls(focused = focused, pressed = pressed)) {
+                Text(
+                    text = name,
+                    style = nameStyle,
+                    color = ink,
+                    maxLines = 1,
+                    overflow = TextOverflow.Clip,
+                    modifier = nameModifier.basicMarquee(iterations = Int.MAX_VALUE),
+                )
+            } else {
+                CastivioMiddleEllipsisText(
+                    text = name,
+                    style = nameStyle,
+                    color = ink,
+                    modifier = nameModifier,
+                )
+            }
+        }
+        if (caption == null) {
+            nameBox(Modifier.weight(1f))
         } else {
-            CastivioMiddleEllipsisText(
-                text = name,
-                style = nameStyle,
-                color = ink,
-                modifier = Modifier.weight(1f),
-            )
+            // The name keeps the row's slack and the category goes under it, quieter: the row is as much taller as a line of it.
+            Column(Modifier.weight(1f)) {
+                nameBox(Modifier.fillMaxWidth())
+                Text(
+                    text = caption,
+                    style = castivioBodyStyle(m.frame.fsBody * CAPTION_OF_BODY),
+                    color = if (look.surface) colors.onSecondary else colors.onBackgroundMuted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
 
         // **The star, first after the name.** Like the lock, a fact about the channel, so it comes
         // before the player's mark. Not while the row's picking end already draws it -- one star a row.
-        if (favorite && pick?.favorite != true) FavoriteMark(size = m.rowMin * MARK_OF_ROW, onFill = look.surface)
+        if (favorite && pick?.favorite != true) FavoriteMark(size = m.rowMin * MARK_OF_ROW, onFill = look.surface, icon = favoriteIcon)
 
         // **The lock, after the star.** It is a fact about the channel and the mark below is a fact
         // about the player, so it comes before it: a locked row that is also playing shows both, lock
@@ -2371,10 +2393,10 @@ private fun PickMark(pick: RowPick, size: Dp, onFill: Boolean) {
  * words for a screen reader.
  */
 @Composable
-private fun FavoriteMark(size: Dp, onFill: Boolean) {
+private fun FavoriteMark(size: Dp, onFill: Boolean, icon: ImageVector = Icons.Rounded.Star) {
     val colors = CastivioTheme.colors
     Icon(
-        imageVector = Icons.Rounded.Star,
+        imageVector = icon,
         contentDescription = stringResource(R.string.channels_favorites),
         tint = if (onFill) colors.onSecondary else colors.secondary,
         modifier = Modifier.size(size),
@@ -3505,7 +3527,7 @@ private fun ChannelGuideOverlay(
 
 /** The reference's red `LIVE` chip, at the head of the on-screen display. */
 @Composable
-private fun LiveBadge(m: ChannelsMetrics) {
+internal fun LiveBadge(m: ChannelsMetrics) {
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(Radius.pill)
     Text(
@@ -3558,6 +3580,9 @@ private fun DayHeading(startOfDayMs: Long, m: ChannelsMetrics) {
  * of the guide and the word of the reorder band are drawn in it, which is why it is one number and not two.
  */
 internal const val AMBER_INK_LIFT = 0.28f
+
+/** A row's second line is set a little under the body step, so a category of ordinary length reaches its end whole. */
+private const val CAPTION_OF_BODY = 0.9f
 
 /** The hairline after a day heading, in the heading's own colour. */
 private const val DAY_RULE_ALPHA = 0.38f
