@@ -641,20 +641,21 @@ internal fun BoardBand(
             // logo. It was sitting against the wordmark, and `Live TV` read as part of
             // the product's name rather than as which section is open.
             Row(
-                // The cell keeps its width; what the padding takes is the room the pair stands in.
-                Modifier.width(m.rail + m.railGap).padding(start = bandInset(m), end = m.railGap + m.wellPad),
+                Modifier.width(m.rail + m.railGap),
                 verticalAlignment = Alignment.CenterVertically,
-                // **Side by side, at the column's start.** The mark stands over the bouquets' search mark -- its edge
-                // in line with that mark's -- and the name against it. They were spread to the two ends of the column
-                // for a while and that was not what was wanted: the pair is one thing, and what fills the space is the
-                // mark being large enough, not the two being far apart.
-                horizontalArrangement = Arrangement.spacedBy(m.osdGap),
+                // **The pair is in the middle of that cell** -- the same space from the frame's edge to the mark as from the
+                // name to the section's name, which is where the cell ends. It stood at the column's start, over the
+                // bouquets' search mark, and the space after the name was six times the one before the mark. Drawn first
+                // in `design/mockups/channels-band-brand-ar.html`, option A.
+                //
+                // The pair is one thing: what fills the space is the mark being large enough, not the two being far apart.
+                horizontalArrangement = Arrangement.spacedBy(m.osdGap, Alignment.CenterHorizontally),
             ) {
                 Image(
                     painter = painterResource(DesignR.drawable.castivio_logo),
                     contentDescription = null,
                     contentScale = ContentScale.Fit,
-                    modifier = Modifier.height(m.header * MARK_OF_HEADER),
+                    modifier = Modifier.height(m.header * MARK_OF_HEADER).testTag(BAND_MARK_TAG),
                 )
                 Text(
                     text = stringResource(R.string.gate_wordmark),
@@ -843,13 +844,11 @@ private fun rememberClockWidth(m: ChannelsMetrics): Dp {
 }
 
 /**
- * How far the band's two ends stand in from the frame's edges: the mark at the start, the way back at the end -- or the
- * clock, on a band that has none.
+ * How far the band's end stands in from the frame's edge: the way back, or the clock on a band that has none.
  *
  * The frame is drawn close to the edge of a handset, and the clock was at the frame's very edge, against the
  * phone's. This is the distance from the frame to the bouquets' search mark -- the well's padding and the field's own --
- * so what ends the band stands in from its edge as far as that mark stands in from the other, and the mark over it is
- * in line with that one.
+ * so what ends the band stands in from its edge as far as that mark stands in from the other.
  */
 internal fun bandInset(m: ChannelsMetrics): Dp = m.wellPad + m.railPadH
 
@@ -3934,10 +3933,16 @@ private const val QUALITY_OF_BODY = 0.84f
  * The picture is trimmed to the television. It used to be a portrait canvas with the television in its middle third
  * and empty ground above and below, drawn as tall as the band -- so the television was 38% of the picture, about 13dp
  * on a handset, and read small however the share was set. A child cannot be taller than the band it stands in, so
- * the way to a larger mark was a picture with nothing in it but the mark; 0.7 of a 34dp band is 24dp, the size
- * drawn in `design/mockups/band-mark.html` and chosen from it.
+ * the way to a larger mark was a picture with nothing in it but the mark.
+ *
+ * 0.7 of a 34dp band was 24dp (`design/mockups/band-mark.html`); the owner then asked for the pair a little larger
+ * and in the middle of its cell, and chose 0.8 -- 27dp, a seventh larger -- from
+ * `design/mockups/channels-band-brand-ar.html`, over 0.91, which nearly fills the band.
  */
-private const val MARK_OF_HEADER = 0.7f
+internal const val MARK_OF_HEADER = 0.8f
+
+/** The tag the band's mark carries, so a test can find a picture that says nothing to a reader. */
+internal const val BAND_MARK_TAG = "castivio.band.mark"
 
 /** The header's and the rail's second line, against the frame's body step. */
 /**
@@ -3992,8 +3997,11 @@ private const val RULE_OF_HEADER = 0.56f
  * themselves and were drawn at the step a chip uses, which made the product's own name
  * the smallest confident thing on the screen. This is the one place on the board that
  * can afford to be larger than the type scale's own answer.
+ *
+ * 1.36 since the owner chose the larger pair, option A of `design/mockups/channels-band-brand-ar.html`: the same
+ * 15% as the mark, so the two keep their proportion. It was 1.18.
  */
-private const val WORDMARK_OF_LABEL = 1.18f
+private const val WORDMARK_OF_LABEL = 1.36f
 
 /**
  * A heading's letter spacing.

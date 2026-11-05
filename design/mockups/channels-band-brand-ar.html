@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<!-- The mark and the name at the start of the board's band: as they are, and centred in the space between the frame of the bouquets and
+     the section's name -- a little larger, at two sizes to choose between.
+     Phone geometry, 833x385dp, one px per dp; rendered at 2x. Not the app: a drawing of how the screen is meant to look.
+       **What was asked** (from the owner's photograph of the channels board): the mark and the name -- Castivio -- in the middle of the space
+       between the frame of the bouquets, at its left edge, and the section's name ("البث المباشر"), and larger a little.
+       **How it is measured:** the figures are read off that photograph, 2340x1080 px at 2.81 px per dp: the frame's left edge at 44dp, the section's name
+       starting at 234dp, the mark 21.7dp wide as seen (its picture 267x237, drawn 0.7 of the band's 34dp, so 23.8dp tall) and the name 54dp wide
+       in the face the app uses (Inter bold, about 13.7dp). The mark stands 6.8dp from the name, as it does there.
+       **What changes in the code:** the first cell of the band (which is as wide as the rail column plus its gap, so ends where the section's name
+       starts) centres the pair in all of it and not in what is left after the band's inset; and the mark's share of the band (0.7) and the name's of
+       the label step (1.18) grow by the same amount. Nothing else on the band moves: the section's name, the field, the clock and the arrow
+       are where they were.
+       `?frame=sheet` is the default: the three bands, with the space on each side of the pair measured in dp. -->
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>الشعار والاسم في الشريط</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#05040E;color:#fff;font-family:"Inter","DejaVu Sans",system-ui,sans-serif;width:833px}
+.cap{padding:14px 20px 8px;font-size:13px;line-height:1.7;color:#cfd0ea;direction:rtl}
+.cap b{color:#fff}
+.cap em{font-style:normal;color:#ffc15a}
+.strip{position:relative;width:833px;height:100px;overflow:hidden;direction:ltr;background:linear-gradient(140deg,#1c1a41 0%,#141a3b 55%,#0f1d3b 100%)}
+.abs{position:absolute}
+.in{position:absolute;left:0;top:22px;width:833px;height:78px}
+svg{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ar{direction:rtl;unicode-bidi:plaintext}
+.frame{left:44px;top:42px;width:781px;height:60px;border-radius:10px;border:1px solid rgba(150,140,210,.5);background:rgba(255,255,255,.015)}
+.pill{display:flex;align-items:center;gap:6px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);direction:ltr}
+.pill .tx{flex:1;min-width:0;font-size:10.5px;color:#aeb0cc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;direction:rtl;unicode-bidi:plaintext;text-align:right}
+.pill svg{color:#aeb0cc}
+.crumb{left:233.5px;top:6px;font-size:11px;color:#a58cff;direction:rtl;line-height:1.25;white-space:nowrap}
+.crumb span{display:block;color:#e6e7f6;font-size:11px;direction:ltr;text-align:left;font-weight:500}
+.clock{left:729px;top:6px;width:46px;text-align:right;font-weight:700;font-size:15px;line-height:1.05}
+.clock small{display:block;font-size:9px;font-weight:400;color:#c3c4e2;margin-top:2px;white-space:nowrap}
+.back{left:783px;top:5px;width:27px;height:27px;border-radius:7px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;color:#e6e8ff}
+/* the pair */
+.grp{position:absolute;top:0;height:34px;margin-top:4px;display:flex;align-items:center;gap:6.8px;white-space:nowrap}
+.grp img{display:block;width:auto}
+.grp .word{font-weight:700;letter-spacing:0;color:#fff;line-height:1}
+/* guides and measures */
+.guide{position:absolute;top:0;height:100px;border-left:1px dashed rgba(255,193,90,.55)}
+.br{position:absolute;top:13px;height:5px;border-bottom:none;border-top:1px solid #ffb020;border-left:1px solid #ffb020;border-right:1px solid #ffb020}
+.num{position:absolute;top:1px;font-size:9.5px;color:#ffc15a;text-align:center;white-space:nowrap}
+.tag{position:absolute;right:6px;top:3px;font-size:9px;background:#ff5b6b;color:#fff;border-radius:4px;padding:1px 5px;direction:rtl;z-index:5}
+.tag.ok{background:#1fc89a;color:#052018}
+</style></head><body>
+<script>
+const LOGO='../../core/design/src/main/res/drawable-nodpi/castivio_logo.png';
+const FRAME=44, CRUMB=233.5, BAND=34, WORD=13.7, MARK=0.7*BAND, ASPECT=267/237;
+const MAG='<svg width="12" height="12" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>';
+const ARROW='<svg width="16" height="16" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+const STRIPS=[
+  {id:'now', k:1,    tag:['الآن',''],            label:['١ — كما هو في صورتك:','الزوج عند يسار الإطار، والفراغ بعده إلى «البث المباشر» أكبر من الفراغ قبله بنحو ستة أضعاف.']},
+  {id:'a',   k:1.15, tag:['المقترح أ','ok'],         label:['٢ — أ: في المنتصف وأكبر بـ١٥٪:','الشعار ٢٧dp والاسم ١٥٫٨dp. الفراغان على جانبيه متساويان.']},
+  {id:'b',   k:1.30, tag:['المقترح ب','ok'],         label:['٣ — ب: في المنتصف وأكبر بـ٣٠٪:','الشعار ٣١dp وهو قريب من ارتفاع الشريط كله (٣٤dp)، والاسم ١٧٫٨dp. الفراغان متساويان.']}];
+function strip(s){
+  const h=MARK*s.k, w=h*ASPECT, f=WORD*s.k;
+  return `<div class="cap"><b>${s.label[0]}</b> ${s.label[1]}</div>
+  <div class="strip" id="s-${s.id}" data-k="${s.k}"><div class="in">
+   <div class="abs frame"></div>
+   <div class="abs pill" style="left:48px;top:46px;width:180px;height:27px;padding:0 13px">${MAG}<span class="tx ar">البحث في الباقات</span></div>
+   <div class="grp" id="g-${s.id}" style="left:-999px"><img src="${LOGO}" style="height:${h}px"><span class="word" style="font-size:${f}px">Castivio</span></div>
+   <div class="abs crumb ar">البث المباشر<span>24/7 ACTION &amp; A…</span></div>
+   <div class="abs pill" style="left:379px;top:11px;width:179px;height:21px;padding:0 13px">${MAG}<span class="tx ar">البحث في القنوات</span></div>
+   <div class="abs clock">10:39<small>5-11-2026</small></div><div class="abs back">${ARROW}</div>
+   </div>
+   <div class="guide" style="left:${FRAME}px"></div><div class="guide" style="left:${CRUMB}px"></div>
+   <span class="tag ${s.tag[1]}">${s.tag[0]}</span>
+   <div id="m-${s.id}"></div>
+  </div>`;
+}
+const q=new URLSearchParams(location.search), frame=q.get('frame')||'sheet';
+const list=frame==='sheet'?STRIPS:STRIPS.filter(s=>s.id===frame);
+let html='';
+if(frame==='sheet') html+=`<div class="cap"><b>ما طُلب:</b> الشعار والاسم في <b>منتصف المسافة</b> بين حافة إطار الباقات (الخط المنقّط الأيسر) وبداية «البث المباشر» (الخط المنقّط الأيمن)، وأكبر قليلًا. الأرقام الكهرمانية تحت كل شريط هي الفراغ على جانبَي الزوج بالـdp.</div>`;
+html+=list.map(strip).join('')+'<div style="height:10px"></div>';
+if(frame==='sheet') html+=`<div class="cap"><b>في الكود:</b> الخلية الأولى من الشريط (بعرض عمود الباقات وفراغه، فتنتهي حيث يبدأ اسم القسم) تضع الزوج في وسطها كله بدل البدء من هامش الشريط؛ ويكبر ارتفاع الشعار من <em>٠٫٧</em> إلى <em>٠٫٨٠</em> أو <em>٠٫٩١</em> من الشريط، وحجم الاسم من <em>١٫١٨</em> إلى <em>١٫٣٦</em> أو <em>١٫٥٣</em> من خطوة العنوان. لا يتحرك شيء آخر في الشريط: اسم القسم والخانة والساعة والسهم في أماكنها. في الخيار ب يقارب الشعار ارتفاع الشريط فلا يبقى فوقه ولا تحته هواء.</div>`;
+document.write(html);
+function place(s){
+  const g=document.getElementById('g-'+s.id), box=document.getElementById('s-'+s.id), m=document.getElementById('m-'+s.id);
+  const w=g.getBoundingClientRect().width;
+  const left = s.id==='now' ? 58 : FRAME+((CRUMB-FRAME)-w)/2;
+  g.style.left=left+'px';
+  const a=left-FRAME, b=CRUMB-(left+w), r=x=>Math.round(x*10)/10;
+  const mk=(x0,x1,n)=>`<div class="br" style="left:${x0}px;width:${x1-x0}px"></div><div class="num" style="left:${x0-12}px;width:${x1-x0+24}px">${n}</div>`;
+  m.innerHTML=mk(FRAME,left,r(a))+mk(left+w,CRUMB,r(b));
+}
+document.fonts.load('700 14px Inter').then(()=>document.fonts.ready).then(()=>{
+  const imgs=[...document.images]; return Promise.all(imgs.map(i=>i.complete?1:new Promise(r=>i.onload=r)));
+}).then(()=>{list.forEach(place);document.body.dataset.ready='1';});
+</script>
+</body></html>

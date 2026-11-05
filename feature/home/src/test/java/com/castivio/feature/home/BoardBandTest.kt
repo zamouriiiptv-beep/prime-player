@@ -19,6 +19,7 @@ import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -55,6 +56,7 @@ open class BoardBandTest {
     private var backs = 0
     private var focus: FocusManager? = null
     private var backLabel = ""
+    private var wordmark = ""
     private var metrics: ChannelsMetrics? = null
 
     /** The band, over a `BackHandler` that counts what the Back key would have done. */
@@ -65,6 +67,7 @@ open class BoardBandTest {
                 metrics = m
                 focus = LocalFocusManager.current
                 backLabel = stringResource(R.string.show_back)
+                wordmark = stringResource(R.string.gate_wordmark)
                 BackHandler { backs++ }
                 BoardBand(
                     section = "Movies",
@@ -134,6 +137,33 @@ open class BoardBandTest {
         val clockToArrow = (arrowAt.left - clockAt.right).value
         assertTrue("the spaces are $fieldToOrder and $clockToArrow", fieldToOrder > 0f && clockToArrow > 0f)
         assertEquals(fieldToOrder, clockToArrow, 1.5f)
+    }
+
+    @Test
+    fun `the mark and the name stand in the middle of the space before the section's name`() {
+        show()
+
+        val mark = compose.onNodeWithTag(BAND_MARK_TAG).getUnclippedBoundsInRoot()
+        val name = compose.onNode(hasText(wordmark)).getUnclippedBoundsInRoot()
+        val section = compose.onNode(hasText("Movies")).getUnclippedBoundsInRoot()
+
+        // From the frame's edge -- the band's own start -- to the mark, and from the name to where the section's name begins.
+        val before = mark.left.value
+        val after = (section.left - name.right).value
+        assertTrue("the pair has $before before it and $after after it", before > 0f && after > 0f)
+        assertEquals(before, after, 1.5f)
+    }
+
+    @Test
+    fun `the mark is a little larger than the band's old share of it`() {
+        show()
+
+        val mark = compose.onNodeWithTag(BAND_MARK_TAG).getUnclippedBoundsInRoot()
+
+        // 0.8 of the band, where it was 0.7: about 14% taller, and still inside the band.
+        assertTrue("the share is $MARK_OF_HEADER", MARK_OF_HEADER > 0.7f)
+        assertEquals((metrics!!.header * MARK_OF_HEADER).value, mark.height.value, 1f)
+        assertTrue(mark.height <= metrics!!.header)
     }
 
     @Test
