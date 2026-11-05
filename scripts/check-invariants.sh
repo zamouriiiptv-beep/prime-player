@@ -878,6 +878,33 @@ if [ -n "$reach" ]; then
   subscription's favourites, its recently watched, its session or its database."
 fi
 
+# ------------------------------------------- the radio's source switch has room for ten letters
+# The switch between the subscription's radio and the world's is a pill of two halves in a rail about
+# 180dp wide: a half is about 80dp, and "Subscription" -- twelve letters -- was cut to "Subscripti…" on
+# the owner's phone, in every language that fell back to it. A label that does not fit does not wrap, so
+# what a translation says has to be short. The fitting (`CastivioFittedText`) is the guard for the word
+# that is a little over; this is the rule for the word that is a lot.
+if command -v python3 >/dev/null 2>&1; then
+  longlabel=$(python3 <<'PYSWITCH'
+import glob, io, re
+LIMIT = 10
+for f in sorted(glob.glob("feature/home/src/main/res/values*/strings_world_radio.xml")):
+    text = io.open(f, encoding="utf-8").read()
+    for m in re.finditer(r'<string name="(radio_source_(?:subscription|world))"[^>]*>(.*?)</string>', text, re.S):
+        value = re.sub(r"\\(.)", r"\1", m.group(2)).strip()
+        if len(value) > LIMIT:
+            print("  %s: %s is %d letters (%s)" % (f.split("/")[-2], m.group(1), len(value), value))
+PYSWITCH
+)
+  if [ -n "$longlabel" ]; then
+    fail "A label of the radio's source switch is too long to fit its half" \
+         "$longlabel
+
+  The two halves of the switch are about 80dp each and a label cannot wrap: ten
+  letters at most, in every language. Choose a shorter word."
+  fi
+fi
+
 # ------------------------------------------------------------------------ report
 if [ "$failures" -eq 0 ]; then
   echo "Design invariants: all mechanical checks pass."

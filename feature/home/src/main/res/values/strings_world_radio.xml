@@ -4,7 +4,7 @@
     <!--
     The world radio: the directory's stations beside the subscription's own. Every string here belongs to that source; the subscription's radio
          has its own in strings.xml. See WorldRadioScreen.kt and design/mockups/radio-world-ar.html. -->
-    <string name="radio_source_subscription">Subscription</string>
+    <string name="radio_source_subscription">Provider</string>
     <string name="radio_source_world">World</string>
     <string name="radio_source_label">Radio source</string>
     <string name="radio_world_in">World · %1$s</string>

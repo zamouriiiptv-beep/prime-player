@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,8 +20,9 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.castivio.core.design.components.CastivioFittedText
 import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Radius
@@ -68,10 +68,11 @@ internal fun RadioSourceSwitch(
                     .then(focusModifier)
                     .semantics { selected = chosen }
                     .clickable(role = Role.Tab, onClick = { if (!chosen) onChoose(entry) })
-                    .padding(horizontal = m.railPadH),
+                    .padding(horizontal = SEGMENT_INK_INSET),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
+                // Fitted to the half it is in: a word that is longer in another language shrinks to the width and does not end in "…".
+                CastivioFittedText(
                     text = stringResource(
                         when (entry) {
                             RadioSource.Subscription -> R.string.radio_source_subscription
@@ -80,8 +81,7 @@ internal fun RadioSourceSwitch(
                     ),
                     style = castivioChipStyle(m.frame.fsLabel),
                     color = if (chosen) colors.onSecondary else colors.onBackground,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
                 )
             }
         }
@@ -90,3 +90,10 @@ internal fun RadioSourceSwitch(
 
 /** What stands between the pill and its two halves, and between them: the pill is this much taller than the field beside it, twice over. */
 private val SEGMENT_GAP = 3.dp
+
+/**
+ * Room left of a label inside its half: little, because a half is about 80dp wide and the longest of the words it says -- "Fournisseur",
+ * "Subscription" -- is nearly that. The strings are kept to ten letters in every language (see `check-invariants.sh`); this and the fitting are
+ * for the rest.
+ */
+private val SEGMENT_INK_INSET = 4.dp

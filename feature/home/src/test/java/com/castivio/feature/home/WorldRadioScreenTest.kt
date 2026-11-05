@@ -111,7 +111,7 @@ class WorldRadioScreenTest {
     fun `the rail offers the two sources, the viewer's lists and every country with its total`() {
         show()
 
-        compose.onNodeWithText("Subscription").assertIsDisplayed()
+        compose.onNodeWithText("Provider").assertIsDisplayed()
         compose.onNodeWithText("World").assertIsDisplayed()
         compose.onNodeWithText("Most listened").assertIsDisplayed()
         compose.onNodeWithText("Favorites").assertIsDisplayed()
@@ -125,7 +125,7 @@ class WorldRadioScreenTest {
     fun `the other source is one press away`() {
         show()
 
-        compose.onNodeWithText("Subscription").performClick()
+        compose.onNodeWithText("Provider").performClick()
         compose.waitForIdle()
 
         assertEquals(listOf(RadioSource.Subscription), switched)
