@@ -1,5 +1,6 @@
 package com.castivio.domain
 
+import com.castivio.core.common.PlayOutcome
 import com.castivio.core.common.StreamQuality
 
 /**
@@ -20,6 +21,13 @@ data class RadioStatus(
      * still does not know the player exists.
      */
     val quality: StreamQuality? = null,
+    /**
+     * What this listen proved about the stream, or null while it is still being watched: the engine opened it and it ran steadily for a
+     * few seconds ([PlayOutcome.CONFIRMED]), it stopped or broke inside that window (UNSTABLE), it failed (FAILED), or the viewer
+     * held or left it first (INCONCLUSIVE). A record for the stations that keep one; nothing the plate draws, and nothing that
+     * delays the sound being announced -- see `PlayEvidence`.
+     */
+    val evidence: PlayOutcome? = null,
 ) {
     /** The stream that is sounding right now, or null: what marks a station's card as the one playing. */
     val soundingUrl: String? get() = url.takeIf { phase == RadioPhase.PLAYING }

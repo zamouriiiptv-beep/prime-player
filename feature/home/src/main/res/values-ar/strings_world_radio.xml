@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!--
+    The world radio: the directory's stations beside the subscription's own. Every string here belongs to that source; the subscription's radio
+         has its own in strings.xml. See WorldRadioScreen.kt and design/mockups/radio-world-ar.html. -->
+    <string name="radio_source_subscription">الاشتراك</string>
+    <string name="radio_source_world">العالم</string>
+    <string name="radio_source_label">مصدر الراديو</string>
+    <string name="radio_world_in">العالم · %1$s</string>
+    <string name="radio_world_top">الأكثر استماعًا</string>
+    <string name="radio_world_results">نتائج «%1$s»</string>
+    <string name="radio_world_countries">الدول</string>
+    <string name="radio_world_genres">الأنواع</string>
+    <string name="radio_world_search_hint">البحث في محطات العالم</string>
+    <string name="radio_world_search_countries">البحث في الدول</string>
+    <string name="radio_world_search_genres">البحث في الأنواع</string>
+    <string name="radio_world_saved_list">من القائمة المحفوظة</string>
+    <string name="radio_world_credit">الدليل: %1$s</string>
+    <string name="radio_world_loading">جارٍ التحميل…</string>
+    <string name="radio_world_empty">لا توجد محطات هنا</string>
+    <string name="radio_world_no_results">لا نتائج لـ «%1$s»</string>
+    <string name="radio_world_no_results_detail">جرّب حروفًا أقل، أو جزءًا من الاسم.</string>
+    <string name="radio_world_offline_title">لا يوجد اتصال</string>
+    <string name="radio_world_offline_detail">تحقق من اتصالك بالإنترنت ثم أعد المحاولة.</string>
+    <string name="radio_world_down_title">الدليل لا يردّ</string>
+    <string name="radio_world_down_detail">أعد المحاولة بعد قليل.</string>
+    <string name="radio_world_kbps">%1$d كيلوبت/ث</string>
+    <string name="radio_world_resting">تستريح — تعذّر تشغيلها مؤخرًا</string>
+    <string name="radio_world_more_failed">تعذّر تحميل المزيد — اضغط للمحاولة مجددًا</string>
+</resources>

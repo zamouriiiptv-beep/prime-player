@@ -1,5 +1,6 @@
 package com.castivio.feature.player
 
+import com.castivio.core.common.PlayOutcome
 import com.castivio.core.common.StreamQuality
 import com.castivio.domain.RadioPhase
 import com.castivio.domain.RadioStatus
@@ -34,6 +35,15 @@ class RadioStatusTest {
         assertEquals(false, request.audioOnly)
         // Asking again for a station already asked for is the same request: the player has nothing to do.
         assertEquals(asked, asStation(asked))
+    }
+
+    @Test
+    fun `what the listen proved goes with the status and is nothing until it is decided`() {
+        val decided = radioStatusOf(PlayerState(request = request, picture = Picture.Playing, evidence = PlayOutcome.CONFIRMED))
+
+        assertEquals(PlayOutcome.CONFIRMED, decided.evidence)
+        assertEquals(RadioPhase.PLAYING, decided.phase)
+        assertEquals(null, status(Picture.Playing).evidence)
     }
 
     @Test

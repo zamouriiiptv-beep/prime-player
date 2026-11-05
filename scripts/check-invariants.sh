@@ -841,6 +841,43 @@ $hits
   reads Kotlin and this file is XML."
 fi
 
+# ----------------------------------------- the world radio is not the subscription's
+# The radio has two sources: the subscription's own stations, and a public
+# directory's. The owner's rule is that they never touch -- a catalogue import, a
+# refresh or the deletion of a subscription must not be able to reach what the
+# viewer keeps of the world's stations, and a station of the directory must never
+# be taken for one of the subscription's by the subscription's favourites, its
+# recently watched or its player session.
+#
+# Held by the module layout (its own database file, its own module) and by this:
+# the code on each side does not name the other.
+cross=$(grep -rln --include='*.kt' -E 'worldradio|WorldStation|WorldRadio|WorldChoice' \
+          data/database data/playlist data/epg data/entitlement data/activation data/preferences \
+          feature/home/src/main/java/com/castivio/feature/home/RadioSession.kt \
+          feature/home/src/main/java/com/castivio/feature/home/RadioScreen.kt \
+          feature/home/src/main/java/com/castivio/feature/home/RecentChannelsViewModel.kt \
+          feature/home/src/main/java/com/castivio/feature/home/ChannelFavoritesViewModel.kt 2>/dev/null)
+if [ -n "$cross" ]; then
+  fail "The subscription's code names the world radio" \
+       "$cross
+
+  The two radios are kept apart: their own stores, their own sessions, their own
+  view-models. If one has to know about the other, that is a change to the rule,
+  made deliberately and in its own commit -- not a convenience."
+fi
+
+reach=$(grep -rn --include='*.kt' -E 'FavoritesRepository|RecentChannelsViewModel|ChannelFavoritesViewModel|(^|[^A-Za-z])RadioSession([^A-Za-z]|$)|asSelection\(|com\.castivio\.data\.database' \
+          data/worldradio/src/main \
+          feature/home/src/main/java/com/castivio/feature/home/WorldRadio*.kt \
+          feature/home/src/main/java/com/castivio/feature/home/WorldStationsSource.kt 2>/dev/null | no_comments)
+if [ -n "$reach" ]; then
+  fail "The world radio reaches into the subscription" \
+       "$reach
+
+  A station of the directory is not a channel: it is not given to the
+  subscription's favourites, its recently watched, its session or its database."
+fi
+
 # ------------------------------------------------------------------------ report
 if [ "$failures" -eq 0 ]; then
   echo "Design invariants: all mechanical checks pass."

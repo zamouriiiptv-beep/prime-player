@@ -1,6 +1,7 @@
 package com.castivio.feature.player
 
 import com.castivio.core.common.FrameSize
+import com.castivio.core.common.PlayOutcome
 import com.castivio.core.common.StreamQuality
 import com.castivio.domain.PlayerPulse
 import com.castivio.domain.PulsePhase
@@ -82,6 +83,12 @@ data class PlayerState(
      * in a viewing -- see [PlayerViewModel.watchQuality] -- and is the only thing that does about it.
      */
     val quality: StreamQuality? = null,
+    /**
+     * What this listen proved about the stream -- see `PlayEvidence` -- or null while it is being watched, and always null for a source
+     * that was not asked for as a sound only. Set once per open and read by the radio, which keeps a record of it for the stations that
+     * keep one; the screens of the other players do not read it.
+     */
+    val evidence: PlayOutcome? = null,
     /**
      * The caption lines on screen right now, and empty when there are none.
      *

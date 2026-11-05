@@ -63,7 +63,6 @@ import com.castivio.core.design.theme.Motion
 import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Sizing
 import com.castivio.core.common.StreamQuality
-import com.castivio.domain.Channel
 import com.castivio.domain.RadioPhase
 
 /**
@@ -87,7 +86,12 @@ import com.castivio.domain.RadioPhase
  */
 @Immutable
 internal data class RadioPlateState(
-    val station: Channel,
+    /**
+     * What the plate says of the station -- its name and its logo -- and nothing else of it: the plate is drawn for a subscription's
+     * channel and for a station of the world's directory alike, and a type that held either would make the other one into it.
+     */
+    val title: String,
+    val artworkUrl: String?,
     val category: String?,
     val phase: RadioPhase,
     val favorite: Boolean,
@@ -218,7 +222,7 @@ private fun plateLine(plate: RadioPlateState): String = when (plate.phase) {
 
 /** The station's logo, whole, in a frame of its own; the radio mark where the provider sent none. */
 @Composable
-private fun StationLogo(station: Channel, size: Dp, modifier: Modifier = Modifier) {
+private fun StationLogo(artworkUrl: String?, size: Dp, modifier: Modifier = Modifier) {
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(Radius.sm)
     Box(
@@ -230,7 +234,7 @@ private fun StationLogo(station: Channel, size: Dp, modifier: Modifier = Modifie
             .padding(size / LOGO_INSET),
         contentAlignment = Alignment.Center,
     ) {
-        if (station.artworkUrl.isNullOrBlank()) {
+        if (artworkUrl.isNullOrBlank()) {
             Icon(
                 imageVector = Icons.Rounded.Radio,
                 contentDescription = null,
@@ -238,7 +242,7 @@ private fun StationLogo(station: Channel, size: Dp, modifier: Modifier = Modifie
                 modifier = Modifier.fillMaxSize(),
             )
         } else {
-            ProviderArtwork(url = station.artworkUrl, description = null, modifier = Modifier.fillMaxSize())
+            ProviderArtwork(url = artworkUrl, description = null, modifier = Modifier.fillMaxSize())
         }
     }
 }
@@ -299,10 +303,10 @@ private fun RadioPlateCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(m.nameGap),
         ) {
-            StationLogo(plate.station, size = PLATE_LOGO)
+            StationLogo(plate.artworkUrl, size = PLATE_LOGO)
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = plate.station.title,
+                    text = plate.title,
                     style = castivioChipStyle(m.frame.fsLabel),
                     color = colors.onBackgroundStrong,
                     maxLines = 1,
@@ -399,7 +403,7 @@ internal fun RadioNowPlaying(
             horizontalArrangement = Arrangement.spacedBy(m.panelPad),
         ) {
             Box(Modifier.weight(SHEET_LOGO_SHARE).fillMaxHeight(), contentAlignment = Alignment.Center) {
-                StationLogo(plate.station, size = SHEET_LOGO)
+                StationLogo(plate.artworkUrl, size = SHEET_LOGO)
             }
             RadioNowPlayingInfo(
                 plate = plate,
@@ -455,7 +459,7 @@ private fun RadioNowPlayingBody(
 ) {
     val colors = CastivioTheme.colors
     Text(
-        text = plate.station.title,
+        text = plate.title,
         style = castivioTitleStyle(m.frame.fsTitle),
         color = colors.onBackgroundStrong,
         maxLines = 2,

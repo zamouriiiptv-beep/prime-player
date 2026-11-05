@@ -126,40 +126,42 @@ const radioArt=`<svg width="150" height="120" viewBox="0 0 150 120">
 const COUNTRIES=[['المغرب',105],['الجزائر',64],['تونس',48],['مصر',152],['السعودية',87],['الإمارات',60],['السنغال',57],['فرنسا',1180],['هولندا',412],['تركيا',690]];
 const MA=[['Medi 1 Radio','m1','128 kbps · MP3'],['Hit Radio','hit','128 kbps · AAC'],['Chada FM','chada','96 kbps · MP3'],['Radio Mars','mars','128 kbps · MP3'],['Cap Radio','cap','64 kbps · AAC'],['Atlantic Radio','atl','128 kbps · MP3'],['MFM Radio',null,'128 kbps · MP3'],['Radio Aswat',null,'96 kbps · AAC'],['Med Radio',null,'128 kbps · MP3'],['Radio Plus Agadir',null,'64 kbps · MP3']];
 const TOP=[['BBC World Service','bbc','المملكة المتحدة'],['NPR News','npr','الولايات المتحدة'],['RFI Monde','rfi','فرنسا'],['Radio 538','r538','هولندا'],['NRJ','nrj','فرنسا'],['Medi 1 Radio','m1','المغرب'],['Hit Radio','hit','المغرب'],['إذاعة القرآن الكريم',null,'السعودية'],['Chada FM','chada','المغرب'],['Radio Mars','mars','المغرب']];
-const FAV=[['Medi 1 Radio','m1','المغرب',1],['NL| RADIO 538','r538','اشتراكي · NL| RADIO LIVE',1],['BBC World Service','bbc','المملكة المتحدة',1]];
+const GENRES=[['News',310],['Pop',900],['Rock',520],['Quran',280],['Jazz',210],['Classical',190]];
+const FAV=[['Medi 1 Radio','m1','المغرب',1],['BBC World Service','bbc','المملكة المتحدة',1],['Radio Mars','mars','تستريح — تعذّر تشغيلها مؤخرًا',1,1]];
 const FOUND=[['Medi 1 Radio','m1','المغرب'],['Medi 1 Afrique',null,'المغرب'],['Medina FM',null,'تونس'],['Media Radio',null,'مصر'],['Medi Radio Marrakech',null,'المغرب'],['Mediterranean FM',null,'فرنسا']];
 
 function rows(list, o){
   let l='';
   list.forEach((s,i)=>{
-    const [nm,lk,line,fav]=s;
+    const [nm,lk,line,fav,dim]=s;
     const focus = i===o.focus, sounding = i===o.sounding;
-    l+=`<div class="lr ${focus?'focus':''}" style="top:${4+i*33}px"><span class="no">${i+1}</span>${lg(lk)}<span class="nm"><b>${nm}</b><small class="${/[\u0600-\u06FF]/.test(line)?'rtl':''}">${line}</small></span>${sounding?`<span class="disc"><svg width="8" height="8" viewBox="0 0 24 24" style="fill:#052018;stroke:none"><path d="M8 5v14l11-7z"/></svg></span>${EQ}`:''}<span class="heart ${fav?'on':''}">${I.heart}</span></div>`;
+    l+=`<div class="lr ${focus?'focus':''}" style="top:${4+i*33}px;${dim?'opacity:.5':''}"><span class="no">${i+1}</span>${lg(lk)}<span class="nm"><b>${nm}</b><small class="${/[\u0600-\u06FF]/.test(line)?'rtl':''}">${line}</small></span>${sounding?`<span class="disc"><svg width="8" height="8" viewBox="0 0 24 24" style="fill:#052018;stroke:none"><path d="M8 5v14l11-7z"/></svg></span>${EQ}`:''}<span class="heart ${fav?'on':''}">${I.heart}</span></div>`;
   });
   return l;
 }
 function rail(world, sel, opts){
   opts=opts||{};
   let r=`<div class="abs seg" style="left:48px;top:46px;width:180px"><span class="${world?'':'on'}">اشتراكي</span><span class="${world?'on':''}">العالم</span></div>`;
-  r+=`<div class="abs pill ${opts.typed?'on':''}" style="left:48px;top:73px;width:180px;height:24px;padding:0 13px">${I.search}<span class="ar" style="flex:1;text-align:right">${world?'البحث في الدول':'البحث في الباقات'}</span></div>`;
-  const fixed = world?['الأكثر استماعًا','المفضلة','استمع مؤخرًا']:['جميع المحطات','المفضلة','استمع مؤخرًا'];
+  r+=`<div class="abs pill ${opts.typed?'on':''}" style="left:48px;top:73px;width:180px;height:24px;padding:0 13px">${I.search}<span class="ar" style="flex:1;text-align:right">${world?(opts.genres?'البحث في الأنواع':'البحث في الدول'):'البحث في الباقات'}</span></div>`;
+  const fixed = world?['الأكثر استماعًا','المفضلة','استمع مؤخرًا',opts.genres?'الدول':'الأنواع']:['جميع المحطات','المفضلة','استمع مؤخرًا'];
   let y=103;
   fixed.forEach((n,i)=>{r+=`<div class="rr ${sel===i?'sel':''}" style="top:${y}px;height:25px;padding-top:5px">${n}</div>`; y+=27;});
   y+=3;
   r+=`<div class="abs" style="left:52px;width:172px;top:${y}px;height:1px;background:rgba(255,255,255,.2)"></div>`; y+=5;
   if(world){
-    COUNTRIES.slice(opts.from||0).forEach(([n,c],i)=>{ if(y>314) return; const s=sel===10+i+(opts.from||0); r+=`<div class="rr ${s?'sel':''}" style="top:${y}px;height:33px">${n}<small>المجموع: ${c}</small></div>`; y+=35; });
-    r+=`<div class="attr">Directory: radio-browser.info</div>`;
+    if(opts.saved){ r+=`<div class="rr" style="top:${y}px;height:25px;padding-top:5px;color:#aeb0cc">من القائمة المحفوظة</div>`; y+=27; }
+    (opts.genres?GENRES:COUNTRIES).slice(opts.from||0).forEach(([n,c],i)=>{ if(y>308) return; const s=sel===10+i+(opts.from||0); r+=`<div class="rr ${s?'sel':''}" style="top:${y}px;height:33px">${n}<small>المجموع: ${c}</small></div>`; y+=35; });
+    r+=`<div class="attr">الدليل: radio-browser.info</div>`;
   } else {
     [['NL| RADIO LIVE',248],['TR| RADIO MIX',740]].forEach(([n,c])=>{ r+=`<div class="rr" style="top:${y}px;height:33px">${n}<small>المجموع: ${c}</small></div>`; y+=35; });
   }
   return r;
 }
-function band(crumb, search, searching){
+function band(crumb, search, searching, world){
   return `<div class="abs top"></div><div class="abs logo"><i></i>Castivio</div>
   <div class="abs crumb ar">الراديو<span>${crumb}</span></div>
   <div class="abs pill ${searching?'on':''}" style="left:380px;top:11px;width:179px;height:21px;padding:0 13px">${I.search}<span class="ar" style="flex:1;text-align:right">${search}</span></div>
-  <div class="abs pill" style="left:592px;top:5px;width:145px;height:34px;padding:0 12px">${I.sort}<span class="ar" style="flex:1;text-align:right;font-size:10px">الترتيب: الأكثر استماعًا</span></div>
+  ${world?'':`<div class="abs pill" style="left:592px;top:5px;width:145px;height:34px;padding:0 12px">${I.sort}<span class="ar" style="flex:1;text-align:right;font-size:10px">الترتيب: الأكثر استماعًا</span></div>`}
   <div class="abs clock">09:45<small>5-11-2026</small></div><div class="abs frame"></div>`;
 }
 function plateHtml(name, logo, line, playing){
@@ -176,27 +178,30 @@ const pic=(live)=>`<div class="abs pic">${radioArt}${live?'<span class="livebadg
 const skels=(n)=>Array.from({length:n},(_,i)=>`<div class="skel" style="top:${4+i*33}px"><i style="width:26px;height:16px"></i><i style="width:21px;height:21px;border-radius:5px"></i><div class="t"><i style="height:9px;width:${150-(i%3)*30}px"></i><i style="height:6px;width:${90-(i%2)*20}px"></i></div></div>`).join('');
 
 function screen(mode){
-  if(mode==='country') return `<div class="screen">${band('العالم · المغرب','البحث في محطات العالم')}${rail(true,10)}<div class="abs list">${rows(MA,{focus:0,sounding:0})}</div>${pic(true)}${plateHtml('Medi 1 Radio','m1','المغرب · مباشر',true)}<span class="tagcap">العالم — دولة</span></div>`;
-  if(mode==='top') return `<div class="screen">${band('العالم · الأكثر استماعًا','البحث في محطات العالم')}${rail(true,0)}<div class="abs list">${rows(TOP,{focus:1})}</div>${pic(false)}${plateIdle()}<span class="tagcap">العالم — الأكثر استماعًا</span></div>`;
-  if(mode==='search') return `<div class="screen">${band('العالم · نتائج «med»','med',true)}${rail(true,0)}<div class="abs list">${rows(FOUND,{focus:0})}</div>${pic(false)}${plateIdle()}<span class="tagcap">العالم — بحث</span></div>`;
-  if(mode==='fav') return `<div class="screen">${band('المفضلة','البحث في المحطات')}${rail(true,1)}<div class="abs list">${rows(FAV,{focus:0})}</div>${pic(false)}${plateIdle()}<span class="tagcap">المفضلة — من المصدرين</span></div>`;
+  if(mode==='genre') return `<div class="screen">${band('العالم · News','البحث في محطات العالم',false,true)}${rail(true,10,{genres:true})}<div class="abs list">${rows([['BBC World Service','bbc','128 kbps · MP3'],['NPR News','npr','96 kbps · AAC'],['RFI Monde','rfi','128 kbps · MP3'],['Medi 1 Radio','m1','128 kbps · MP3']],{focus:0})}</div>${pic(false)}${plateIdle()}<span class="tagcap">العالم — نوع</span></div>`;
+  if(mode==='country') return `<div class="screen">${band('العالم · المغرب','البحث في محطات العالم',false,true)}${rail(true,10)}<div class="abs list">${rows(MA,{focus:0,sounding:0})}</div>${pic(true)}${plateHtml('Medi 1 Radio','m1','المغرب · مباشر',true)}<span class="tagcap">العالم — دولة</span></div>`;
+  if(mode==='top') return `<div class="screen">${band('العالم · الأكثر استماعًا','البحث في محطات العالم',false,true)}${rail(true,0)}<div class="abs list">${rows(TOP,{focus:1})}</div>${pic(false)}${plateIdle()}<span class="tagcap">العالم — الأكثر استماعًا</span></div>`;
+  if(mode==='search') return `<div class="screen">${band('العالم · نتائج «med»','med',true,true)}${rail(true,0)}<div class="abs list">${rows(FOUND,{focus:0})}</div>${pic(false)}${plateIdle()}<span class="tagcap">العالم — بحث</span></div>`;
+  if(mode==='fav') return `<div class="screen">${band('العالم · المفضلة','البحث في محطات العالم',false,true)}${rail(true,1)}<div class="abs list">${rows(FAV,{focus:0})}</div>${pic(false)}${plateIdle()}<span class="tagcap">العالم — المفضلة</span></div>`;
   if(mode==='sub') return `<div class="screen">${band('جميع المحطات','البحث في المحطات')}${rail(false,0)}<div class="abs list">${rows([['NL| RADIO 538','r538','NL| RADIO LIVE'],['NL| QMUSIC',null,'NL| RADIO LIVE'],['NL| 3FM',null,'NL| RADIO LIVE'],['NL| RADIO VERONICA',null,'NL| RADIO LIVE']],{focus:0})}</div>${pic(false)}${plateIdle()}<span class="tagcap now">اشتراكي — كما هو + المفتاح</span></div>`;
 }
 const states={
- loading:`<div class="mini">${skels(6)}<div class="abs ar" style="left:0;right:0;bottom:10px;text-align:center;font-size:10px;color:#aeb0cc">جارٍ تحميل محطات المغرب…</div></div>`,
- empty:`<div class="mini"><div class="msg"><b>لا نتائج لـ «medzz»</b><span>جرّب حروفًا أقل، أو جزءًا من الاسم بدل الاسم كاملًا.</span><span class="btn">مسح</span></div></div>`,
- off:`<div class="mini"><div class="msg"><b>تعذّر الوصول إلى دليل الراديو</b><span>تحقق من اتصالك بالإنترنت ثم أعد المحاولة. محطات اشتراكك لا تتأثر.</span><span class="btn">إعادة المحاولة</span></div></div>`};
+ loading:`<div class="mini"><div class="msg"><b>جارٍ التحميل…</b></div></div>`,
+ empty:`<div class="mini"><div class="msg"><b>لا نتائج لـ «medzz»</b><span>جرّب حروفًا أقل، أو جزءًا من الاسم.</span><span class="btn">مسح</span></div></div>`,
+ off:`<div class="mini"><div class="msg"><b>لا يوجد اتصال</b><span>تحقق من اتصالك بالإنترنت ثم أعد المحاولة.</span><span class="btn">حاول مرة أخرى</span></div></div>`,
+ down:`<div class="mini"><div class="msg"><b>الدليل لا يردّ</b><span>أعد المحاولة بعد قليل.</span><span class="btn">حاول مرة أخرى</span></div></div>`};
 
 const q=new URLSearchParams(location.search), frame=q.get('frame')||'sheet';
 let html='';
-if(['country','top','search','fav','sub'].includes(frame)) html=screen(frame); else {
- html+=`<div class="cap"><b>١ — راديو اشتراكك كما هو، ومعه المفتاح:</b> في رأس الشريط الجانبي <em>مفتاح بطرفين</em>: «اشتراكي» (الطرف الأيمن) و«العالم». كل ما في اللوحة بقي: الباقات والمحطات واللوحة والصورة. المفتاح هو الإضافة الوحيدة هنا، وهو يُنزل الشريط نحو ٢٨dp.</div>`+screen('sub');
- html+=`<div class="cap"><b>٢ — العالم، دولة مختارة:</b> الشريط يعدّ بعد المدخلات الثلاثة <em>الدول بأسمائها بلغة القارئ</em> وعدد محطات كل دولة كما للباقات، وخانته تصفّي الدول. المحطات صفوف اللوحة نفسها <em>مرتّبة بالأكثر استماعًا</em>، وتحت الاسم جودة البثّ وصيغته. محطة بلا شعار تأخذ بلاطة الصورة نفسها. اسم الدليل في أسفل الشريط بخطّ خافت.</div>`+screen('country');
+if(['country','top','search','fav','sub','genre'].includes(frame)) html=screen(frame); else {
+ html+=`<div class="cap"><b>١ — راديو اشتراكك كما هو، ومعه المفتاح:</b> في رأس الشريط الجانبي <em>مفتاح بطرفين</em>: «الاشتراك» و«العالم». كل ما في اللوحة بقي: الباقات والمحطات واللوحة والصورة والترتيب. المفتاح هو الإضافة الوحيدة هنا. تبديل المصدر يُوقف الصوت: لا يبقى شيء يعزف دون لوحة أمامك.</div>`+screen('sub');
+ html+=`<div class="cap"><b>٢ — العالم، دولة مختارة:</b> الشريط يعدّ بعد المدخلات الأربعة (الأكثر استماعًا، المفضلة، استمع مؤخرًا، الأنواع) <em>الدول بأسمائها بلغة القارئ</em> ودولة الجهاز أولًا، وعدد محطات كل دولة كما للباقات، وخانته تصفّي الدول. لا زرّ ترتيب في العالم: الترتيب بالأكثر استماعًا. المحطات صفوف اللوحة نفسها <em>مرتّبة بالأكثر استماعًا</em>، وتحت الاسم جودة البثّ وصيغته. محطة بلا شعار تأخذ بلاطة الصورة نفسها. اسم الدليل في أسفل الشريط بخطّ خافت.</div>`+screen('country');
  html+=`<div class="cap"><b>٣ — الأكثر استماعًا في العالم:</b> أول المدخلات، وهو ما يُفتح عليه «العالم» قبل اختيار دولة. تحت كل محطة <em>دولتها</em> (كما تحت محطة المفضلة باقتها).</div>`+screen('top');
  html+=`<div class="cap"><b>٤ — البحث في العالم:</b> الخانة في الشريط العلوي تبحث وقت الكتابة (١٢٠ms، والاستعلام السابق يُلغى)، والإطار المضيء يدلّ على أنها تعمل، ودول النتائج تحت أسماء المحطات.</div>`+screen('search');
- html+=`<div class="cap"><b>٥ — المفضلة و«استمع مؤخرًا»:</b> للراديو كله، فيها محطات <em>المصدرين</em> معًا، وتحت كل محطة مصدرها: دولتها أو «اشتراكي» وباقتها.</div>`+screen('fav');
- html+=`<div class="cap"><b>٦ — حالات القائمة التي لم يكن لراديو الاشتراك مثلها</b> (قائمته على الجهاز) — جارٍ التحميل، لا نتائج، وتعذّر الوصول مع زرّ يفعل ما يفعله تحديث الشريط:</div><div class="cells">${['loading','empty','off'].map(s=>`<div><div class="nmx"><b>${{loading:'جارٍ التحميل',empty:'لا نتائج',off:'تعذّر الوصول'}[s]}</b></div>${states[s]}</div>`).join('')}</div>`;
- html+=`<div class="cap" style="padding-top:16px"><b>في الكود (خطّة، لا شيء منها كُتب):</b> <em>مصدر</em> ثانٍ للراديو خلف واجهة صرفة في <code>:domain</code> (الدول، ومحطات دولة بصفحات، والبحث)، ومحلّله يقرأ JSON عنصرًا عنصرًا في <code>:data:parsing</code>، وتنفيذه الشبكي في <code>:data:networking</code>. لا <code>getAll()</code>: الدول مئتان تُقرأ كلها، والمحطات صفحات من ٦٠ بإزاحة، والبحث على الخادم. المفضلة وآخر ما سُمع للمحطات العالمية يُخزَّن في جدول صغير بمعرّف المحطة لأنها ليست من كتالوج الاشتراك. أسماء الدول من رمز الدولة بلغة الجهاز. الاسم والإسناد في «حول».</div><div style="height:12px"></div>`;
+ html+=`<div class="cap"><b>٥ — المفضلة و«استمع مؤخرًا» في العالم:</b> <em>خاصتان بالعالم</em> في قاعدة بيانات منفصلة، لا تختلطان بمفضلة اشتراكك ولا بما شاهدته منه. المحطة التي تعذّر تشغيلها مؤخرًا تبقى في المفضلة <em>باهتة</em> وتقول إنها تستريح، ولا تُحذف أبدًا.</div>`+screen('fav');
+ html+=`<div class="cap"><b>٦ — حالات القائمة التي لم يكن لراديو الاشتراك مثلها</b> (قائمته على الجهاز): جارٍ التحميل، لا نتائج للبحث، لا اتصال، والدليل لا يردّ — وفي الأخيرين زرّ «حاول مرة أخرى». الدول والأنواع محفوظة على الجهاز: إن غاب الدليل بقي الشريط وكُتب تحت مدخلاته «من القائمة المحفوظة».</div><div class="cells">${['loading','empty','off','down'].map(s=>`<div><div class="nmx"><b>${{loading:'جارٍ التحميل',empty:'لا نتائج',off:'لا اتصال',down:'الدليل لا يردّ'}[s]}</b></div>${states[s]}</div>`).join('')}</div>`;
+ html+=`<div class="cap"><b>٧ — الأنواع:</b> مدخل «الأنواع» في الشريط يبدّل قائمة الدول بقائمة الأنواع (نوع بعدد محطاته)، ويصير «الدول» ليعود، وتتغيّر خانة الشريط إلى «البحث في الأنواع».</div>`+screen('genre');
+ html+=`<div class="cap" style="padding-top:16px"><b>ما في الكود:</b> مصدر ثانٍ للراديو في وحدة بياناته <code>:data:worldradio</code> بقاعدة بيانات خاصة <code>world_radio.db</code>، خلف واجهة صرفة في <code>:domain</code>. محطة العالم <em>ليست Channel</em> ولا تدخل جلسة راديو الاشتراك ولا مفضلته ولا ما شاهدتَه: لها جلستها ومخزنها. الدليل يُسأل عن صفحات من ٦٠ محطة (لا <code>getAll()</code>)، والخوادم تُكتشف بالاسم وتُجرَّب بالتناوب. كل محطة تُفحص محليًا لا بـ <code>hidebroken</code> وحدها: خمس ثوانٍ مستقرة تؤكدها، والفاشلة تستريح ساعة ثم ٦ ثم يومًا ثم ٣ أيام ولا تُحذف، وغير المستقرة لا تُعدّ فاشلة.</div><div style="height:12px"></div>`;
 }
 document.write(html);
 </script>

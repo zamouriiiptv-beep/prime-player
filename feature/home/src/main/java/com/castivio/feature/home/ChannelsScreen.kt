@@ -894,7 +894,13 @@ private fun BoardClock(m: ChannelsMetrics, modifier: Modifier) {
  * `design/mockups/channels-search-fields-ar.html`.
  */
 @Composable
-internal fun RailSearch(text: String, m: ChannelsMetrics, onType: (String) -> Unit) {
+internal fun RailSearch(
+    text: String,
+    m: ChannelsMetrics,
+    onType: (String) -> Unit,
+    /** What the empty field says it filters: the categories on the channels' board, the countries on the world radio's. */
+    hint: String = stringResource(R.string.channels_rail_search),
+) {
     val colors = CastivioTheme.colors
     val (focused, focusModifier) = rememberFocusFlag()
     val shape = RoundedCornerShape(Radius.pill)
@@ -930,7 +936,7 @@ internal fun RailSearch(text: String, m: ChannelsMetrics, onType: (String) -> Un
                 // empty box says what it is for without the hint becoming the value.
                 if (text.isEmpty()) {
                     Text(
-                        text = stringResource(R.string.channels_rail_search),
+                        text = hint,
                         style = words,
                         color = colors.onBackgroundMuted,
                         maxLines = 1,
@@ -1539,6 +1545,8 @@ internal fun CategoryRail(
      * a control that does nothing.
      */
     showRecent: Boolean = true,
+    /** What a section puts above the rail's field: the radio's choice between its two sources. Nothing for the others. */
+    head: (@Composable () -> Unit)? = null,
 ) {
     // **In reorder mode the rail is the bouquets and nothing else -- and so it is while bouquets are
     // being chosen to hide.** The three entries above them open lists and the field filters them; none
@@ -1547,6 +1555,12 @@ internal fun CategoryRail(
     val mode = state.arranging
     val modal = mode != null || hider.bouquets
     Column(modifier) {
+        if (!modal && head != null) {
+            head()
+
+            Spacer(Modifier.height(m.railEntryGap * 2))
+        }
+
         // **The rail's own field.** It filters the categories in this column and nothing
         // else: a provider with four hundred bouquets is a column nobody scrolls to the
         // end of, and the field is how a viewer reaches "SPORT" without passing 300
@@ -1690,7 +1704,7 @@ private fun rowArrangeOf(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun RailEntry(
+internal fun RailEntry(
     label: String,
     count: Int?,
     selected: Boolean,
@@ -1831,7 +1845,7 @@ private fun RailEmpty(m: ChannelsMetrics, onRefresh: () -> Unit) {
 }
 
 @Composable
-private fun RailDivider(m: ChannelsMetrics) {
+internal fun RailDivider(m: ChannelsMetrics) {
     val colors = CastivioTheme.colors
     Box(
         Modifier

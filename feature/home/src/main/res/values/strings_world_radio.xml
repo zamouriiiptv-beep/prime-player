@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!--
+    The world radio: the directory's stations beside the subscription's own. Every string here belongs to that source; the subscription's radio
+         has its own in strings.xml. See WorldRadioScreen.kt and design/mockups/radio-world-ar.html. -->
+    <string name="radio_source_subscription">Subscription</string>
+    <string name="radio_source_world">World</string>
+    <string name="radio_source_label">Radio source</string>
+    <string name="radio_world_in">World · %1$s</string>
+    <string name="radio_world_top">Most listened</string>
+    <string name="radio_world_results">Results for “%1$s”</string>
+    <string name="radio_world_countries">Countries</string>
+    <string name="radio_world_genres">Genres</string>
+    <string name="radio_world_search_hint">Search the world\'s stations</string>
+    <string name="radio_world_search_countries">Search countries</string>
+    <string name="radio_world_search_genres">Search genres</string>
+    <string name="radio_world_saved_list">From the saved list</string>
+    <string name="radio_world_credit">Directory: %1$s</string>
+    <string name="radio_world_loading">Loading…</string>
+    <string name="radio_world_empty">No stations here</string>
+    <string name="radio_world_no_results">No results for “%1$s”</string>
+    <string name="radio_world_no_results_detail">Try fewer letters, or part of the name.</string>
+    <string name="radio_world_offline_title">No connection</string>
+    <string name="radio_world_offline_detail">Check your internet connection and try again.</string>
+    <string name="radio_world_down_title">The directory isn\'t answering</string>
+    <string name="radio_world_down_detail">Try again in a moment.</string>
+    <string name="radio_world_kbps">%1$d kbps</string>
+    <string name="radio_world_resting">Resting — it failed lately</string>
+    <string name="radio_world_more_failed">Couldn\'t load more — press to try again</string>
+</resources>

@@ -46,13 +46,14 @@ class RadioSession {
     var retries: Int by mutableIntStateOf(0)
         private set
 
+    /** The sleep timer, which the world radio's session has as well: see [SleepTimer]. */
+    val sleep = SleepTimer()
+
     /** When the sleep timer ends, on the clock the screen reads it with, or null while none runs. */
-    var sleepAtMs: Long? by mutableStateOf(null)
-        private set
+    val sleepAtMs: Long? get() = sleep.atMs
 
     /** The time the running timer was set for, in minutes: which of the dialog's answers is in force. Null with [sleepAtMs]. */
-    var sleepMinutes: Int? by mutableStateOf(null)
-        private set
+    val sleepMinutes: Int? get() = sleep.minutes
 
     /** A press on a station: it plays, from the start, and what was held is held no more. */
     fun play(next: Channel) {
@@ -86,24 +87,19 @@ class RadioSession {
     fun release() {
         station = null
         paused = false
-        sleepAtMs = null
-        sleepMinutes = null
+        sleep.clear()
         status = RadioStatus()
     }
 
     /** Hold the sound after [minutes] from [nowMs], or -- for null -- let no timer run. */
-    fun sleepIn(minutes: Int?, nowMs: Long) {
-        sleepMinutes = minutes
-        sleepAtMs = minutes?.let { sleepDeadlineMs(nowMs, it) }
-    }
+    fun sleepIn(minutes: Int?, nowMs: Long) = sleep.set(minutes, nowMs)
 
     /**
      * The timer ended: the sound is held as the viewer's own press would hold it, so the station stays on the
      * plate and one press on play brings it back. A timer is over once it has acted.
      */
     fun sleepEnded() {
-        sleepAtMs = null
-        sleepMinutes = null
+        sleep.clear()
         if (station != null) paused = true
     }
 }

@@ -176,6 +176,7 @@ dependencies {
     implementation(project(":data:networking"))
     implementation(project(":data:playlist"))
     implementation(project(":data:epg"))
+    implementation(project(":data:worldradio"))
     implementation(project(":data:activation"))
     implementation(project(":data:preferences"))
     implementation(project(":data:entitlement"))

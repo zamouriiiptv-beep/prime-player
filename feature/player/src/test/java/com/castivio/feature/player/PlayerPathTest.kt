@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import com.castivio.core.common.FrameSize
+import com.castivio.core.common.PlayOutcome
 import com.castivio.core.common.StreamQuality
 import com.castivio.domain.PlayerPulse
 import com.castivio.domain.PulsePhase
@@ -2537,6 +2538,112 @@ class PlayerPathTest {
         runCurrent()
 
         assertNull(model.state.value?.quality)
+    }
+
+    // ------------------------------------------------------------------------- evidence of a sound
+
+    private fun soundRequest() = liveRequest(url = "http://provider.tv/radio/7.aac").copy(audioOnly = true)
+
+    /**
+     * **A sound that runs five steady seconds from the engine's mark is confirmed, and not before.**
+     *
+     * What this decides is a record of the station and nothing the viewer sees: the status says playing the moment the engine opens
+     * it, as it always did.
+     */
+    @Test
+    fun `a sound is confirmed after five steady seconds and not before`() = playerTest {
+        val model = timedModel()
+        model.open(soundRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        var bytes = 0L
+        repeat(4) { bytes += 16_000; streamSecond(bytes) }
+        assertNull("decided before the window was over", model.state.value?.evidence)
+        assertEquals("playing is announced at once, not after the window", Picture.Playing, model.state.value?.picture)
+
+        repeat(2) { bytes += 16_000; streamSecond(bytes) }
+        assertEquals(PlayOutcome.CONFIRMED, model.state.value?.evidence)
+    }
+
+    @Test
+    fun `a stall inside the window makes the listen unstable, and coming back does not undo it`() = playerTest {
+        val model = timedModel()
+        model.open(soundRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        var bytes = 0L
+        repeat(2) { bytes += 16_000; streamSecond(bytes) }
+
+        engines.last.stall()
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        repeat(8) { bytes += 16_000; streamSecond(bytes) }
+
+        assertEquals(PlayOutcome.UNSTABLE, model.state.value?.evidence)
+    }
+
+    @Test
+    fun `a sound the viewer holds inside the window says nothing about the stream`() = playerTest {
+        val model = timedModel()
+        model.open(soundRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        var bytes = 0L
+        repeat(2) { bytes += 16_000; streamSecond(bytes) }
+
+        engines.last.pauseFrom()
+        runCurrent()
+        repeat(6) { streamSecond(bytes) }
+
+        assertEquals(PlayOutcome.INCONCLUSIVE, model.state.value?.evidence)
+    }
+
+    @Test
+    fun `a sound the engine fails is a failed listen once the player has no other engine to try`() = playerTest {
+        val model = timedModel()
+        model.open(soundRequest())
+        runCurrent()
+        engines.last.fail(PlaybackError.NETWORK)
+        runCurrent()
+
+        assertTrue(model.state.value?.picture is Picture.Failed)
+        assertEquals(PlayOutcome.FAILED, model.state.value?.evidence)
+    }
+
+    @Test
+    fun `a channel is not watched for evidence, however long it plays`() = playerTest {
+        val model = timedModel()
+        model.open(liveRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        var bytes = 0L
+        repeat(10) { bytes += 500_000; streamSecond(bytes) }
+
+        assertNull(model.state.value?.evidence)
+    }
+
+    @Test
+    fun `a new open starts the evidence again`() = playerTest {
+        val model = timedModel()
+        model.open(soundRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        var bytes = 0L
+        repeat(6) { bytes += 16_000; streamSecond(bytes) }
+        assertEquals(PlayOutcome.CONFIRMED, model.state.value?.evidence)
+
+        model.open(soundRequest().copy(url = "http://provider.tv/radio/8.aac"))
+        runCurrent()
+
+        assertNull(model.state.value?.evidence)
     }
 
     /** Nothing is asked of the engine until there is a stream to read, and nothing after it is gone. */

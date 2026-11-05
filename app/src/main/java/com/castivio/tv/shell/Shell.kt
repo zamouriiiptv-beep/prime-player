@@ -36,6 +36,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -99,6 +100,9 @@ import com.castivio.feature.home.PlayerChannelList
 import com.castivio.feature.home.PinPurpose
 import com.castivio.feature.home.RadioScreen
 import com.castivio.feature.home.RadioSession
+import com.castivio.feature.home.RadioSource
+import com.castivio.feature.home.WorldRadioScreen
+import com.castivio.feature.home.WorldRadioSession
 import com.castivio.feature.home.R as CatalogStrings
 import com.castivio.feature.home.RecentChannelsViewModel
 import com.castivio.feature.home.SeriesScreen
@@ -625,16 +629,37 @@ fun ShellScreen(
                     // removes them and lets the sound go, and the application going to the background does too.
                     Dest.Radio -> {
                         val radio = remember { RadioSession() }
-                        RadioScreen(session = radio)
+                        val world = remember { WorldRadioSession() }
+                        // Which of the radio's two sources is open. The sound is the source's, so opening the other lets the first go:
+                        // nothing keeps sounding that the screen in front of the viewer has no plate for.
+                        var source by rememberSaveable { mutableStateOf(RadioSource.Subscription) }
+                        val chooseSource: (RadioSource) -> Unit = { next ->
+                            radio.release()
+                            world.release()
+                            source = next
+                        }
+                        when (source) {
+                            RadioSource.Subscription -> RadioScreen(session = radio, onSource = chooseSource)
+                            RadioSource.World -> WorldRadioScreen(session = world, onSource = chooseSource)
+                        }
+                        // One sound for both: the open source's station, in the open source's words. The world's session says which of
+                        // the station's two addresses it is asking for, so a station that does not play at the first is asked for at the other.
                         RadioAudioRoute(
-                            request = radio.station?.asSelection()?.asPlayerRequest(),
-                            paused = radio.paused,
-                            retries = radio.retries,
-                            onStatus = radio::heard,
-                            onReleased = radio::release,
+                            request = when (source) {
+                                RadioSource.Subscription -> radio.station?.asSelection()?.asPlayerRequest()
+                                RadioSource.World -> world.station?.let { station ->
+                                    world.url?.let { url -> PlayerRequest(url = url, title = station.name, kind = MediaKind.LIVE) }
+                                }
+                            },
+                            paused = if (source == RadioSource.World) world.paused else radio.paused,
+                            retries = if (source == RadioSource.World) world.retries else radio.retries,
+                            onStatus = if (source == RadioSource.World) world::heard else radio::heard,
+                            onReleased = if (source == RadioSource.World) world::release else radio::release,
                         )
                         // A station is listened to once its sound has begun, and recorded then -- for the rail's
-                        // Recently played entry -- as a channel is once its picture shows. Not on the press.
+                        // Recently played entry -- as a channel is once its picture shows. Not on the press. The world's
+                        // are recorded by the world's own screen, in the world's own store: the subscription's list is the
+                        // subscription's.
                         val sounding = radio.status.soundingUrl
                         LaunchedEffect(sounding) {
                             radio.station?.takeIf { it.streamUrl == sounding }?.let { recentModel.watched(it.id) }

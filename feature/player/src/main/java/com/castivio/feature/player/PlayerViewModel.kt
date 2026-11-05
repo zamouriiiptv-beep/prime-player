@@ -14,6 +14,7 @@ import com.castivio.playback.api.OpeningMarks
 import com.castivio.playback.api.PlaybackEngine
 import com.castivio.playback.api.PlaybackDiagnosis
 import com.castivio.playback.api.PlaybackError
+import com.castivio.playback.api.PlayEvidence
 import com.castivio.playback.api.PlaybackState
 import com.castivio.playback.api.PrimaryVerdict
 import com.castivio.playback.api.StreamQualityMonitor
@@ -127,6 +128,13 @@ class PlayerViewModel @Inject constructor(
         traceSink = if (BuildConfig.DEBUG) { line -> Log.d(QUALITY_TAG, line.format()) } else null,
     )
     private var qualityJob: Job? = null
+
+    /**
+     * Whether the listen proved the stream works: the engine's mark that it opened, then a steady few seconds. Watched only for a source
+     * asked for as a sound -- the radio -- and decides nothing the viewer sees: see [PlayEvidence].
+     */
+    private val evidence = PlayEvidence()
+    private var watchingEnds = false
     private var shapeJob: Job? = null
     private var sizeJob: Job? = null
     private var cueJob: Job? = null
@@ -292,6 +300,8 @@ class PlayerViewModel @Inject constructor(
                 dailyLimit = allowance.dailyLimit,
             )
         }
+        evidence.reset()
+        watchEvidenceOfEnds()
         _state.value = PlayerState(
             request = request,
             engine = engineId,
@@ -578,6 +588,11 @@ class PlayerViewModel @Inject constructor(
     private fun onEngineState(playback: PlaybackState, hasFrame: Boolean) {
         // Told as it happens, so a stall's start and end are exact and not as late as the next reading.
         qualityMonitor.state(nowMs(), playback, hasFrame)
+        // A failure or an end is the evidence's only when it is the listen's -- not the first engine's, which hands over to the other --
+        // so those are fed from what the screen is told, in [watchEvidenceOfEnds]. Everything else is the engine's, as it happens.
+        if (watchesEvidence() && playback !is PlaybackState.Failed && playback !is PlaybackState.Ended) {
+            evidence.state(nowMs(), playback, hasFrame)
+        }
         val current = _state.value ?: return
 
         if (hasFrame && deadline != null) onFirstFrame(current)
@@ -640,6 +655,35 @@ class PlayerViewModel @Inject constructor(
             subtitleTracks = engine?.tracks?.value?.subtitle.orEmpty(),
             videoTracks = engine?.tracks?.value?.video.orEmpty(),
         )
+        publishEvidence()
+    }
+
+    /** Whether the source in hand is watched for evidence: only a sound asked for as a sound -- the radio's. */
+    private fun watchesEvidence(): Boolean = _state.value?.request?.audioOnly == true
+
+    /** Tells the state what the evidence decided, once; a state the viewer already holds is left alone. */
+    private fun publishEvidence() {
+        val outcome = evidence.outcome ?: return
+        val current = _state.value ?: return
+        if (current.evidence != outcome) _state.value = current.copy(evidence = outcome)
+    }
+
+    /**
+     * A listen that ended on a card -- a failure or an end the player has no other engine for -- is a failed listen. Fed from the state
+     * the screen is told and not from the engine, because the engine's own failure is often the first of two: the backup is tried, and
+     * what the viewer is told at the end is the verdict.
+     */
+    private fun watchEvidenceOfEnds() {
+        if (watchingEnds) return
+        watchingEnds = true
+        viewModelScope.launch {
+            _state.map { it?.picture }.distinctUntilChanged().collect { picture ->
+                if (watchesEvidence() && (picture is Picture.Failed || picture is Picture.Ended)) {
+                    evidence.state(nowMs(), PlaybackState.Ended, frameShown = true)
+                    publishEvidence()
+                }
+            }
+        }
     }
 
     /**
@@ -812,12 +856,14 @@ class PlayerViewModel @Inject constructor(
         timeFrom(pressed, pressed, releasedAt = System.nanoTime())
         backupTried = spent
         Log.i(TAG, "retry on $on (fallback already spent: $spent)")
+        evidence.reset()
         _state.value = current.copy(
             picture = Picture.Opening,
             engine = on,
             switching = false,
             attempt = beginWait(since = pressed),
             longWait = false,
+            evidence = null,
         )
         start(request, on)
         diagnose(OpeningCase.AFTER_FAILURE)
@@ -1458,6 +1504,10 @@ class PlayerViewModel @Inject constructor(
                 delay(QUALITY_TICK_MS)
                 val reading = if (qualityMonitor.wantsReading) running.qualityReading() else null
                 publishQuality(qualityMonitor.tick(nowMs(), reading))
+                if (watchesEvidence()) {
+                    evidence.tick(nowMs(), reading)
+                    publishEvidence()
+                }
             }
         }
     }

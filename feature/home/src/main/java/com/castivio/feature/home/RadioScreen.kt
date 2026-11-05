@@ -98,6 +98,11 @@ import kotlinx.coroutines.delay
 fun RadioScreen(
     session: RadioSession,
     modifier: Modifier = Modifier,
+    /**
+     * Which of the radio's sources is open, and how to open the other: the shell holds the choice, since the sound it plays is the source's.
+     * Without [onSource] the radio has one source and draws no switch.
+     */
+    onSource: ((RadioSource) -> Unit)? = null,
     /** Keyed as `BrowseScreen` keys its holders, so each section keeps its own selection. */
     model: BrowseViewModel = hiltViewModel(key = CatalogSection.Radio.name),
     favorites: ChannelFavoritesViewModel = hiltViewModel(),
@@ -152,7 +157,8 @@ fun RadioScreen(
         }
         val plate = station?.let { current ->
             RadioPlateState(
-                station = current,
+                title = current.title,
+                artworkUrl = current.artworkUrl,
                 category = current.categoryIn(state.categoryNames),
                 phase = radioPhaseOf(current.streamUrl, session.status, session.paused),
                 favorite = current.id in favoriteIds,
@@ -216,6 +222,7 @@ fun RadioScreen(
                 plate = plate,
                 actions = actions,
                 onPress = session::play,
+                onSource = onSource,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -227,7 +234,12 @@ fun RadioScreen(
 
         if (sleepOpen) {
             BackHandler { sleepOpen = false }
-            SleepDialog(session = session, onClose = { sleepOpen = false })
+            SleepDialog(
+                minutes = session.sleepMinutes,
+                atMs = session.sleepAtMs,
+                onSet = { session.sleepIn(it, System.currentTimeMillis()) },
+                onClose = { sleepOpen = false },
+            )
         }
     }
 }
@@ -268,6 +280,7 @@ private fun RadioBoard(
     plate: RadioPlateState?,
     actions: RadioPlateActions,
     onPress: (Channel) -> Unit,
+    onSource: ((RadioSource) -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
@@ -296,6 +309,7 @@ private fun RadioBoard(
                     onRecent = model::openRecent,
                     allLabel = stringResource(R.string.radio_all),
                     recentLabel = stringResource(R.string.radio_recent),
+                    head = onSource?.let { choose -> @Composable { RadioSourceSwitch(RadioSource.Subscription, choose, m) } },
                     modifier = Modifier.width(m.rail).fillMaxHeight(),
                 )
 
@@ -412,7 +426,7 @@ private fun StationList(
  * answer in force is filled, and focus opens on it.
  */
 @Composable
-private fun SleepDialog(session: RadioSession, onClose: () -> Unit) {
+internal fun SleepDialog(minutes: Int?, atMs: Long?, onSet: (Int?) -> Unit, onClose: () -> Unit) {
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -420,16 +434,16 @@ private fun SleepDialog(session: RadioSession, onClose: () -> Unit) {
             now = System.currentTimeMillis()
         }
     }
-    val running = session.sleepMinutes
-    val left = sleepRemainingMs(session.sleepAtMs, now)
+    val running = minutes
+    val left = sleepRemainingMs(atMs, now)
     val options = buildList {
         add(ChoiceOption(label = stringResource(R.string.radio_sleep_off), selected = running == null))
-        SLEEP_MINUTES.forEach { minutes ->
+        SLEEP_MINUTES.forEach { after ->
             add(
                 ChoiceOption(
-                    label = stringResource(R.string.radio_sleep_after, minutes),
-                    detail = left?.takeIf { running == minutes }?.let { stringResource(R.string.radio_sleep_left, ltrToken(remainingText(it))) },
-                    selected = running == minutes,
+                    label = stringResource(R.string.radio_sleep_after, after),
+                    detail = left?.takeIf { running == after }?.let { stringResource(R.string.radio_sleep_left, ltrToken(remainingText(it))) },
+                    selected = running == after,
                 ),
             )
         }
@@ -438,7 +452,7 @@ private fun SleepDialog(session: RadioSession, onClose: () -> Unit) {
         title = stringResource(R.string.radio_sleep),
         options = options,
         onChoose = { index ->
-            session.sleepIn(minutes = SLEEP_MINUTES.getOrNull(index - 1), nowMs = System.currentTimeMillis())
+            onSet(SLEEP_MINUTES.getOrNull(index - 1))
             onClose()
         },
         closeLabel = stringResource(R.string.radio_close),
