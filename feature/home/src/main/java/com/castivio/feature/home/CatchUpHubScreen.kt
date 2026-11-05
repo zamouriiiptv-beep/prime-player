@@ -146,6 +146,8 @@ fun CatchUpHubScreen(
                     onSearch = {},
                     onSearchFocus = {},
                     withSearch = false,
+                    // The panel below has its own arrow, which steps back through the categories before it leaves.
+                    withBack = false,
                 )
 
                 Spacer(Modifier.height(m.headerGap))

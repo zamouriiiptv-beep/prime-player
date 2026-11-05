@@ -132,9 +132,9 @@ fun MoviesScreen(
                 onSearch = model::search,
                 onSearchFocus = {},
                 hint = stringResource(R.string.movies_search_hint),
-                // The band is the channels' band, and the order is the one thing the films add to it: in the
-                // middle of the space between the field and the clock, with no count beside it. The panel under
-                // it starts at the same height as the channel list does.
+                // The band is the channels' band, and the order is the one thing the films add to it: between the
+                // field and the clock, the same space either side as the band leaves between all of its pieces, with
+                // no count beside it. The panel under it starts at the same height as the channel list does.
                 trailing = {
                     CastivioChip(
                         text = stringResource(R.string.browse_sort, stringResource(state.sort.label)),

@@ -2,6 +2,7 @@ package com.castivio.feature.home
 
 import android.view.View
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -44,6 +45,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.EventBusy
@@ -100,7 +102,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
@@ -117,6 +121,7 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
 import com.castivio.core.common.format.CastivioDates
+import com.castivio.core.design.components.CastivioIconButton
 import com.castivio.core.design.components.CastivioMiddleEllipsisText
 import com.castivio.core.design.components.DelayedSpinner
 import com.castivio.core.design.components.EmptyState
@@ -593,9 +598,14 @@ private fun BoardHeader(
  * open ([list]) and what the field says it searches ([hint]). Everything else -- the cells, their widths,
  * the order they sit in -- is one band, so the two boards read as one product.
  *
- * A section may add one control to the band ([trailing]): the films' order. It stands in the space between
- * the field and the clock, in the middle of it, and moves nothing -- the mark, the section, the field and the
- * clock are where the channels' band has them. See [BandTail].
+ * A section may add one control to the band ([trailing]): the films' order. It stands between the field and the
+ * clock.
+ *
+ * **The way back is at the band's far end, on the right, in every language** ([withBack]), first from that edge,
+ * then the clock and the date to its left, then the field. The application hides the system bars, so a viewer
+ * with a finger had no visible way back to Home from the four boards. Everything after the section's name -- the
+ * field, the control, the clock and the arrow -- stands with the same space between each and the next, so the
+ * band reads as one piece: see [BandTail] and `design/mockups/channels-band-back-ar.html`, strip B.
  */
 @Composable
 internal fun BoardBand(
@@ -611,6 +621,11 @@ internal fun BoardBand(
     trailing: (@Composable () -> Unit)? = null,
     /** Whether the band has a field at all. Catch-up's has none: a field that searched nothing would be a promise. */
     withSearch: Boolean = true,
+    /**
+     * Whether the band ends in the way back. Catch-up's does not: its own panel has an arrow that steps back through its
+     * categories first, and a second one that left the page altogether would answer the same press two ways.
+     */
+    withBack: Boolean = true,
 ) {
     val colors = CastivioTheme.colors
 
@@ -685,19 +700,13 @@ internal fun BoardBand(
             // the fix for the defect the device showed: the dates were being squeezed
             // until they dropped their value.
             //
-            // A `Row` measures its unweighted children first, each with what the ones
-            // before it left, and only then hands the remainder to the weighted ones. So
-            // making this the sole weighted child inverts the old order of sacrifice:
-            // the mark, the breadcrumb, the clock and the dates all take their declared
-            // widths first, and whatever is left is the field's. It shrinks, and it is
-            // the right thing to shrink — a search field shows its icon and less of its
-            // hint and still does its whole job, where a narrower date column simply
-            // stops saying the date.
+            // The tail measures the clock, the control and the arrow at the widths they are
+            // drawn at first, and whatever is left is the field's, up to the width it asks
+            // for. It shrinks, and it is the right thing to shrink -- a search field shows
+            // its icon and less of its hint and still does its whole job, where a clock
+            // without its date or an arrow without its edge does not. See [planBandTail].
             //
-            // Centring it in that remainder is also what keeps it in the middle of the
-            // band, which two weighted spacers used to do.
-            //
-            // **The clock, at the band's trailing end, where the two expiry dates were.**
+            // **The clock, left of the way back, where the two expiry dates were.**
             //
             // The dates are gone at the owner's instruction. They answered a question a
             // viewer asks twice a year -- when does my subscription run out -- from a
@@ -708,85 +717,138 @@ internal fun BoardBand(
             // Where the two dates ran out is still a fact worth knowing, and it is not
             // lost: Home draws both, captioned and side by side, on a screen with room
             // to say which is which.
-            if (trailing == null) {
-                Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { if (withSearch) field() }
-                BoardClock(m, Modifier.width(m.dates).padding(end = bandInset(m)))
-            } else {
-                BandTail(
-                    modifier = Modifier.weight(1f),
-                    clockCell = m.dates,
-                    fieldWidth = m.search,
-                    field = field,
-                    between = trailing,
-                    clock = { BoardClock(m, Modifier.padding(end = bandInset(m))) },
-                )
-            }
+            val clockWidth = rememberClockWidth(m)
+            BandTail(
+                modifier = Modifier.weight(1f),
+                fieldWidth = m.search,
+                fieldLeast = FIELD_LEAST,
+                minGap = m.osdGap,
+                endInset = bandInset(m),
+                field = if (withSearch) field else null,
+                between = trailing,
+                clock = { BoardClock(m, Modifier.width(clockWidth)) },
+                back = if (withBack) ({ BoardBack(m) }) else null,
+            )
         }
     }
 }
 
 /**
- * The band's tail -- the field, one control, and the clock -- with the field and the clock exactly where the
- * channels' band has them and the control in the middle of the space between them.
+ * The end of the band: the field, the section's control, the clock and the way back, with the same space between each
+ * and the one before it -- and the last of them against the band's trailing inset ([endInset]).
  *
- * It takes what the channels' band gives the field's cell and the clock's together, and lays them out from the
- * same two numbers: the clock's cell ([clockCell]) is reserved at the end, and the field, at its own width
- * ([fieldWidth]) or less where the cell is narrower, is centred in what remains -- which is where the channels'
- * band puts it. The control then goes in the middle of the space from the field's trailing edge to the clock's
- * leading one, the time and the date being as wide as they are drawn and not as wide as their cell, so it has the
- * room the empty part of that cell leaves rather than none.
+ * The figures are [planBandTail]'s, which is pure and tested; this measures the pieces, hands their widths to it
+ * and places them where it says. Laid out here and not with weights because "the same space between" is a figure that
+ * depends on the widths of all of them, which a weight does not know.
  *
- * Laid out here and not with weights, because "in the middle of the space between two things" is a figure
- * that depends on both of their widths, which a weight does not know.
+ * The field is measured last, at what the others leave it. It is the one piece that gives up width -- down to
+ * [fieldLeast], its mark with a little of its hint -- when the band is narrow.
+ *
+ * Nothing here knows which language it is drawn in: the band is left to right in every one of them, and the way
+ * back is at the right in all.
  */
 @Composable
 private fun BandTail(
     modifier: Modifier,
-    clockCell: Dp,
     fieldWidth: Dp,
-    field: @Composable () -> Unit,
-    between: @Composable () -> Unit,
+    fieldLeast: Dp,
+    minGap: Dp,
+    endInset: Dp,
+    field: (@Composable () -> Unit)?,
+    between: (@Composable () -> Unit)?,
     clock: @Composable () -> Unit,
+    back: (@Composable () -> Unit)?,
 ) {
     Layout(
         content = {
-            Box { field() }
-            Box { between() }
+            if (field != null) Box { field() }
+            if (between != null) Box { between() }
             Box { clock() }
+            if (back != null) Box { back() }
         },
         modifier = modifier,
     ) { measurables, constraints ->
         val total = constraints.maxWidth
         val height = constraints.maxHeight
-        val room = (total - clockCell.roundToPx()).coerceAtLeast(0)
 
-        val fieldPlaced = measurables[0].measure(Constraints(maxWidth = minOf(fieldWidth.roundToPx(), room), maxHeight = height))
-        val betweenPlaced = measurables[1].measure(Constraints(maxWidth = total, maxHeight = height))
-        val clockPlaced = measurables[2].measure(Constraints(maxWidth = total, maxHeight = height))
+        var next = 0
+        val fieldCell = if (field != null) measurables[next++] else null
+        val others = measurables.drop(next).map { it.measure(Constraints(maxWidth = total, maxHeight = height)) }
 
-        val fieldX = (room - fieldPlaced.width) / 2
-        val clockX = total - clockPlaced.width
-        // From the field's trailing edge to the clock's leading one. Where the control is wider than that,
-        // it starts at the field's edge and runs into the clock's cell rather than into the field.
-        val from = fieldX + fieldPlaced.width
-        val betweenX = (from + (clockX - from - betweenPlaced.width) / 2)
-            .coerceAtMost(clockX - betweenPlaced.width)
-            .coerceAtLeast(from)
+        val plan = planBandTail(
+            room = (total - endInset.roundToPx()).coerceAtLeast(0),
+            hasField = fieldCell != null,
+            fieldWanted = fieldWidth.roundToPx(),
+            fieldMin = fieldLeast.roundToPx(),
+            others = others.map { it.width },
+            minGap = minGap.roundToPx(),
+        )
+        val fieldPlaced = fieldCell?.measure(
+            Constraints(minWidth = plan.fieldWidth, maxWidth = plan.fieldWidth, maxHeight = height),
+        )
 
         layout(total, height) {
-            fieldPlaced.placeRelative(fieldX, (height - fieldPlaced.height) / 2)
-            betweenPlaced.placeRelative(betweenX, (height - betweenPlaced.height) / 2)
-            clockPlaced.placeRelative(clockX, (height - clockPlaced.height) / 2)
+            var at = 0
+            fieldPlaced?.place(plan.positions[at++], (height - fieldPlaced.height) / 2)
+            others.forEach { it.place(plan.positions[at++], (height - it.height) / 2) }
         }
     }
 }
 
 /**
- * How far the band's two ends stand in from the frame's edges: the mark at the start, the clock at the end.
+ * The way back, at the band's far end.
+ *
+ * What the system's Back key does, and nothing else: a mode that is open (arranging, hiding, picking favourites) closes
+ * first, then the board is left for the screen before it -- Home, where the viewer came from. It asks the same
+ * dispatcher the key does, so the two cannot disagree about what is open, and each screen's own handler stays the
+ * only place that knows.
+ *
+ * The arrow points right in every language, as the band is drawn left to right in every one of them and the way back is
+ * at the right in all. It is a control like the others: the remote reaches it from the field with Right and leaves it with
+ * Left, and OK presses it.
+ */
+@Composable
+private fun BoardBack(m: ChannelsMetrics) {
+    val back = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
+    CastivioIconButton(
+        icon = Icons.AutoMirrored.Rounded.ArrowForward,
+        contentDescription = stringResource(R.string.show_back),
+        onClick = { back?.onBackPressed() },
+        modifier = Modifier.size(m.header * BACK_OF_HEADER),
+    )
+}
+
+/**
+ * The clock's cell: as wide as the widest time and the widest date can be drawn, and no wider.
+ *
+ * The digits of a proportional face are not all the same width, so a clock drawn at the width of what it says moves
+ * every neighbour a pixel as the minutes change, and with the spaces in the band equal that is the field and the
+ * control and the arrow all shifting by it. A cell as wide as the widest it can be does not move.
+ */
+@Composable
+private fun rememberClockWidth(m: ChannelsMetrics): Dp {
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val time = castivioTitleStyle(m.frame.fsLabel * CLOCK_OF_LABEL)
+    val date = castivioChipStyle(m.frame.fsBody * LEGEND_OF_BODY)
+    return remember(measurer, density, time, date) {
+        fun widest(style: TextStyle, shape: (Char) -> String): Int =
+            ('0'..'9').maxOf { measurer.measure(shape(it), style, maxLines = 1).size.width }
+        val px = maxOf(
+            widest(time) { "$it$it:$it$it" },
+            widest(date) { "$it$it-$it$it-$it$it$it$it" },
+        )
+        with(density) { px.toDp() }
+    }
+}
+
+/**
+ * How far the band's two ends stand in from the frame's edges: the mark at the start, the way back at the end -- or the
+ * clock, on a band that has none.
  *
  * The frame is drawn close to the edge of a handset, and the clock was at the frame's very edge, against the
  * phone's. This is the distance from the frame to the bouquets' search mark -- the well's padding and the field's own --
- * so the clock stands in from its edge as far as that mark stands in from the other, and the mark over it is
+ * so what ends the band stands in from its edge as far as that mark stands in from the other, and the mark over it is
  * in line with that one.
  */
 internal fun bandInset(m: ChannelsMetrics): Dp = m.wellPad + m.railPadH
@@ -810,9 +872,9 @@ private fun BoardClock(m: ChannelsMetrics, modifier: Modifier) {
     // here before that, which is two tick rates and two answers to what the
     // bidirectional algorithm does to a date.
     //
-    // Its own bounded cell, for the reason the breadcrumb has one: nothing whose width
-    // is text may decide where the rest of the band sits. [BandTail] reserves the same
-    // cell and draws the text at its end, so the clock is where it is on the channels' band.
+    // Its own cell, for the reason the breadcrumb has one: nothing whose width is text may decide
+    // where the rest of the band sits. The caller gives it the width of the widest it can be
+    // ([rememberClockWidth]), so a minute that changes a digit moves nothing.
     CastivioClock(
         fsTime = m.frame.fsLabel * CLOCK_OF_LABEL,
         fsDate = m.frame.fsBody * LEGEND_OF_BODY,
@@ -3944,6 +4006,18 @@ private val HEADING_TRACKING = 0.06.em
 
 /** The field's height inside the band. */
 private const val FIELD_OF_HEADER = 0.62f
+
+/**
+ * The way back's side, against the band's height: 34 of the mockup's 42dp, square. The band is a strip of one fixed
+ * height, so the button is as large as the strip lets it be without touching its edges.
+ */
+internal const val BACK_OF_HEADER = 0.8f
+
+/**
+ * The least the band's field is given when the band is narrow: its mark, the insets either side of it, and a little
+ * of its hint. A search field that is only its mark still searches; one narrower than that is a smudge.
+ */
+private val FIELD_LEAST = 72.dp
 
 /** A mark drawn as a button, against the field it stands in: nearly its whole height, so the box wraps it closely. */
 private const val MARK_OF_FIELD = 0.84f

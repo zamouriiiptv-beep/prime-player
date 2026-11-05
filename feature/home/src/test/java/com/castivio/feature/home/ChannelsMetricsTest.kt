@@ -435,22 +435,22 @@ class ChannelsMetricsTest {
      * sweep starts at [SHIPPING_WIDTH] now, which is below every surface the product
      * claims to run on.
      *
-     * The arithmetic. Every child of the band except the field has a width the metrics
-     * decide — the mark's cell, the breadcrumb and the clock's — and what is left over is
-     * the field's. The two expiry dates, the hairline and the gaps around it are gone
-     * with them: the band is four things now, and the field has what they gave back. Nothing here is measured from
-     * its text, which is what makes the sum checkable at all: the breadcrumb's second
-     * line and the clock carry a provider's words and a locale's, and either could
-     * otherwise have decided where the rest of the band sat.
+     * The arithmetic. What stands before the field has a width the metrics decide — the
+     * mark's cell and the breadcrumb — and so has the arrow that ends the band and the
+     * inset it stands in by. The clock is text, as wide as the widest time and date a face
+     * can draw; [CLOCK_ALLOWANCE] stands for it. What is left over is the field's, and the
+     * band's other pieces -- the control a section adds, and the spaces -- come out of that.
+     * Nothing here is measured from the breadcrumb's second line, which carries a provider's
+     * words and could otherwise have decided where the rest of the band sat.
      *
-     * The field is the sole weighted child, so it is the sole child that can be starved,
-     * and this asserts it is never starved past [SEARCH_FLOOR].
+     * The field is the one piece that gives up width, so it is the sole one that can be
+     * starved, and this asserts it is never starved past [SEARCH_FLOOR].
      */
     @Test
     fun `the header's fixed parts leave room for the ones that are text`() {
         sweep(from = SHIPPING_WIDTH) { tv, width, height ->
             val m = channelsMetricsFor(tv, width, height)
-            val fixed = m.rail + m.railGap + m.crumb + m.dates
+            val fixed = m.rail + m.railGap + m.crumb + CLOCK_ALLOWANCE + m.header * BACK_OF_HEADER + bandInset(m)
             val free = width - m.edge * 2 - fixed
             assertTrue(
                 "the field is left ${free} at ${width}x$height",
@@ -472,7 +472,7 @@ class ChannelsMetricsTest {
                 "player" to m.player, "playerGap" to m.playerGap,
                 "picture" to m.picture, "strip" to m.strip,
                 "rowPadH" to m.rowPadH,
-                "search" to m.search, "crumb" to m.crumb, "dates" to m.dates,
+                "search" to m.search, "crumb" to m.crumb,
                 "numberWidth" to m.numberWidth, "logoWidth" to m.logoWidth,
                 "wellPad" to m.wellPad, "factChip" to m.factChip,
                 "railPadH" to m.railPadH, "controlPadH" to m.controlPadH,
@@ -820,6 +820,9 @@ class ChannelsMetricsTest {
          * the floor that keeps it there.
          */
         val SEARCH_FLOOR = 120.dp
+
+        /** The widest a time and a date are drawn at on the band, with a little to spare: about 56dp at the largest step. */
+        val CLOCK_ALLOWANCE = 72.dp
 
         /** A list this product has to survive on, where the reference's density cannot fit. */
         const val MIN_ROWS_ANYWHERE = 9

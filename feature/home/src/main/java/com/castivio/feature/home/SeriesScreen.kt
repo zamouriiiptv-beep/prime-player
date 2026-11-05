@@ -132,8 +132,9 @@ fun SeriesScreen(
                 onSearch = model::search,
                 onSearchFocus = {},
                 hint = stringResource(R.string.series_search_hint),
-                // The films' band, and the order is the one thing a section adds to it: in the middle of the space
-                // between the field and the clock, with no count beside it.
+                // The films' band, and the order is the one thing a section adds to it: between the field and the
+                // clock, the same space either side as the band leaves between all of its pieces, with no count
+                // beside it.
                 trailing = {
                     CastivioChip(
                         text = stringResource(R.string.browse_sort, stringResource(state.sort.label)),
