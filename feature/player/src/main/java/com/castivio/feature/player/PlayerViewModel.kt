@@ -445,6 +445,7 @@ class PlayerViewModel @Inject constructor(
         kind = kind,
         headers = headers,
         userAgent = userAgent,
+        audioOnly = audioOnly,
     )
 
     /**

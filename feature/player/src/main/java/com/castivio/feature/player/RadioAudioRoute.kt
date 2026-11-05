@@ -61,7 +61,7 @@ fun RadioAudioRoute(
     LaunchedEffect(request) {
         if (request != null) {
             opened = true
-            model.open(request)
+            model.open(asStation(request))
         } else if (opened) {
             opened = false
             model.leave()
@@ -111,6 +111,17 @@ fun RadioAudioRoute(
         }
     }
 }
+
+/**
+ * A station's request, as this route opens it: the sound and nothing else.
+ *
+ * This route has no surface, so whatever picture a stream declares can never be drawn, and an engine left waiting
+ * for one reports a station that is sounding as one that never opened -- "connecting" for the length of the
+ * opening budget, then "could not play" over a sound that has been audible throughout. Saying so here, and not at
+ * each caller, is what keeps it true of every station the radio is ever given. Pure, so it is asserted without a
+ * decoder.
+ */
+internal fun asStation(request: PlayerRequest): PlayerRequest = request.copy(audioOnly = true)
 
 /**
  * The player's state as the radio's screen reads it.

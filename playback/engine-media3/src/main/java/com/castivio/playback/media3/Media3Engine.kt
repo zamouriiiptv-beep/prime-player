@@ -211,6 +211,13 @@ class Media3Engine(
     private var hasVideoTrack: Boolean? = null
 
     /**
+     * Whether the source in hand was asked for as a sound and nothing else: see [MediaRequest.audioOnly].
+     *
+     * Set by every open, so a kept engine that played a station and is handed a channel next draws the channel.
+     */
+    private var audioOnlyOpen = false
+
+    /**
      * The HTTP source, kept so that an open can give it the request's own headers.
      *
      * Providers redirect http to https and back, sometimes twice. Refusing to follow is the
@@ -367,6 +374,7 @@ class Media3Engine(
         videoFormat = null
         audioFormat = null
         hasVideoTrack = null
+        audioOnlyOpen = media.audioOnly
         _videoAspectRatio.value = null
         _videoSize.value = null
         // A fresh engine starts with these empty, and a kept one has to: the caption on screen
@@ -411,10 +419,16 @@ class Media3Engine(
         // DVB subtitles, captions. Anything else gets text back, so an engine kept across kinds is never left without.
         val textOff = media.kind == MediaKind.LIVE
         val textWasOff = C.TRACK_TYPE_TEXT in choices.disabledTrackTypes
-        if (choices.overrides.isNotEmpty() || textWasOff != textOff) {
+        // **A station plays without a picture, entirely.** Video is a track type switched off for it, like text for a
+        // channel: whatever picture the stream declares is neither selected nor decoded -- there is nowhere to draw it,
+        // and a decoder fed for nothing is battery spent on a screen that is not there. Anything else gets video back.
+        val videoOff = media.audioOnly
+        val videoWasOff = C.TRACK_TYPE_VIDEO in choices.disabledTrackTypes
+        if (choices.overrides.isNotEmpty() || textWasOff != textOff || videoWasOff != videoOff) {
             player.trackSelectionParameters = choices.buildUpon()
                 .clearOverrides()
                 .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, textOff)
+                .setTrackTypeDisabled(C.TRACK_TYPE_VIDEO, videoOff)
                 .build()
         }
         // Behind the new source on the playback thread, so it arrives here after everything
@@ -1018,8 +1032,11 @@ class Media3Engine(
         pushPlaying()
     }
 
-    /** True once the container has declared its tracks and none of them is a picture. */
-    private fun isAudioOnly(): Boolean = hasVideoTrack == false
+    /**
+     * True when there is no picture to wait for: the source was asked for as a sound ([MediaRequest.audioOnly]), or
+     * its container has declared its tracks and none of them is a picture.
+     */
+    private fun isAudioOnly(): Boolean = audioOnlyOpen || hasVideoTrack == false
 
     private fun pushPlaying() {
         _state.value = PlaybackState.Playing(

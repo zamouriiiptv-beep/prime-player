@@ -254,6 +254,17 @@ data class MediaRequest(
     val userAgent: String? = null,
     /** Non-null only when the provider exposes an archive for this stream. */
     val timeshift: TimeshiftWindow? = null,
+    /**
+     * The viewer asked for the sound and nothing else -- a radio station -- whatever the stream declares.
+     *
+     * A station is often carried in a container that has a picture in its table: a transport stream with a
+     * video entry, an HLS variant with cover art, a feed shared with a television channel. The screen that asked
+     * has no surface to draw it on, so the picture never comes, and an engine that waits for one reports a
+     * source that is sounding as one that never opened. With this set the engine neither selects nor decodes a
+     * picture, and the sound being ready is the source being open -- the same moment it already was for a file
+     * with no picture in it.
+     */
+    val audioOnly: Boolean = false,
 )
 
 enum class MediaKind { LIVE, VOD, SERIES_EPISODE }

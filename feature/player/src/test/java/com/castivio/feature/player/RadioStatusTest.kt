@@ -26,6 +26,17 @@ class RadioStatusTest {
     }
 
     @Test
+    fun `a station is asked for as a sound, and nothing else about it changes`() {
+        val asked = asStation(request)
+
+        assertEquals(true, asked.audioOnly)
+        assertEquals(request.copy(audioOnly = true), asked)
+        assertEquals(false, request.audioOnly)
+        // Asking again for a station already asked for is the same request: the player has nothing to do.
+        assertEquals(asked, asStation(asked))
+    }
+
+    @Test
     fun `no player is no radio`() {
         assertEquals(RadioStatus(), radioStatusOf(null))
     }

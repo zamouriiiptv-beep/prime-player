@@ -217,6 +217,36 @@ class PlayerPathTest {
         assertEquals("storage was not read to open a channel", 0, allowance.reads)
     }
 
+    /**
+     * A station is handed to the engine as a sound, and a channel as it always was.
+     *
+     * The radio has no surface, so a stream that declares a picture in its table never draws one, and an engine left
+     * waiting for it reported a station that was sounding as one that never opened: "connecting" for the length of
+     * the opening budget, then "could not play". What stops the wait is the engine being told there is nothing to
+     * draw, and that is carried by the request.
+     */
+    @Test
+    fun `a station is opened on the engine as a sound and a channel is not`() = playerTest {
+        val model = model()
+        model.open(liveRequest(url = "http://provider.tv/radio/7.aac").copy(audioOnly = true))
+        runCurrent()
+
+        assertTrue("the engine was told it is a sound", engines.last.opened.single().audioOnly)
+
+        model.open(liveRequest())
+        runCurrent()
+
+        assertFalse("a channel after it is drawn again", engines.last.opened.last().audioOnly)
+    }
+
+    @Test
+    fun `the same address asked for as a station and as a channel is two requests`() {
+        val channel = liveRequest()
+
+        assertFalse(channel == channel.copy(audioOnly = true))
+        assertEquals(channel, channel.copy(audioOnly = false))
+    }
+
     @Test
     fun `opening a film still reads the day's download count`() = playerTest {
         val model = model()

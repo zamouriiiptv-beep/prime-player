@@ -56,6 +56,13 @@ data class PlayerRequest(
      * its own -- that this programme is missing, not that the channel is -- instead of the card of a link that moved.
      */
     val archiveOf: String? = null,
+    /**
+     * Only the sound is wanted, as the radio wants it: no picture is selected, decoded or waited for.
+     *
+     * Part of what makes a request, so the same address asked for as a station and as a channel is two requests
+     * and the second replaces the first. See [MediaRequest.audioOnly] for why a station must say so.
+     */
+    val audioOnly: Boolean = false,
 ) {
 
     /**

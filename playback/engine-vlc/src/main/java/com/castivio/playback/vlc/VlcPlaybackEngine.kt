@@ -95,6 +95,14 @@ class VlcPlaybackEngine(
     @Volatile
     private var liveOpen = false
 
+    /**
+     * Whether the source open now was asked for as a sound and nothing else: see [MediaRequest.audioOnly].
+     *
+     * Read on LibVLC's event thread, which is not the one that sets it.
+     */
+    @Volatile
+    private var audioOnlyOpen = false
+
     private var isReleased = false
     private var currentSurfaceView: SurfaceView? = null
 
@@ -305,6 +313,7 @@ class VlcPlaybackEngine(
         tracksAtMs = 0
         clockAtMs = 0
         liveOpen = media.kind == MediaKind.LIVE
+        audioOnlyOpen = media.audioOnly
         openedSource = safeSource(media.url)
         _diagnosis.value = null
         _startedAtMs.value = null
@@ -324,6 +333,8 @@ class VlcPlaybackEngine(
                 // A channel plays without subtitles: no sub-picture is decoded, selected or drawn.
                 addOption(":no-spu")
             }
+            // A station plays without a picture: no video is demuxed for it, decoded or given an output to open.
+            if (media.audioOnly) addOption(":no-video")
             media.userAgent?.let { addOption(":http-user-agent=$it") }
             media.headers.forEach { (headerName, headerValue) ->
                 when {
@@ -507,8 +518,12 @@ class VlcPlaybackEngine(
         pushPlaying()
     }
 
-    /** True when no video track is selected: a radio station, a song. */
-    private fun hasNoPicture(): Boolean = runCatching { mediaPlayer.currentVideoTrack }.getOrNull() == null
+    /**
+     * True when there is no picture to wait for: a station asked for as a sound ([MediaRequest.audioOnly]), or a source
+     * with no video track selected -- a song.
+     */
+    private fun hasNoPicture(): Boolean =
+        audioOnlyOpen || runCatching { mediaPlayer.currentVideoTrack }.getOrNull() == null
 
     /**
      * The shape of the picture, as LibVLC currently understands it.
