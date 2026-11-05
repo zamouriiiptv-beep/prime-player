@@ -2,8 +2,7 @@ package com.castivio.feature.activation
 
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.castivio.core.design.theme.CastivioType
-import com.castivio.core.design.theme.Spacing
+import com.castivio.core.design.components.BODY_LEADING
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -34,8 +33,22 @@ import org.junit.Test
  * What can go wrong instead is the opposite. If the frame is short enough, the derived
  * card becomes smaller than the type inside it and the text clips rather than the
  * layout overflowing — a quieter failure and a worse one. So this file derives the card
- * height the way the layout does, and asserts it stays above what a title over *two*
- * lines of description needs, on every frame.
+ * height the way the layout does, and asserts it holds the card's type.
+ *
+ * ## What it holds, and what it stopped holding (2026-11-05)
+ *
+ * It asserted that the card held the name over *two* lines of description with the disc at
+ * its full size, on every frame. The cards are shorter than that since the footnote and the
+ * two tiers: the reference phone's is 69.6dp against 83.8dp for two lines, the television's 98.7dp
+ * against 104dp, the shortest phone's 61.7dp against 81.3dp. The owner's decision, on those numbers, was to
+ * hold what the layout can keep and say the rest:
+ *
+ *  - the **name and one line of description** fit inside the card's padding, on every frame
+ *    but the shortest phone, which the owner left out of the budget;
+ *  - the **disc** is no smaller than [DISC_FLOOR] of its size: it is the one thing in the card that gives, because it is sized
+ *    with `size()` and takes what the padding leaves;
+ *  - **a second line of description**, when a language wraps one, is no longer promised room: the
+ *    screen cuts it at its `maxLines`, as it always has.
  */
 class SourceChoiceBudgetTest {
 
@@ -64,6 +77,12 @@ class SourceChoiceBudgetTest {
 
     private val frames = listOf(SHORTEST, HANDSET, TABLET, TELEVISION)
 
+    /** The frames the card's budget is held on: all but the shortest phone, which the owner left out of it. */
+    private val fitted = listOf(HANDSET, TABLET, TELEVISION)
+
+    /** How much of its size the disc keeps at least, when the card's padding leaves it less room than that. */
+    private val DISC_FLOOR = 0.8f
+
     /** The same surface with a navigation bar on it: shorter, and exactly as wide. */
     private fun Surface.lessBar(inset: Dp) = copy(height = height - inset)
 
@@ -89,6 +108,18 @@ class SourceChoiceBudgetTest {
     }
 
     /**
+     * What the card's text block needs: the name, the gap the screen puts under it, and [detailLines] of description.
+     * The gap and the leading are the screen's and the style's own, read and not copied.
+     */
+    private fun textNeeds(s: Surface, detailLines: Int): Dp {
+        val m = metrics(s)
+        return m.fsCard * 1.35f + m.cardPad * TEXT_GAP + m.fsDetail * BODY_LEADING * detailLines
+    }
+
+    /** The room inside the card's padding, which the disc and the text block share. */
+    private fun inner(s: Surface): Dp = card(s) - metrics(s).cardPad * 2
+
+    /**
      * The screen reaches for the frame, which is the whole point of the shape.
      *
      * The reference this was approved against fills the screen rather than floating in
@@ -111,41 +142,25 @@ class SourceChoiceBudgetTest {
     }
 
     /**
-     * The derived card holds a title and one line, with room to spare.
+     * The derived card holds the name and one line of description, and the disc no smaller than [DISC_FLOOR] of its size.
      *
      * This is the claim that replaced "the content fits the frame". The layout cannot
      * overflow; it can only squeeze, and squeezing shows up as clipped type.
      */
     @Test
     fun `the derived card is taller than the type inside it`() {
-        for (s in frames) {
-            val got = card(s)
-            val need = cardNeeds(s, detailLines = 1)
-            println("source choice budget — $s card $got, needs $need for one line")
-            assertTrue("the $s card is $got against $need needed", got > need)
+        for (s in fitted) {
+            val room = inner(s)
+            val need = textNeeds(s, detailLines = 1)
+            val disc = metrics(s).disc
+            println("source choice budget — $s room $room, the name and a line need $need, disc $disc")
+            assertTrue("the $s card has $room inside it against $need needed", room >= need)
+            assertTrue("the $s disc is squeezed to $room of $disc", room >= disc * DISC_FLOOR)
         }
     }
 
     /**
-     * And it holds the description at the number of lines that frame draws.
-     *
-     * All four cards are the same height by construction, so a wrap in one language
-     * costs the same in all four -- which is why the reserve is measured against the
-     * frame's full line count rather than against one line and a bit.
-     */
-    @Test
-    fun `the derived card still holds a description at its full line count`() {
-        for (s in frames) {
-            val m = metrics(s)
-            val got = card(s)
-            val need = cardNeeds(s, detailLines = m.detailLines)
-            println("source choice budget — $s card $got, needs $need for ${m.detailLines} lines")
-            assertTrue("the $s card is $got against $need needed when wrapped", got >= need)
-        }
-    }
-
-    /**
-     * It still holds one line with the system bars back.
+     * It still holds them with the system bars back.
      *
      * Activation runs immersive, so on a settled screen the insets are zero and this is
      * spent on nothing. A bar takes 24dp off the frame, which the grid absorbs and
@@ -153,12 +168,14 @@ class SourceChoiceBudgetTest {
      */
     @Test
     fun `every frame still holds its type when the navigation bar comes back`() {
-        for (s in frames) {
+        for (s in fitted) {
             val short = s.lessBar(INSET_ALLOWANCE)
-            val got = card(short)
-            val need = cardNeeds(short, detailLines = 1)
-            println("source choice budget — $s with a bar: card $got, needs $need")
-            assertTrue("the $s card falls to $got with a bar back", got > need)
+            val room = inner(short)
+            val need = textNeeds(short, detailLines = 1)
+            val disc = metrics(short).disc
+            println("source choice budget — $s with a bar: room $room, needs $need, disc $disc")
+            assertTrue("the $s card falls to $room inside it against $need with a bar back", room >= need)
+            assertTrue("the $s disc is squeezed to $room of $disc with a bar back", room >= disc * DISC_FLOOR)
         }
     }
 

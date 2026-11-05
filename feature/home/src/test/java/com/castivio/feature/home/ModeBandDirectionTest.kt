@@ -8,6 +8,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.dp
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Sizing
+import com.castivio.core.design.theme.Spacing
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -76,16 +77,39 @@ open class ModeBandDirectionTest {
         }
     }
 
+    /** The label's own height, in the tree the button's semantics are not merged into. */
+    private fun labelHeight(text: String): Float {
+        val box = compose.onNode(hasText(text), useUnmergedTree = true).getUnclippedBoundsInRoot()
+        return (box.bottom - box.top).value
+    }
+
+    /**
+     * A button is as tall as its label and its padding, and no shorter than its floor; this one's padding is the compact one and its
+     * floor is [Sizing.compactTarget] -- 34dp under a thumb, a television's own under a remote.
+     *
+     * The label is read and not assumed: Robolectric lays every `Text` out at 35dp whatever its style, so on a phone the button is its
+     * label and its padding there (43dp) and the floor on a device (34dp). The rule is the same in both -- the taller of the two --
+     * and it is the rule that tells a compact button from a regular one, whose padding is three times as much and whose floor is 48dp.
+     */
     @Test
     fun `the buttons are compact, and at a television's floor under a remote`() {
         show()
 
-        val expected = Sizing.compactTarget(tv).value
+        val floor = Sizing.compactTarget(tv).value
+        val padding = 2 * Spacing.xs.value
         val cancelHeight = (cancelAt.bottom - cancelAt.top).value
         val saveHeight = (saveAt.bottom - saveAt.top).value
-        assertTrue("cancel is $cancelHeight high, expected $expected", abs(cancelHeight - expected) <= 1f)
+        val cancelExpected = maxOf(floor, labelHeight(cancel) + padding)
+        val saveExpected = maxOf(floor, labelHeight(save) + padding)
+        assertTrue("cancel is $cancelHeight high, expected $cancelExpected", abs(cancelHeight - cancelExpected) <= 1f)
+        assertTrue("save is $saveHeight high, expected $saveExpected", abs(saveHeight - saveExpected) <= 1f)
         assertEquals("both buttons are the same height", cancelHeight, saveHeight, 1f)
-        if (!tv) assertTrue("under a thumb's 48dp", cancelHeight < Sizing.minTouchTarget.value)
+        if (!tv) {
+            // Not a regular button: its padding alone would make it this much taller than its label. (On a television the floor
+            // is the same for both, so there is nothing to tell them apart by.)
+            assertTrue("cancel is $cancelHeight high", cancelHeight < labelHeight(cancel) + 2 * Spacing.md.value)
+            assertTrue("under a thumb's 48dp", cancelHeight < Sizing.minTouchTarget.value)
+        }
     }
 }
 

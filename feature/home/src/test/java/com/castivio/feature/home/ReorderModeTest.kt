@@ -456,9 +456,9 @@ class ReorderModeTest {
         }
         compose.waitForIdle()
 
-        // Two lines of type are over twice its size; one is under. The sentence is longer than 360dp has room for.
-        val high = compose.onNode(hasText(PICK)).getUnclippedBoundsInRoot().height.value
-        assertTrue("the hint is $high dp high with a type size of ${m.frame.fsBody.value}", high < m.frame.fsBody.value * 2f)
+        // The sentence is longer than 360dp has room for, and it is set on one line all the same: the rest is an ellipsis.
+        val lines = compose.onNode(hasText(PICK)).lineCount()
+        assertEquals("the hint is set on $lines lines", 1, lines)
     }
 
     @Test

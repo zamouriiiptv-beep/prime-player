@@ -1,6 +1,7 @@
 package com.castivio.feature.home
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
@@ -135,9 +136,10 @@ class RadioScreenTest {
         assertTrue(compose.onAllNodesWithText("All stations").fetchSemanticsNodes().isNotEmpty())
         compose.onNodeWithText("Favorites").assertIsDisplayed()
         compose.onNodeWithText("Recently played").assertIsDisplayed()
-        compose.onNodeWithText("MAROC RADIO").assertIsDisplayed()
-        compose.onNodeWithText("Total: 86", substring = true).assertIsDisplayed()
-        compose.onNodeWithText("MAROC TALK").assertIsDisplayed()
+        // The rail's row is the one that holds a category's name and its total together: the stations' rows repeat the name as the
+        // line under theirs, so the name alone is on the screen once for the rail and once for every station filed under it.
+        compose.onNode(hasText("MAROC RADIO") and hasText("Total: 86", substring = true)).assertIsDisplayed()
+        compose.onNode(hasText("MAROC TALK") and hasText("Total: 23", substring = true)).assertIsDisplayed()
     }
 
     // ----------------------------------------------------------------------------- the list

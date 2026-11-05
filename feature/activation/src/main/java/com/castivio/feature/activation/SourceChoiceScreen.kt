@@ -620,7 +620,7 @@ private fun SourceCard(
 /** An icon beside type, as a multiple of that type's size. */
 private const val ICON_RATIO = 1.25f
 
-private const val TEXT_GAP = 0.5f
+internal const val TEXT_GAP = 0.5f
 
 
 
