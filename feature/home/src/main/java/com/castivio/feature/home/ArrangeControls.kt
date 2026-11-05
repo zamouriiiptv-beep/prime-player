@@ -206,11 +206,13 @@ internal fun ReorderBar(
         CastivioButton(
             text = stringResource(R.string.reorder_cancel),
             onClick = onCancel,
+            compact = true,
             enabled = !mode.saving,
         )
         CastivioButton(
             text = stringResource(R.string.reorder_save),
             onClick = onSave,
+            compact = true,
             weight = ButtonWeight.Primary,
             busy = mode.saving,
         )

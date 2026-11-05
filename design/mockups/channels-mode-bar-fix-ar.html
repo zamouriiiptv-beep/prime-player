@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<!-- The band over the board while it arranges (and, with it, while it chooses what to hide): its sentence read in the right order, and its two buttons shorter.
+     Phone geometry, 833x385dp, one px per dp; rendered at 2x. Not the app: a drawing of how the screen is meant to look.
+       **What the owner's photograph shows:** the sentence "اضغط OK لتحديد باقة أو قناة، وأبقِ OK مضغوطًا لتحديد عدة صفوف." is scrambled -- "press" is at one end and
+       "OK" at the other -- and the Save and Cancel buttons are 48dp high, so the band is 54dp over a list that has room for another row.
+       **Why the sentence is scrambled:** the band is drawn left to right in every language, and the sentence is a paragraph of its own whose direction was the band's. An Arabic
+       sentence with a Latin word in it, set as a left-to-right paragraph, is laid out run by run from the left: the Arabic runs keep their own order inside and
+       the runs are ordered the wrong way for an Arabic reader. This is drawn here with the same rule as the photograph (A).
+       **What is proposed (B):** (1) the band follows the reader's direction, as it did before it was forced left to right: in Arabic the word "ترتيب" is at the right end and its sentence goes
+       from it toward the left, and the two buttons are at the left end -- the end of the line; in English nothing moves. The sentence is then a paragraph in its own language's direction,
+       so it reads as one sentence with "OK" where it belongs. (2) Save and Cancel are 34dp high on a handset (44dp on a television, which a remote must still reach), so the band is 40dp.
+       The same band is the one for choosing what to hide, so that one changes with it.
+       `?frame=sheet` is the default. -->
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>شريط وضع الترتيب</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#05040E;color:#fff;font-family:"Inter","DejaVu Sans",system-ui,sans-serif;width:833px}
+.cap{padding:14px 20px 8px;font-size:13px;line-height:1.7;color:#cfd0ea;direction:rtl}
+.cap b{color:#fff}
+.cap em{font-style:normal;color:#ffc15a}
+.screen{position:relative;width:833px;overflow:hidden;direction:ltr;background:linear-gradient(140deg,#1c1a41 0%,#141a3b 55%,#0f1d3b 100%)}
+.abs{position:absolute}
+.top{left:0;top:0;width:833px;height:42px;background:rgba(6,9,20,.78)}
+.frame{left:44px;width:781px;border-radius:10px;border:1px solid rgba(150,140,210,.5);background:rgba(255,255,255,.012)}
+.band{position:absolute;left:48px;width:773px;display:flex;align-items:center;gap:8px;border-radius:9px;background:rgba(255,255,255,.06);border:1px solid #5a4a8c;padding:0 8px 0 10px}
+.band .lbl{font-size:12px;font-weight:700;color:#ffc15a;white-space:nowrap;direction:rtl}
+.band .rule{width:1px;height:15px;background:rgba(255,255,255,.22);flex:none}
+.band .hint{flex:1;min-width:0;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#eceefb}
+.band .hint.ltr{direction:ltr;text-align:left}      /* as it is: the band's own direction */
+.band .hint.rtl{direction:rtl;text-align:start}     /* proposed: the language's direction; the sentence starts beside the word */
+.band.rtl{direction:rtl;padding:0 10px 0 8px}
+.btn{display:flex;align-items:center;justify-content:center;border-radius:8px;font-size:12px;font-weight:700;white-space:nowrap;flex:none}
+.btn.sec{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#e6e8ff;padding:0 16px}
+.btn.pri{background:linear-gradient(180deg,#4a95ff,#2f6fe0);color:#fff;padding:0 18px}
+.row{position:absolute;left:52px;font-size:11px;font-weight:700;white-space:nowrap}
+.row small{display:block;font-size:9.5px;font-weight:400;color:#aeb0cc}
+.lst{position:absolute;left:239px;width:297px;border-radius:9px;border:1px solid #393651;background:rgba(35,35,61,.6)}
+.guide{position:absolute;left:0;width:833px;border-top:1px dashed rgba(255,193,90,.6)}
+.guide span{position:absolute;right:6px;top:2px;font-size:9px;color:#ffc15a}
+.tag{position:absolute;left:6px;top:3px;font-size:9px;background:#ff5b6b;color:#fff;border-radius:4px;padding:1px 5px;direction:rtl;z-index:5}
+.tag.ok{background:#1fc89a;color:#052018}
+.states{padding:4px 24px 0;direction:ltr}
+.states .band{position:relative;left:0;width:781px;margin-bottom:8px}
+</style></head><body>
+<script>
+const S={
+ pick:'اضغط OK لتحديد باقة أو قناة، وأبقِ OK مضغوطًا لتحديد عدة صفوف.',
+ marked:'المحدَّد: 2. اضغط OK على أحدها لتحريكها معًا.',
+ move:'حرّكها بالسهمين ↑ و↓ ثم اضغط OK لإسقاطها.',
+ all:'افتح باقة أولًا لترتيب قنواتها، أو اضغط OK على باقة لتحديدها.',
+ hide:'ضع علامة على ما تريد إخفاءه. لا يُحذف شيء، وتعيده الإعدادات.'};
+function bar(top,h,btnH,dir,text,label,save){
+  return `<div class="band ${dir}" style="top:${top}px;height:${h}px"><span class="lbl">${label}</span><i class="rule"></i><span class="hint ${dir}">${text}</span>
+    <span class="btn sec" style="height:${btnH}px">إلغاء</span><span class="btn pri" style="height:${btnH}px">${save}</span></div>`;
+}
+function screen(mode){
+  const now=mode==='now';
+  const h=now?54:40, btn=now?48:34;
+  const frameTop=46, listTop=frameTop+h+4+4;
+  let rows='';
+  const names=[['FR| FRANCE 4K','28'],['FR| FRANCE VIP RAW','214'],['FR| FRANCE SPORT VIP','143']];
+  names.forEach(([n,c],i)=>{rows+=`<div class="row" style="top:${listTop+2+i*30}px">${n}<small>المجموع: ${c}</small></div>`;});
+  let lst=`<div class="lst" style="top:${listTop}px;height:${385-listTop-8}px"></div>`;
+  return `<div class="screen" style="height:200px"><div class="abs top"></div>
+   <div class="abs frame" style="top:${frameTop}px;height:${200-frameTop+10}px"></div>
+   ${bar(frameTop+3,h,btn,now?'ltr':'rtl',S.pick,'ترتيب','حفظ')}
+   ${rows}${lst}
+   <div class="guide" style="top:${frameTop+3+54+4+4}px"><span>أين تبدأ القائمة الآن</span></div>
+   <span class="tag ${now?'':'ok'}">${now?'الآن':'المقترح'}</span></div>`;
+}
+const q=new URLSearchParams(location.search), frame=q.get('frame')||'sheet';
+let html='';
+html+=`<div class="cap"><b>١ — الآن:</b> الوصف يتبعثر («اضغط» عند طرف و«OK» عند الطرف الآخر)، والزرّان بارتفاع <em>٤٨dp</em> فالشريط <em>٥٤dp</em>.</div>`+screen('now');
+html+=`<div class="cap"><b>٢ — المقترح:</b> كلمة «ترتيب» عند <em>الحافة اليمنى</em> ووصفها يمتد منها نحو اليسار مقروءًا كاملًا وكلمة OK في موضعها، والزرّان عند الطرف الأيسر. الزرّان بارتفاع <em>٣٤dp</em> فالشريط <em>٤٠dp</em>، وتبدأ القائمة أعلى بـ<em>١٤dp</em> (الخط المنقّط يبيّن أين كانت تبدأ).</div>`+screen('new');
+html+=`<div class="cap"><b>٣ — في الحالات كلها (المقترح):</b> كل حالة من حالات وضع الترتيب، ثم شريط الإخفاء الذي يشاركه الشريط نفسه. الكلمة يمينًا ثم وصفها، والأرقام والأسهم والكلمة اللاتينية في مواضعها.</div><div class="states">`;
+[['pick','ترتيب','حفظ'],['marked','ترتيب','حفظ'],['move','ترتيب','حفظ'],['all','ترتيب','حفظ'],['hide','إخفاء','إخفاء المحدّد']].forEach(([k,l,s])=>{
+  html+=`<div class="band rtl" style="height:40px"><span class="lbl">${l}</span><i class="rule"></i><span class="hint rtl">${S[k]}</span><span class="btn sec" style="height:34px">إلغاء</span><span class="btn pri" style="height:34px">${s}</span></div>`;
+});
+html+=`</div><div class="cap"><b>في الكود:</b> <code>ModeBand</code> (مشترك بين شريطي الترتيب والإخفاء) يتوقف عن فرض اتجاه يسار-يمين على نفسه فيتبع اتجاه اللغة: في العربية الكلمة يمينًا ثم الجملة ثم الزرّان يسارًا، وفي الإنجليزية كما هو. وفقرة الجملة تأخذ اتجاه الشريط فتُقرأ مرتّبة. و<code>CastivioButton</code> يأخذ معاملًا جديدًا <code>compact</code> يخفض حدّ الارتفاع الأدنى إلى ٣٤dp (٤٤dp على التلفاز) ويخفض الحشو العمودي، فيصير الشريط بقدر زرّيه.</div><div style="height:12px"></div>`;
+document.write(html);
+</script>
+</body></html>

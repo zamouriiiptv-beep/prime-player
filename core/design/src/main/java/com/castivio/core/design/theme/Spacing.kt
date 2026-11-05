@@ -54,6 +54,20 @@ object Sizing {
      */
     fun minTarget(isTv: Boolean): Dp = if (isTv) minTvTarget else minTouchTarget
 
+    /**
+     * The floor of a button in a band that has to be short -- the two buttons of the arrange and hide bands -- on a handset or a
+     * tablet: 34dp, where a thumb's floor is 48. Asked for by the owner, who found the band 14dp too tall for a list that has room
+     * for another row, and chosen from `design/mockups/channels-mode-bar-fix-ar.html`.
+     */
+    val compactTouchTarget: Dp = 34.dp
+
+    /**
+     * [compactTouchTarget] on a handset or a tablet, and **the television's own floor on a television**: a remote is not a thumb,
+     * and a control under [minTvTarget] is the defect `scripts/check-invariants.sh` was written to stop. So a compact button is
+     * shorter only where a finger is what presses it.
+     */
+    fun compactTarget(isTv: Boolean): Dp = if (isTv) minTvTarget else compactTouchTarget
+
     val iconSm: Dp = 16.dp
     val iconMd: Dp = 20.dp
     val iconLg: Dp = 26.dp

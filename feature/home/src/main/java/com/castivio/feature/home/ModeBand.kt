@@ -1,5 +1,6 @@
 package com.castivio.feature.home
 
+import android.view.View
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -19,10 +20,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.core.os.ConfigurationCompat
 import com.castivio.core.design.components.castivioBodyStyle
 import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.theme.CastivioTheme
@@ -34,18 +38,23 @@ import com.castivio.core.design.theme.CastivioTheme
  * One band for the modes, because a mode that looked different from the one beside it would be one more thing to learn.
  * Both used to stack their sentences -- five lines for the reorder band, three for the hide band -- over a board whose list had
  * room for a few more channels. Now each says one thing and cuts it with an ellipsis rather than wrapping it. The buttons
- * ([actions]) keep the size they have: a touch target does not shrink to make a band shorter, so the band is their height and a
- * hair more.
+ * ([actions]) are compact -- `CastivioButton(compact = true)` -- so the band is their height and a hair more.
  *
  * The word is the board's amber (see [AMBER_INK_LIFT]) and not the violet of "Live TV" above it: two words of one colour, one
  * over the other, read as a single label. Drawn first in `design/mockups/channels-arrange-bar-ar.html` and
  * `design/mockups/channels-hide-bar-ar.html`.
  *
- * **Laid out left to right in every language, like the band above it and the columns under it.** It sits between the two, and
- * it used to follow the reader's direction while they did not: in Arabic the buttons went to the far left, over the bouquets,
- * and the hint to the right, over the picture -- the one strip of the board that moved when the language did. Now nothing
- * moves; the hint is shaped by its own script inside its cell, as every other line on the board is, and the buttons stay at
- * the trailing end, over the list and the picture they act on.
+ * **In Arabic the band follows the reader's direction** ([modeBandFollowsReader]): the word is at the right end, its sentence runs from
+ * it toward the left, and the two buttons are at the left end -- the end of the line. In every other language the band is as it was,
+ * left to right like the band above it and the columns under it, the word at the left and the buttons at the right: that is the
+ * owner's decision, drawn in `design/mockups/channels-mode-bar-fix-ar.html`.
+ *
+ * **The sentence is a paragraph in its own language's direction.** It was left to the band's, and an Arabic sentence with a Latin
+ * word in it ("press OK") set as a left-to-right paragraph is laid out run by run from the left, so that "press" stood at one
+ * end and "OK" at the other and the sentence read backwards. A right-to-left language in a band that is left to right -- Hebrew,
+ * Persian -- sets the sentence right to left and against the end beside the word.
+ *
+ * The buttons are `compact`: 34dp under a thumb, so the band is 40dp and not 54.
  *
  * @param hintInk the hint's colour: white, and a different one only for what the viewer has to notice -- a failure.
  */
@@ -62,7 +71,18 @@ internal fun ModeBand(
     val shape = RoundedCornerShape(m.previewRadius)
     val labelInk = lerp(colors.hueAmber, colors.onBackgroundStrong, AMBER_INK_LIFT)
 
-    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+    val configuration = LocalConfiguration.current
+    val language = ConfigurationCompat.getLocales(configuration).get(0)?.language.orEmpty()
+    val follows = modeBandFollowsReader(language)
+    val rtlLanguage = configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL
+    // The sentence is a paragraph in its language's direction. Beside the word it starts at the band's own start; a right-to-left
+    // sentence in a band that is left to right is set against its end, which is the side the word is on.
+    val hintStyle = castivioBodyStyle(m.frame.fsBody).copy(
+        textDirection = searchTextDirection(rtlLanguage),
+        textAlign = if (rtlLanguage && !follows) TextAlign.End else TextAlign.Start,
+    )
+
+    CompositionLocalProvider(LocalLayoutDirection provides (if (follows) LayoutDirection.Rtl else LayoutDirection.Ltr)) {
         Row(
             modifier
                 .fillMaxWidth()
@@ -89,7 +109,7 @@ internal fun ModeBand(
                 Box(Modifier.width(1.dp).height(m.frame.fsBody * HINT_RULE_OF_BODY).background(colors.glassBorder))
                 Text(
                     text = hint,
-                    style = castivioBodyStyle(m.frame.fsBody),
+                    style = hintStyle,
                     color = hintInk,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

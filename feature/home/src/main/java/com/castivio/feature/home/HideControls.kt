@@ -86,10 +86,12 @@ internal fun HideBar(
         CastivioButton(
             text = stringResource(R.string.reorder_cancel),
             onClick = onCancel,
+            compact = true,
         )
         CastivioButton(
             text = stringResource(R.string.hide_confirm),
             onClick = onConfirm,
+            compact = true,
             weight = ButtonWeight.Primary,
             enabled = hiding.any,
         )

@@ -124,6 +124,11 @@ fun CastivioButton(
     /** A floor above the frame's own. The D-pad minimum still applies under it. */
     minHeight: Dp? = null,
     /**
+     * A shorter button, for a band that has to be short: [Sizing.compactTarget] for its floor -- 34dp under a thumb, and the
+     * television's own floor under a remote -- and less padding round the label. Two buttons in one band and nothing else.
+     */
+    compact: Boolean = false,
+    /**
      * How far a disabled button fades, and the ink its label takes while it does.
      *
      * The defaults are the dimming [enabled] describes, and every button but one keeps
@@ -178,7 +183,7 @@ fun CastivioButton(
             // A remote is not a thumb, and the constant that says so exists.
             .defaultMinSize(
                 minHeight = maxOf(
-                    Sizing.minTarget(CastivioTheme.device.isTv),
+                    if (compact) Sizing.compactTarget(CastivioTheme.device.isTv) else Sizing.minTarget(CastivioTheme.device.isTv),
                     minHeight ?: 0.dp,
                 ),
             )
@@ -210,7 +215,10 @@ fun CastivioButton(
                 }
             )
             .clickable(interaction, indication = null, enabled = enabled && !busy, onClick = onClick)
-            .padding(horizontal = Spacing.xl, vertical = Spacing.md),
+            .padding(
+                horizontal = if (compact) Spacing.lg else Spacing.xl,
+                vertical = if (compact) Spacing.xs else Spacing.md,
+            ),
         contentAlignment = Alignment.Center,
     ) {
         Row(
