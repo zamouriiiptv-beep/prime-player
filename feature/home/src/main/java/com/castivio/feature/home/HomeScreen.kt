@@ -1414,6 +1414,8 @@ private fun SectionLine(
         restBorder = if (arrived) colors.success.copy(alpha = ARRIVED_EDGE_ALPHA) else colors.cardSurfaceEdge,
     ) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
+            // Read here, in the box's own scope: the Row below is a scope of its own and does not answer for the box's size.
+            val lineHeight = maxHeight
             Row(
                 Modifier.fillMaxSize().padding(horizontal = frame.chipPad),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1445,7 +1447,7 @@ private fun SectionLine(
                 }
                 // The line's empty end is what both new faces use.
                 if (face == HeroFace.NotLoaded) TileLoadPill(frame)
-                if (offer != null) TileThumb(offer, height = maxHeight)
+                if (offer != null) TileThumb(offer, height = lineHeight)
             }
         }
     }

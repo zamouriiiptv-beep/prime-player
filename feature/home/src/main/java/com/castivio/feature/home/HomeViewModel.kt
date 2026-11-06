@@ -321,7 +321,7 @@ private data class CardInputs(
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    catalog: CatalogRepository,
+    private val catalog: CatalogRepository,
     private val sources: SourceRepository,
     entitlement: EntitlementRepository,
     marks: SectionCatalogue,
