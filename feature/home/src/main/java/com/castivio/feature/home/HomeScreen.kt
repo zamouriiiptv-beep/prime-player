@@ -1617,7 +1617,7 @@ private fun loadSeconds(load: CardLoad.Arrived): String? {
  * outward three times, each thinner in ink than the last, and [HERO_RIBBONS] across the lower half, fading at both ends.
  * Thin lines and no light -- the owner did not want a glow -- in the azure and the violet the glyph is drawn in.
  */
-private fun DrawScope.drawHeroLines(azure: Color, violet: Color) {
+internal fun DrawScope.drawHeroLines(azure: Color, violet: Color) {
     val centre = Offset(size.width / 2f, size.height * HERO_GLYPH_CENTRE)
     val body = size.height * HERO_GLYPH_SHARE * HERO_BODY_OF_GLYPH
     val edge = Brush.linearGradient(
@@ -2760,7 +2760,7 @@ private const val TERM_TINT_TOP = 0.22f
 private const val TERM_TINT_FOOT = 0.08f
 private const val TERM_EDGE_ALPHA = 0.75f
 private const val LINE_FIGURE_RATIO = 1.5f
-private const val HERO_GLYPH_CENTRE = 0.38f
+internal const val HERO_GLYPH_CENTRE = 0.38f
 private const val HERO_BODY_OF_GLYPH = 0.83f
 private const val HERO_FRAME_RATIO = 0.653f
 private const val HERO_ECHO_RADIUS = 0.113f

@@ -25,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
@@ -53,8 +54,8 @@ import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Sizing
 
 /*
- * The two other faces of the live channels' card -- see [HeroFace] -- as drawn and approved in `design/mockups/home-resume-ar.png`
- * (the channel watched last) and `design/mockups/home-resume-idle-ar.png` (a subscription whose channels are not downloaded).
+ * The two other faces of the live channels' card -- see [HeroFace] -- as drawn and approved in `design/mockups/home-resume-full-ar.png`
+ * (the channel watched last) and `design/mockups/home-resume-idle-full-ar.png` (a subscription whose channels are not downloaded).
  *
  * **Only the card's content differs.** Its glass, its edge, its radius, its focus and its press are the card's own, in
  * `HomeScreen.kt`; every colour here is a token the board already uses -- the violet that selects a channel on the board,
@@ -67,6 +68,10 @@ import com.castivio.core.design.theme.Sizing
  *
  * The card's own press is the button's: pressed, the section is asked for and loads on this card, which becomes its loading
  * face. The button is the card's drawing of that press and not a second control, so a remote has one stop on the card.
+ *
+ * **The card's own ornament is behind it.** The frame of the glyph echoed outward and the ribbons across the lower half are what
+ * filled the live card before it had anything to say -- the same lines, from [drawHeroLines], centred where [HERO_GLYPH_CENTRE]
+ * puts the glyph -- so a card with a glyph, two lines and a button is not left with a field of nothing round them.
  */
 @Composable
 internal fun NotLoadedFace(
@@ -79,45 +84,53 @@ internal fun NotLoadedFace(
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
-    BoxWithConstraints(modifier.fillMaxSize().padding(frame.chipPad)) {
+    BoxWithConstraints(
+        modifier
+            .fillMaxSize()
+            .drawBehind { drawHeroLines(azure = colors.hueAzure, violet = colors.hueViolet) },
+    ) {
         val glyph = maxHeight * NOT_LOADED_GLYPH_SHARE
-        Column(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize().padding(frame.chipPad)) {
             HeroHeading(
                 start = name,
                 end = remember(sentence, sentenceInk) { buildAnnotatedString { withStyle(SpanStyle(color = sentenceInk)) { append(sentence) } } },
                 frame = frame,
             )
-            Column(
-                Modifier.weight(1f).fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                GradientGlyph(icon = icon, hue = hue, size = glyph)
-                Spacer(Modifier.height(frame.chipPad))
-                Text(
-                    text = stringResource(R.string.home_load_hero_title),
-                    style = castivioTitleStyle(frame.fsLabel),
-                    color = colors.onBackgroundStrong,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = stringResource(R.string.home_load_hero_detail),
-                    style = castivioBodyStyle(frame.fsChip),
-                    color = colors.onBackgroundMuted,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            HeroButton(
-                label = stringResource(R.string.home_load_hero_button),
-                icon = Icons.Rounded.Download,
-                frame = frame,
-                modifier = Modifier.fillMaxWidth(),
+        }
+        // Centred on the ornament's centre, as the watermark of the plain card is: the lines echo this glyph's frame.
+        Column(
+            Modifier.fillMaxWidth().padding(top = maxHeight * HERO_GLYPH_CENTRE - glyph / 2),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            GradientGlyph(icon = icon, hue = hue, size = glyph)
+            Text(
+                text = stringResource(R.string.home_load_hero_title),
+                style = castivioTitleStyle(frame.fsLabel),
+                color = colors.onBackgroundStrong,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = frame.chipPad),
+            )
+            Text(
+                text = stringResource(R.string.home_load_hero_detail),
+                style = castivioBodyStyle(frame.fsChip),
+                color = colors.onBackgroundMuted,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = frame.chipPad),
             )
         }
+        HeroButton(
+            label = stringResource(R.string.home_load_hero_button),
+            icon = Icons.Rounded.Download,
+            frame = frame,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(frame.chipPad),
+        )
     }
 }
 
@@ -126,7 +139,10 @@ internal fun NotLoadedFace(
  * and the button that carries on.
  *
  * What is drawn is [Resume]'s, ready: the hours are text and the bar a fraction, so nothing is worked out here. A channel the
- * guide holds nothing for shows its logo and name and no programme -- a line the device does not hold is not drawn.
+ * guide holds nothing for shows its logo and name and, in the place of the programme, its number -- a line the device does not
+ * hold is not drawn, and one it does hold takes the place so that the card is not left with a gap there.
+ *
+ * The card's ornament is behind it, centred on the logo -- see [NotLoadedFace].
  */
 @Composable
 internal fun ContinueFace(
@@ -138,11 +154,15 @@ internal fun ContinueFace(
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
-    BoxWithConstraints(modifier.fillMaxSize().padding(frame.chipPad)) {
+    BoxWithConstraints(
+        modifier
+            .fillMaxSize()
+            .drawBehind { drawHeroLines(azure = colors.hueAzure, violet = colors.hueViolet) },
+    ) {
         val logo = maxHeight * CONTINUE_LOGO_SHARE
         val plateHeight = maxHeight * CONTINUE_PLATE_SHARE
-        Column(Modifier.fillMaxSize()) {
-            val quiet = colors.onBackgroundMuted
+        val quiet = colors.onBackgroundMuted
+        Column(Modifier.fillMaxSize().padding(frame.chipPad)) {
             HeroHeading(
                 start = stringResource(R.string.home_resume_label),
                 end = remember(name, sentence, sentenceInk, quiet) {
@@ -156,77 +176,98 @@ internal fun ContinueFace(
                 },
                 frame = frame,
             )
-            Column(
-                Modifier.weight(1f).fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                ProviderArtwork(
-                    url = resume.channel.artworkUrl,
-                    // The name is drawn under it: a screen reader that announced the logo as well would say the channel twice.
-                    description = null,
-                    modifier = Modifier.size(logo),
-                    seed = resume.channel.title,
-                )
-                Spacer(Modifier.height(frame.chipPad / 2))
-                Text(
-                    text = resume.channel.title,
-                    style = castivioTitleStyle(frame.fsLabel).copy(textDirection = TextDirection.Content),
-                    color = colors.onBackgroundStrong,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                val programme = resume.programme
-                val startText = resume.from
-                val endText = resume.to
-                if (programme != null && startText != null && endText != null) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2, Alignment.CenterHorizontally),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = programme.title,
-                            style = castivioBodyStyle(frame.fsBody).copy(textDirection = TextDirection.Content),
-                            color = colors.onBackgroundStrong,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false),
-                        )
-                        Text(
-                            text = "·",
-                            style = castivioBodyStyle(frame.fsBody),
-                            color = colors.onBackgroundMuted,
-                            maxLines = 1,
-                        )
-                        Text(
-                            text = stringResource(R.string.channels_time_range, ltrToken(startText), ltrToken(endText)),
-                            style = castivioBodyStyle(frame.fsBody),
-                            color = colors.onBackgroundMuted,
-                            maxLines = 1,
-                        )
-                    }
-                    Spacer(Modifier.height(frame.chipPad / 2))
-                    ProgrammeBar(fraction = resume.progress)
+        }
+        Column(
+            Modifier.fillMaxWidth().padding(top = maxHeight * HERO_GLYPH_CENTRE - logo / 2),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            ProviderArtwork(
+                url = resume.channel.artworkUrl,
+                // The name is drawn under it: a screen reader that announced the logo as well would say the channel twice.
+                description = null,
+                modifier = Modifier.size(logo),
+                seed = resume.channel.title,
+            )
+            Spacer(Modifier.height(frame.chipPad / 2))
+            Text(
+                text = resume.channel.title,
+                style = castivioTitleStyle(frame.fsLabel).copy(textDirection = TextDirection.Content),
+                color = colors.onBackgroundStrong,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = frame.chipPad),
+            )
+            val programme = resume.programme
+            val startText = resume.from
+            val endText = resume.to
+            val number = resume.channel.number
+            if (programme != null && startText != null && endText != null) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2, Alignment.CenterHorizontally),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = frame.chipPad),
+                ) {
+                    Text(
+                        text = programme.title,
+                        style = castivioBodyStyle(frame.fsBody).copy(textDirection = TextDirection.Content),
+                        color = colors.onBackgroundStrong,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    Text(
+                        text = "·",
+                        style = castivioBodyStyle(frame.fsBody),
+                        color = colors.onBackgroundMuted,
+                        maxLines = 1,
+                    )
+                    Text(
+                        text = stringResource(R.string.channels_time_range, ltrToken(startText), ltrToken(endText)),
+                        style = castivioBodyStyle(frame.fsBody),
+                        color = colors.onBackgroundMuted,
+                        maxLines = 1,
+                    )
                 }
+                Spacer(Modifier.height(frame.chipPad / 2))
+                ProgrammeBar(fraction = resume.progress, modifier = Modifier.padding(horizontal = frame.chipPad))
+            } else if (number != null) {
+                Text(
+                    text = stringResource(R.string.home_resume_number, ltrToken(number.toString())),
+                    style = castivioBodyStyle(frame.fsBody),
+                    color = colors.onBackgroundMuted,
+                    maxLines = 1,
+                )
             }
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Row(horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2), modifier = Modifier.weight(1f)) {
-                    for (earlier in resume.earlier) {
+        }
+        Row(
+            Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(frame.chipPad),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2), modifier = Modifier.weight(1f)) {
+                for (earlier in resume.earlier) {
+                    // On the card's quiet glass, every one alike: a logo drawn for a light page, one for a dark page and one with no
+                    // ground of its own then read as a row of plates, and not as three different things.
+                    Box(
+                        Modifier
+                            .size(width = plateHeight * PLATE_ASPECT, height = plateHeight)
+                            .clip(RoundedCornerShape(frame.radius / 3))
+                            .background(colors.glassFill),
+                    ) {
                         ProviderArtwork(
                             url = earlier.artworkUrl,
                             description = null,
-                            modifier = Modifier.size(width = plateHeight * PLATE_ASPECT, height = plateHeight),
+                            modifier = Modifier.fillMaxSize().padding(horizontal = PLATE_INSET, vertical = PLATE_INSET / 2),
                             seed = earlier.title,
                         )
                     }
                 }
-                HeroButton(
-                    label = stringResource(R.string.home_resume_go),
-                    icon = Icons.Rounded.PlayArrow,
-                    frame = frame,
-                )
             }
+            HeroButton(
+                label = stringResource(R.string.home_resume_go),
+                icon = Icons.Rounded.PlayArrow,
+                frame = frame,
+            )
         }
     }
 }
@@ -343,14 +384,20 @@ private fun GradientGlyph(icon: ImageVector, hue: Color, size: Dp) {
     )
 }
 
-/** The glyph of the invitation: a share of the card's height, so it keeps its proportion on every surface. */
-private const val NOT_LOADED_GLYPH_SHARE = 0.27f
+/**
+ * The glyph of the invitation: half the card's height, so that the frame of it the ornament echoes -- drawn for a glyph at
+ * [HERO_GLYPH_CENTRE] -- stands round it as it stood round the watermark, and so that it keeps its proportion on every surface.
+ */
+private const val NOT_LOADED_GLYPH_SHARE = 0.5f
 
 /** The resumed channel's logo and the earlier channels' plates, as shares of the card's height. */
-private const val CONTINUE_LOGO_SHARE = 0.285f
-private const val CONTINUE_PLATE_SHARE = 0.09f
+private const val CONTINUE_LOGO_SHARE = 0.365f
+private const val CONTINUE_PLATE_SHARE = 0.107f
 
 /** A plate is this much wider than it is tall, as the board's logo slot is. */
-private const val PLATE_ASPECT = 2.3f
+private const val PLATE_ASPECT = 2.1f
+
+/** How far a logo stands in from the edge of its plate. */
+private val PLATE_INSET = 3.dp
 
 private val PROGRAMME_BAR = 4.dp
