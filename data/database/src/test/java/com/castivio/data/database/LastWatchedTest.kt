@@ -98,8 +98,9 @@ class LastWatchedTest {
 
     @Test
     fun `the episode watched last is offered with the show's name and id`() {
-        save("Breaking Bad S01E01 - Pilot", positionMs = 60_000, durationMs = 3_000_000)
-        save("Breaking Bad S02E01 - Seven Thirty-Seven", positionMs = 120_000, durationMs = 3_000_000)
+        // An episode row's title is its own ("Pilot"); the show's name is what its row carries beside it.
+        save("Pilot", positionMs = 60_000, durationMs = 3_000_000)
+        save("Seven Thirty-Seven", positionMs = 120_000, durationMs = 3_000_000)
 
         val offer = last(MediaKind.SERIES)!!
 
