@@ -436,4 +436,5 @@
     <string name="home_load_hero_detail">Fetched from your provider and kept on this device</string>
     <string name="home_load_hero_button">Load the channels</string>
     <string name="home_resume_number">Channel %1$s</string>
+    <string name="home_load_tile_button">Load</string>
 </resources>

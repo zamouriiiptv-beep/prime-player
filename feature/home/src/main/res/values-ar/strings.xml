@@ -321,4 +321,5 @@
     <string name="home_load_hero_detail">تُجلب من خادم الاشتراك وتبقى على جهازك</string>
     <string name="home_load_hero_button">تحميل القنوات</string>
     <string name="home_resume_number">القناة %1$s</string>
+    <string name="home_load_tile_button">تحميل</string>
 </resources>

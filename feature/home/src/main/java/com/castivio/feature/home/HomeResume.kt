@@ -101,9 +101,5 @@ internal enum class HeroFace { Plain, NotLoaded, Continue }
  * @param load what the card says about the section's load: only [CardLoad.Idle] leaves the card free to change its face.
  * @param resume what was watched last, or null.
  */
-internal fun heroFace(unfetched: Boolean, counted: Boolean, load: CardLoad, resume: Resume?): HeroFace = when {
-    load != CardLoad.Idle -> HeroFace.Plain
-    unfetched -> HeroFace.NotLoaded
-    counted && resume != null -> HeroFace.Continue
-    else -> HeroFace.Plain
-}
+internal fun heroFace(unfetched: Boolean, counted: Boolean, load: CardLoad, resume: Resume?): HeroFace =
+    tileFace(unfetched, counted, load, resumed = resume != null)

@@ -136,6 +136,24 @@ interface ProgressDao {
         """,
     )
     fun pageHistory(): PagingSource<Int, MediaWithProgress>
+
+    /**
+     * The one item of [kind] watched last, with its progress, as a flow: what Home's small cards offer to carry on from. The
+     * active subscription's and not hidden, like every list; Room observes `playback_progress`, `media`, the subscription and the
+     * hidden items through the query, so it is read again when another is watched, hidden or the subscription changes.
+     */
+    @Query(
+        """
+        SELECT m.*, p.media_id AS p_media_id, p.position_ms AS p_position_ms,
+               p.duration_ms AS p_duration_ms, p.updated_at AS p_updated_at
+        FROM playback_progress p
+        INNER JOIN media m ON m.id = p.media_id
+        WHERE m.source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN_M AND m.kind = :kind
+        ORDER BY p.updated_at DESC, m.id
+        LIMIT 1
+        """,
+    )
+    fun lastWatchedOf(kind: String): Flow<MediaWithProgress?>
 }
 
 /**

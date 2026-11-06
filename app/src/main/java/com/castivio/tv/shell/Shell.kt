@@ -102,6 +102,8 @@ import com.castivio.feature.home.PinPurpose
 import com.castivio.feature.home.RadioScreen
 import com.castivio.feature.home.RadioSession
 import com.castivio.feature.home.RadioSource
+import com.castivio.feature.home.ResumeOpen
+import com.castivio.feature.home.SectionResume
 import com.castivio.feature.home.WorldRadioScreen
 import com.castivio.feature.home.WorldRadioSession
 import com.castivio.feature.home.R as CatalogStrings
@@ -266,6 +268,8 @@ fun ShellScreen(
 
     var dest by remember { mutableStateOf(Dest.Home) }
     var overlay by remember { mutableStateOf<Overlay?>(null) }
+    // The station carried on from Home's radio card, until the radio's board has taken it: see `resumeSection` and `Dest.Radio`.
+    var radioStart by remember { mutableStateOf<Channel?>(null) }
 
     // **What the search screen is allowed to answer with, decided by where it was opened
     // from.**
@@ -437,6 +441,29 @@ fun ShellScreen(
                         if (id != null && lockModel.isLocked(id)) asking = ShellPin(PinPurpose.Play) { start() } else start()
                     }
                 }
+            }
+        }
+    }
+
+    // **Carrying on from one of Home's small cards: the section opens with what was watched last started inside it.**
+    //
+    // The film's page over the films' board and the show's page over the shows' -- the two places a press on a poster goes, so
+    // Back out of them lands on the section and not on Home -- and the station playing on the radio's board. Not the player: a
+    // film is started from its page, which is where its position is offered; an episode from its show's. The radio's station
+    // is handed to its session once the board is up, below.
+    val resumeSection: (SectionResume) -> Unit = { offer ->
+        when (val open = offer.open) {
+            is ResumeOpen.Film -> {
+                dest = Dest.Movies
+                overlay = Overlay.Movie(open.movie)
+            }
+            is ResumeOpen.Show -> {
+                dest = Dest.Series
+                overlay = Overlay.Show(open.show)
+            }
+            is ResumeOpen.Station -> {
+                radioStart = open.channel
+                dest = Dest.Radio
             }
         }
     }
@@ -616,6 +643,7 @@ fun ShellScreen(
                         // that have aired on them. It took the place of the button for the newest additions.
                         onCatchUp = { dest = Dest.CatchUp },
                         onResume = resumeWatching,
+                        onResumeSection = resumeSection,
                         // No `onAbout`: "about" is this build's licence, its device and its
                         // version, and Settings already opens exactly that screen through
                         // `onShowLicence` below. Home's rail carried a second door to the
@@ -667,6 +695,14 @@ fun ShellScreen(
                     Dest.Radio -> {
                         val radio = remember { RadioSession() }
                         val world = remember { WorldRadioSession() }
+                        // A station carried on from Home plays as the board comes up, and is let go of the shell's hand: it is the
+                        // session's from then on, and the sound is recorded as watched once it begins, as for any station.
+                        LaunchedEffect(radioStart) {
+                            radioStart?.let { station ->
+                                radio.play(station)
+                                radioStart = null
+                            }
+                        }
                         // Which of the radio's two sources is open. The sound is the source's, so opening the other lets the first go:
                         // nothing keeps sounding that the screen in front of the viewer has no plate for.
                         var source by rememberSaveable { mutableStateOf(RadioSource.Subscription) }

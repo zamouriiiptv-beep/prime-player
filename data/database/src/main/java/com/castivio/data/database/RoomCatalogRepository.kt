@@ -32,6 +32,7 @@ import com.castivio.domain.Season
 import com.castivio.domain.SeriesShell
 import com.castivio.domain.SeriesSummary
 import com.castivio.domain.SortOrder
+import com.castivio.domain.WatchedItem
 import com.castivio.domain.arrangedBy
 import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.atomic.AtomicBoolean
@@ -204,6 +205,21 @@ class RoomCatalogRepository(
     override fun recentChannels(limit: Int): Flow<List<Channel>> =
         rereading { mediaDao.recentFirst(MediaKind.LIVE.name, limit) }
             .map { rows -> rows.mapNotNull { it.toDomain() as? Channel } }
+
+    override fun lastWatched(kind: MediaKind): Flow<WatchedItem?> =
+        rereading { progressDao.lastWatchedOf(kind.name) }
+            .map { row ->
+                row?.let {
+                    val watched = it.toDomain()
+                    WatchedItem(
+                        item = watched.item,
+                        // A position of nothing is a film or a station only started: there is no "how far" to say.
+                        progress = watched.progress.takeIf { progress -> progress.positionMs > 0 },
+                        showId = it.media.seriesId,
+                        showTitle = it.media.seriesTitle,
+                    )
+                }
+            }
 
     override suspend fun page(request: PageRequest): Page<MediaItem> {
         val kind = request.kind.name

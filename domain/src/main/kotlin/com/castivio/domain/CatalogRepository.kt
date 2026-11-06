@@ -68,6 +68,15 @@ interface CatalogRepository {
     fun recentChannels(limit: Int): Flow<List<Channel>> = flowOf(emptyList())
 
     /**
+     * The one item of [kind] the viewer watched last, with how far in it they were: what a small card on Home offers to carry
+     * on from -- the film, the episode or the station. Null when nothing of that kind was watched on this subscription.
+     *
+     * Read as the record changes and as the subscription or what is hidden changes, like [recentChannels]; one row, never a list.
+     * Defaulted so a fake that has nothing watched need not say so.
+     */
+    fun lastWatched(kind: MediaKind): Flow<WatchedItem?> = flowOf(null)
+
+    /**
      * Provider and guide ids for specific rows.
      *
      * Bounded by the ids passed in — the visible window — because its caller is a
@@ -76,6 +85,20 @@ interface CatalogRepository {
      */
     suspend fun channelRefs(mediaIds: List<String>): List<ChannelRef>
 }
+
+/**
+ * What was watched last in a section, and how far in it the viewer was.
+ *
+ * @param progress where they were, or null for a station -- a live stream has no position -- and for a film only started.
+ * @param showId the show an episode belongs to, null for anything that is not an episode: what the show's page is opened by.
+ * @param showTitle the show's own name, which an episode row carries beside its own: Home names the show, not the episode.
+ */
+data class WatchedItem(
+    val item: MediaItem,
+    val progress: PlaybackProgress?,
+    val showId: String? = null,
+    val showTitle: String? = null,
+)
 
 data class PageRequest(
     val kind: MediaKind,

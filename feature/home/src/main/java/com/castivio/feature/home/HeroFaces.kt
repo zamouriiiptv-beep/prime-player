@@ -314,16 +314,17 @@ private fun HeroHeading(
  * Not focusable and not clickable -- the card is the control, and it already carries the press and the focus ring.
  */
 @Composable
-private fun HeroButton(
+internal fun HeroButton(
     label: String,
     icon: ImageVector,
     frame: CastivioMetrics,
     modifier: Modifier = Modifier,
+    height: Dp = frame.chip,
 ) {
     val colors = CastivioTheme.colors
     Row(
         modifier
-            .height(frame.chip)
+            .height(height)
             .clip(RoundedCornerShape(frame.radius / 2))
             .background(colors.secondary)
             .padding(horizontal = frame.chipPad),
@@ -346,7 +347,7 @@ private fun HeroButton(
  * its right, as a clock reads, in every language: a timeline is not mirrored.
  */
 @Composable
-private fun ProgrammeBar(fraction: Float, modifier: Modifier = Modifier) {
+internal fun ProgrammeBar(fraction: Float, modifier: Modifier = Modifier) {
     val colors = CastivioTheme.colors
     val pill = RoundedCornerShape(percent = 50)
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {

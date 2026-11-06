@@ -176,6 +176,11 @@ data class HomeState(
      * nothing was watched on this subscription. See [Resume]; a card that is loading or has failed ignores it, see [heroFace].
      */
     val resume: Resume? = null,
+    /**
+     * What each small card -- the films', the shows' and the radio's -- offers to carry on from: the film, the show or the station
+     * watched last in its section. A section with nothing watched has no entry. See [SectionResume] and [tileFace].
+     */
+    val resumes: Map<MediaKind, SectionResume> = emptyMap(),
     val loading: Boolean = true,
 ) {
     /** True once a provider has been configured, whatever it did or did not carry. */
@@ -702,6 +707,21 @@ class HomeViewModel @Inject constructor(
         return null
     }
 
+    /**
+     * The small cards' offers: for each of the films, the shows and the radio, the item watched last in it, as the record changes.
+     * Like [resume], a decoration of Home -- a read that breaks offers nothing for that card and never keeps Home from opening.
+     */
+    private val resumes: Flow<Map<MediaKind, SectionResume>> = combine(
+        offerOf(MediaKind.MOVIE),
+        offerOf(MediaKind.SERIES),
+        offerOf(MediaKind.RADIO),
+    ) { films, shows, stations ->
+        listOfNotNull(films, shows, stations).associateBy { it.kind }
+    }
+
+    private fun offerOf(kind: MediaKind): Flow<SectionResume?> =
+        catalog.lastWatched(kind).map { sectionResumeOf(kind, it) }.catch { emit(null) }
+
     val state: StateFlow<HomeState> = combine(
         library,
         counts,
@@ -749,6 +769,7 @@ class HomeViewModel @Inject constructor(
             },
         )
     }.combine(resume) { home, offer -> home.copy(resume = offer) }
+        .combine(resumes) { home, offers -> home.copy(resumes = offers) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_GRACE_MS), HomeState())
 
     /** See [library]. */

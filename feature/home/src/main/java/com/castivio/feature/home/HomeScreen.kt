@@ -47,6 +47,7 @@ import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.LockOpen
 import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material.icons.rounded.Movie
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.PlaylistAdd
 import androidx.compose.material.icons.rounded.PowerSettingsNew
 import androidx.compose.material.icons.rounded.Radio
@@ -107,9 +108,12 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
@@ -234,6 +238,12 @@ fun HomeScreen(
      * one press away.
      */
     onResume: (Channel) -> Unit,
+    /**
+     * Carry on from a small card: the film, the show or the station watched last in its section. The shell opens the section with
+     * that item started inside it -- the film's page over the films' board, the show's over the shows', the station playing on the
+     * radio's -- so Back lands on the section and not on Home.
+     */
+    onResumeSection: (SectionResume) -> Unit,
     /** Opens the language chooser. */
     onLanguage: () -> Unit,
     /** Ask to leave. The confirmation is the application's, not this screen's. */
@@ -393,6 +403,11 @@ fun HomeScreen(
                         // The same press on the live section, and the same decision: what differs is where it goes -- on to the
                         // channel last watched, playing, and not to the board with nothing playing.
                         onResume = { channel -> if (model.press(CatalogSection.Live)) onResume(channel) },
+                        // The same press on the section of the card, and the same decision: only where it goes differs.
+                        onResumeSection = { offer ->
+                            val section = CatalogSection.entries.first { it.kind == offer.kind }
+                            if (model.press(section)) onResumeSection(offer)
+                        },
                         onRefresh = model::refresh,
                         onChoosePlaylist = model::choosePlaylist,
                         onAddPlaylist = onAddPlaylist,
@@ -985,6 +1000,7 @@ private fun SectionBoard(
     railFocus: FocusRequester,
     onSeeSection: (CatalogSection) -> Unit,
     onResume: (Channel) -> Unit,
+    onResumeSection: (SectionResume) -> Unit,
     onRefresh: () -> Unit,
     onChoosePlaylist: (String) -> Unit,
     onAddPlaylist: () -> Unit,
@@ -1048,7 +1064,9 @@ private fun SectionBoard(
                 SectionLine(
                     section = section,
                     frame = frame,
+                    resume = state.resumes[section.section.kind],
                     onClick = { onSeeSection(section.section) },
+                    onResume = onResumeSection,
                     modifier = Modifier.fillMaxWidth().weight(1f),
                 )
             }
@@ -1371,46 +1389,121 @@ private fun HeroSentence(section: Section, frame: CastivioMetrics) {
 private fun SectionLine(
     section: Section,
     frame: CastivioMetrics,
+    resume: SectionResume?,
     onClick: () -> Unit,
+    onResume: (SectionResume) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
     val arrived = section.load is CardLoad.Arrived
+    // The same three faces as the large card, decided the same way: a section never downloaded invites its download, one here with
+    // something watched offers to carry on, and a load of any kind -- queued, running, arrived, failed -- leaves the card as it was.
+    val face = tileFace(
+        unfetched = section.tally == Tally.Unfetched,
+        counted = section.tally == Tally.Counted,
+        load = section.load,
+        resumed = resume != null,
+    )
+    val offer = if (face == HeroFace.Continue) resume else null
     InteractiveGlassCard(
-        onClick = onClick,
+        onClick = if (offer != null) ({ onResume(offer) }) else onClick,
         modifier = modifier,
         shape = RoundedCornerShape(frame.radius / 2),
         // The panel's few seconds of success green, on a line as on the panel -- and otherwise the same dark glass.
         fill = if (arrived) arrivedFill() else CastivioTheme.colors.cardSurface,
         restBorder = if (arrived) colors.success.copy(alpha = ARRIVED_EDGE_ALPHA) else colors.cardSurfaceEdge,
     ) {
-        Row(
-            Modifier.fillMaxSize().padding(horizontal = frame.chipPad),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(frame.chipPad),
-        ) {
-            // The glyph in the section's hue, with no plate under it: the card is the one rectangle, and the colour of the line
-            // is its glyph and its figure.
-            Box(Modifier.size(Sizing.iconMd + frame.chipPad), contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = section.icon,
-                    contentDescription = null,
-                    tint = colors.discGlyph(section.hue),
-                    modifier = Modifier.size(Sizing.iconMd),
-                )
-            }
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(section.name),
-                    style = castivioChipStyle(frame.fsLabel),
-                    color = colors.onBackgroundStrong,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                LineLoad(section, frame)
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            Row(
+                Modifier.fillMaxSize().padding(horizontal = frame.chipPad),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(frame.chipPad),
+            ) {
+                // The glyph in the section's hue, with no plate under it: the card is the one rectangle, and the colour of the line
+                // is its glyph and its figure.
+                Box(Modifier.size(Sizing.iconMd + frame.chipPad), contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = section.icon,
+                        contentDescription = null,
+                        tint = colors.discGlyph(section.hue),
+                        modifier = Modifier.size(Sizing.iconMd),
+                    )
+                }
+                Column(Modifier.weight(1f)) {
+                    if (offer != null) {
+                        TileResumeBody(section, offer, frame)
+                    } else {
+                        Text(
+                            text = stringResource(section.name),
+                            style = castivioChipStyle(frame.fsLabel),
+                            color = colors.onBackgroundStrong,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        LineLoad(section, frame)
+                    }
+                }
+                // The line's empty end is what both new faces use.
+                if (face == HeroFace.NotLoaded) TileLoadPill(frame)
+                if (offer != null) TileThumb(offer, height = maxHeight)
             }
         }
     }
+}
+
+/**
+ * The three lines of a card with something to carry on from: its name with its count -- which is not lost for the sake of the
+ * offer -- then what was watched last, then how far in it the viewer was, in the aqua the live programme's bar is drawn in.
+ */
+@Composable
+private fun TileResumeBody(section: Section, offer: SectionResume, frame: CastivioMetrics) {
+    val colors = CastivioTheme.colors
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2)) {
+        Text(
+            text = stringResource(section.name),
+            style = castivioChipStyle(frame.fsLabel),
+            color = colors.onBackgroundStrong,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+        Text(
+            text = "·",
+            style = castivioBodyStyle(frame.fsBody),
+            color = colors.onBackgroundMuted,
+            maxLines = 1,
+        )
+        Text(
+            text = formatCount(section.count),
+            style = castivioTitleStyle(frame.fsBody * LINE_FIGURE_RATIO),
+            color = section.ink(),
+            maxLines = 1,
+        )
+    }
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2)) {
+        Icon(
+            imageVector = Icons.Rounded.PlayArrow,
+            contentDescription = null,
+            tint = colors.discGlyph(section.hue),
+            modifier = Modifier.size(Sizing.iconSm),
+        )
+        val quiet = colors.onBackgroundMuted
+        Text(
+            text = remember(offer, quiet) {
+                buildAnnotatedString {
+                    append(offer.title)
+                    offer.detail?.let { detail ->
+                        withStyle(SpanStyle(color = quiet)) { append(" · $detail") }
+                    }
+                }
+            },
+            style = castivioBodyStyle(frame.fsBody).copy(textDirection = TextDirection.Content),
+            color = colors.onBackgroundStrong,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+    offer.progress?.let { ProgrammeBar(fraction = it, modifier = Modifier.padding(top = frame.chipPad / 4)) }
 }
 
 /**
