@@ -352,6 +352,14 @@ private const val CARD_INDIGO_MIX = 0.6f
 private const val CARD_TOP_ALPHA = 0.26f
 private const val CARD_FOOT_ALPHA = 0.06f
 
+/**
+ * Home's cards, a calmer weight of the same indigo: about three tenths of [CARD_TOP_ALPHA] and [CARD_FOOT_ALPHA], so the card
+ * sits a few steps above the page it stands on instead of reading as a lit layer. Same hue, same edge. Drawn first in
+ * `design/mockups/home-cards-calm.png`.
+ */
+private const val HOME_CARD_TOP_ALPHA = 0.08f
+private const val HOME_CARD_FOOT_ALPHA = 0.02f
+
 /** The card's edge: seen on the page and not a colour -- 2.3:1 against it, on either ground. */
 private const val CARD_EDGE_ALPHA = 0.5f
 
@@ -836,6 +844,20 @@ class CastivioColors(
         get() = cardIndigo.let { indigo ->
             Brush.linearGradient(listOf(indigo.copy(alpha = CARD_TOP_ALPHA), indigo.copy(alpha = CARD_FOOT_ALPHA)))
         }
+
+    /** [homeCardSurface] at its lit corner and at its far one: [cardIndigo] at [HOME_CARD_TOP_ALPHA] and [HOME_CARD_FOOT_ALPHA]. */
+    val homeCardLit: Color
+        get() = cardIndigo.copy(alpha = HOME_CARD_TOP_ALPHA)
+    val homeCardFoot: Color
+        get() = cardIndigo.copy(alpha = HOME_CARD_FOOT_ALPHA)
+
+    /**
+     * What a card on Home is filled with: the indigo of [cardSurface], calmer. The lit hero, the three section cards, the five
+     * utilities and the device facts are drawn in it; the edge stays [cardSurfaceEdge], which is what keeps a card seen against
+     * a page it now sits close to. Every other screen keeps [cardSurface].
+     */
+    val homeCardSurface: Brush
+        get() = Brush.linearGradient(listOf(homeCardLit, homeCardFoot))
 
     /** The edge of [cardSurface]: the same indigo at [CARD_EDGE_ALPHA], one colour all the way round. */
     val cardSurfaceEdge: Color

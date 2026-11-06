@@ -1222,7 +1222,7 @@ private fun HeroCard(
         //
         // Otherwise it is the same dark glass every card of this screen is, with no light round it: the colour is in the
         // glyph, the lines and the count (see [glassFill]).
-        fill = if (arrived) arrivedFill() else CastivioTheme.colors.cardSurface,
+        fill = if (arrived) arrivedFill() else CastivioTheme.colors.homeCardSurface,
         restBorder = if (arrived) colors.success.copy(alpha = ARRIVED_EDGE_ALPHA) else colors.cardSurfaceEdge,
     ) {
         when (face) {
@@ -1410,7 +1410,7 @@ private fun SectionLine(
         modifier = modifier,
         shape = RoundedCornerShape(frame.radius / 2),
         // The panel's few seconds of success green, on a line as on the panel -- and otherwise the same dark glass.
-        fill = if (arrived) arrivedFill() else CastivioTheme.colors.cardSurface,
+        fill = if (arrived) arrivedFill() else CastivioTheme.colors.homeCardSurface,
         restBorder = if (arrived) colors.success.copy(alpha = ARRIVED_EDGE_ALPHA) else colors.cardSurfaceEdge,
     ) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -2519,7 +2519,7 @@ private fun UtilityCard(
         onClick = onClick,
         modifier = modifier,
         shape = RoundedCornerShape(frame.radius / 2),
-        fill = CastivioTheme.colors.cardSurface,
+        fill = CastivioTheme.colors.homeCardSurface,
         restBorder = CastivioTheme.colors.cardSurfaceEdge,
     ) {
         Row(
@@ -2709,7 +2709,7 @@ private fun Fact(
         modifier
             .height(frame.chip)
             .clip(shape)
-            .background(CastivioTheme.colors.cardSurface)
+            .background(CastivioTheme.colors.homeCardSurface)
             .border(BorderStroke(1.dp, CastivioTheme.colors.cardSurfaceEdge), shape)
             .padding(horizontal = frame.chipPad),
         verticalAlignment = Alignment.CenterVertically,
@@ -2841,8 +2841,8 @@ private const val ARRIVED_EDGE_ALPHA = 0.55f
 /**
  * What the surfaces of Home are drawn with -- the drawing is `design/mockups/home-dark-ar.html`.
  *
- * Every card is the design system's `cardSurface` and `cardSurfaceEdge` -- the indigo, in `:core:design`, which every other card in the
- * application is drawn in as well. The two terms in the header are the exception, tinted by their own hue from [TERM_TINT_TOP] to
+ * Every card is the design system's `homeCardSurface` and `cardSurfaceEdge` -- the indigo, in `:core:design`, at the calmer weight
+ * Home has (the edge is the one every other card in the application has). The two terms in the header are the exception, tinted by their own hue from [TERM_TINT_TOP] to
  * [TERM_TINT_FOOT] with an edge of [TERM_EDGE_ALPHA]. A line's figure is [LINE_FIGURE_RATIO] times the size of its words. No card has a
  * glow or a shadow of its own -- the owner did not want one.
  *
@@ -2851,8 +2851,8 @@ private const val ARRIVED_EDGE_ALPHA = 0.55f
  * of [HERO_ECHOES] at a ratio of [HERO_FRAME_RATIO] and a corner of [HERO_ECHO_RADIUS], and the ribbons of [HERO_RIBBONS] -- each
  * the fractions of the panel its two curves pass through, and its ink -- brightest at [HERO_RIBBON_PEAK] of their length.
  */
-private const val TERM_TINT_TOP = 0.22f
-private const val TERM_TINT_FOOT = 0.08f
+private const val TERM_TINT_TOP = 0.14f
+private const val TERM_TINT_FOOT = 0.05f
 private const val TERM_EDGE_ALPHA = 0.75f
 private const val LINE_FIGURE_RATIO = 1.5f
 internal const val HERO_GLYPH_CENTRE = 0.38f

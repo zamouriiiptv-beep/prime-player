@@ -424,6 +424,34 @@ class ThemeColorsTest {
     }
 
     /**
+     * Home's card is the same indigo as every other card, at a lighter weight -- not a second hue -- and it stays lit at its head
+     * and nearly the page at its foot. The edge is the shared one, which is what keeps a card that close to its page seen.
+     */
+    @Test
+    fun `Home's card is the card's indigo at a calmer weight on both grounds`() {
+        for ((name, ground) in listOf("dark" to dark, "slate" to slate)) {
+            val indigo = ground.cardIndigo
+            for (fill in listOf(ground.homeCardLit, ground.homeCardFoot)) {
+                assertEquals("$name's Home card keeps the indigo's red", indigo.red, fill.red, 0.001f)
+                assertEquals("$name's Home card keeps the indigo's green", indigo.green, fill.green, 0.001f)
+                assertEquals("$name's Home card keeps the indigo's blue", indigo.blue, fill.blue, 0.001f)
+            }
+            assertEquals("$name's Home card at its lit corner", 0.08f, ground.homeCardLit.alpha, 0.001f)
+            assertEquals("$name's Home card at its foot", 0.02f, ground.homeCardFoot.alpha, 0.001f)
+            assertTrue("$name's Home card is lit at its head", ground.homeCardLit.alpha > ground.homeCardFoot.alpha)
+        }
+        assertEquals(dark.homeCardLit, slate.homeCardLit)
+        assertEquals(dark.homeCardFoot, slate.homeCardFoot)
+    }
+
+    /** Calmer means a thinner film of the same indigo, not a different recipe: the card's fill is never heavier than the shared card's. */
+    @Test
+    fun `Home's card is never heavier than the shared card`() {
+        assertTrue(dark.homeCardLit.alpha < 0.26f)
+        assertTrue(dark.homeCardFoot.alpha < 0.06f)
+    }
+
+    /**
      * What the owner photographed was a card a hair's breadth from its page (1.0 to 1.45), so the property that matters is
      * that the card is an object on **either** ground: lit at its head, the page again at its foot, and an edge that can be
      * seen. Measured on the flat ground, which is the weakest case -- the backdrop's glows only add to it.
