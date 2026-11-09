@@ -239,7 +239,7 @@ class Media3Engine(
     private val networkEvents = EventListener.Factory { call ->
         val marks = transferMarks
         if (marks == null || marks.generation != generation || transferMarks !== marks ||
-            !marks.isFor(call.request().url.toString())
+            marks.url != call.request().url.toString()
         ) {
             EventListener.NONE
         } else {
