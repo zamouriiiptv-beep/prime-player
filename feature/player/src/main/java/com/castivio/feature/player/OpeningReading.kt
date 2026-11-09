@@ -131,8 +131,8 @@ internal data class OpeningReading(
         // Media3 exposes the first payload-byte callback; LibVLC only exposes its first non-empty input buffer.
         val network = timing.marks
         val firstResponse = when {
-            network.firstBytesMs == null -> if (ended) DASH else "…"
-            libvlc -> "≈${network.firstBytesMs} ms (first buffer)"
+            network.firstBytesMs == null -> if (!running) DASH else "…"
+            timing.engine == EngineId.BACKUP -> "≈${network.firstBytesMs} ms (first buffer)"
             else -> "${network.firstBytesMs} ms"
         }
         lines += HudLine(
