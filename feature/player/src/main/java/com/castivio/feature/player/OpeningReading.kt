@@ -126,6 +126,20 @@ internal data class OpeningReading(
         // The engine's events, as instants from the press. They overlap and are not to be added.
         lines += HudLine("@ " + events().joinToString(" · "), HudTone.MUTED)
 
+        // The HTTP stack does not expose individual DNS, TCP, TLS or request-to-first-byte boundaries.
+        // Never infer them from "server answered": that mark is taken after the data source opens.
+        // Media3 exposes the first payload-byte callback; LibVLC only exposes its first non-empty input buffer.
+        val network = timing.marks
+        val firstResponse = when {
+            network.firstBytesMs == null -> if (ended) DASH else "…"
+            libvlc -> "≈${network.firstBytesMs} ms (first buffer)"
+            else -> "${network.firstBytesMs} ms"
+        }
+        lines += HudLine(
+            "network (ms): DNS n/a · TCP n/a · TLS n/a · TTFB n/a · first response bytes $firstResponse",
+            HudTone.MUTED,
+        )
+
         // And the tries at the address behind the first two of them, which are the last try's: a retry after a silent
         // wait and a slow answer are the same figure above and two different lines here. Development builds only.
         lines += attemptLines("tries", timing.marks.attempts.shifted(timing.prepareMs), ended = !running)
