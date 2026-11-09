@@ -175,7 +175,11 @@ class Media3Engine(
     private var generation = 0
 
     /** The device's half, which the player reports on this thread with its other callbacks. */
+    private var tracksCallbackAt: Long = 0
+    private var tracksProcessingMs: Long? = null
     private var tracksKnownAt: Long = 0
+    private var decoderReuseResult: Int? = null
+    private var decoderReuseDiscardReasons: Int? = null
     private var readyAt: Long = 0
     private var decoderReadyAt: Long = 0
     private var decoderInitMs: Long? = null
@@ -361,7 +365,11 @@ class Media3Engine(
             url = media.url,
             attempts = if (DevDiagnostics.enabled) OpenAttemptLog(openedAtMs, SystemClock::elapsedRealtime) else null,
         )
+        tracksCallbackAt = 0
+        tracksProcessingMs = null
         tracksKnownAt = 0
+        decoderReuseResult = null
+        decoderReuseDiscardReasons = null
         readyAt = 0
         decoderReadyAt = 0
         decoderInitMs = null
@@ -550,7 +558,11 @@ class Media3Engine(
         return OpeningMarks(
             serverAnsweredMs = transfer?.let { since(it.answeredAt.get()) },
             firstBytesMs = transfer?.let { since(it.firstBytesAt.get()) },
+            tracksCallbackMs = since(tracksCallbackAt),
+            tracksProcessingMs = tracksProcessingMs,
             tracksKnownMs = since(tracksKnownAt),
+            decoderReuseResult = decoderReuseResult,
+            decoderReuseDiscardReasons = decoderReuseDiscardReasons,
             decoderReadyMs = since(decoderReadyAt),
             decoderInitMs = decoderInitMs,
             decoderKept = decoderKept,
@@ -673,6 +685,8 @@ class Media3Engine(
          */
         override fun onTracksChanged(tracks: Tracks) {
             if (!current) return
+            val callbackStartedAt = SystemClock.elapsedRealtime()
+            if (tracksCallbackAt == 0L) tracksCallbackAt = callbackStartedAt
             val audio = mutableListOf<Track>()
             val subtitle = mutableListOf<Track>()
             val video = mutableListOf<Track>()
@@ -710,7 +724,9 @@ class Media3Engine(
                 }
             }
             _tracks.value = TrackSet(audio = audio, subtitle = subtitle, video = video)
-            if (tracksKnownAt == 0L && tracks.groups.isNotEmpty()) tracksKnownAt = SystemClock.elapsedRealtime()
+            val callbackFinishedAt = SystemClock.elapsedRealtime()
+            if (tracksProcessingMs == null) tracksProcessingMs = (callbackFinishedAt - callbackStartedAt).coerceAtLeast(0)
+            if (tracksKnownAt == 0L && tracks.groups.isNotEmpty()) tracksKnownAt = callbackFinishedAt
 
             // Now we know whether there is a picture to wait for. The two callbacks can
             // arrive in either order, so the audio-only case is completed from whichever
@@ -919,7 +935,10 @@ class Media3Engine(
         ) {
             // Null when there was no decoder to keep: one is being built, and says so above.
             val verdict = decoderReuseEvaluation ?: return
-            if (!current || decoderReadyAt != 0L || verdict.result == DecoderReuseEvaluation.REUSE_RESULT_NO) return
+            if (!current) return
+            decoderReuseResult = verdict.result
+            decoderReuseDiscardReasons = verdict.discardReasons
+            if (decoderReadyAt != 0L || verdict.result == DecoderReuseEvaluation.REUSE_RESULT_NO) return
             decoderReadyAt = eventTime.realtimeMs
             decoderKept = true
         }
