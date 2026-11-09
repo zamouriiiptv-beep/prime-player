@@ -126,6 +126,23 @@ internal data class OpeningReading(
         // The engine's events, as instants from the press. They overlap and are not to be added.
         lines += HudLine("@ " + events().joinToString(" · "), HudTone.MUTED)
 
+        // Separate the moment Media3 entered the callback from the application work performed inside it.
+        val marks = timing.marks
+        if (timing.engine == EngineId.PRIMARY) {
+            val callback = marks.tracksCallbackMs?.let { "${it} ms" } ?: if (running) "…" else DASH
+            val processing = marks.tracksProcessingMs?.let { "${it} ms" } ?: if (running) "…" else DASH
+            lines += HudLine("tracks (ms): callback $callback · app processing $processing", HudTone.MUTED)
+            val reuse = when (marks.decoderReuseResult) {
+                0 -> "NO"
+                1 -> "YES_WITH_FLUSH"
+                2 -> "YES_WITH_RECONFIGURATION"
+                null -> if (running) "…" else DASH
+                else -> "result ${marks.decoderReuseResult}"
+            }
+            val discard = marks.decoderReuseDiscardReasons?.let { " · discard reasons 0x${it.toString(16)}" } ?: ""
+            lines += HudLine("decoder reuse: $reuse$discard", HudTone.MUTED)
+        }
+
         // The HTTP stack does not expose individual DNS, TCP, TLS or request-to-first-byte boundaries.
         // Never infer them from "server answered": that mark is taken after the data source opens.
         // Media3 exposes the first payload-byte callback; LibVLC only exposes its first non-empty input buffer.
