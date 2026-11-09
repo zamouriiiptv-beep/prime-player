@@ -236,6 +236,66 @@ class Media3Engine(
      * single most common cause of a stream that "does not exist" and plays perfectly in every
      * other application.
      */
+    private val networkEvents = EventListener.Factory { call ->
+        val marks = transferMarks
+        if (marks == null || marks.generation != generation || transferMarks !== marks ||
+            !marks.isFor(call.request().url.toString())
+        ) {
+            EventListener.NONE
+        } else {
+            object : EventListener() {
+                private var dnsStartedAt = 0L
+                private var connectStartedAt = 0L
+                private var tlsStartedAt = 0L
+                private var requestHeadersEndedAt = 0L
+
+                override fun dnsStart(call: Call, domainName: String) {
+                    dnsStartedAt = SystemClock.elapsedRealtime()
+                }
+
+                override fun dnsEnd(call: Call, domainName: String, inetAddressList: List<java.net.InetAddress>) {
+                    addElapsed(marks.dnsMs, dnsStartedAt)
+                    dnsStartedAt = 0L
+                }
+
+                override fun connectStart(call: Call, inetSocketAddress: InetSocketAddress, proxy: Proxy) {
+                    connectStartedAt = SystemClock.elapsedRealtime()
+                }
+
+                override fun connectEnd(
+                    call: Call,
+                    inetSocketAddress: InetSocketAddress,
+                    proxy: Proxy,
+                    protocol: Protocol?,
+                ) {
+                    addElapsed(marks.tcpMs, connectStartedAt)
+                    connectStartedAt = 0L
+                }
+
+                override fun secureConnectStart(call: Call) {
+                    tlsStartedAt = SystemClock.elapsedRealtime()
+                }
+
+                override fun secureConnectEnd(call: Call, handshake: Handshake?) {
+                    addElapsed(marks.tlsMs, tlsStartedAt)
+                    tlsStartedAt = 0L
+                }
+
+                override fun requestHeadersEnd(call: Call, request: Request) {
+                    requestHeadersEndedAt = SystemClock.elapsedRealtime()
+                }
+
+                override fun responseHeadersStart(call: Call) {
+                    if (requestHeadersEndedAt != 0L) {
+                        val elapsed = (SystemClock.elapsedRealtime() - requestHeadersEndedAt).coerceAtLeast(0L)
+                        marks.ttfbMs.compareAndSet(-1L, elapsed)
+                        requestHeadersEndedAt = 0L
+                    }
+                }
+            }
+        }
+    }
+
     private val httpClient = OkHttpClient.Builder()
         .connectTimeout(CONNECT_TIMEOUT_MS.toLong(), TimeUnit.MILLISECONDS)
         .readTimeout(READ_TIMEOUT_MS.toLong(), TimeUnit.MILLISECONDS)
@@ -879,66 +939,6 @@ class Media3Engine(
      * therefore update that opening's object, never whichever channel happens to be current later.
      * Only the exact original media URL is measured; HLS manifests and segments are excluded.
      */
-    private val networkEvents = EventListener.Factory { call ->
-        val marks = transferMarks
-        if (marks == null || marks.generation != generation || transferMarks !== marks ||
-            !marks.isFor(call.request().url.toString())
-        ) {
-            EventListener.NONE
-        } else {
-            object : EventListener() {
-                private var dnsStartedAt = 0L
-                private var connectStartedAt = 0L
-                private var tlsStartedAt = 0L
-                private var requestHeadersEndedAt = 0L
-
-                override fun dnsStart(call: Call, domainName: String) {
-                    dnsStartedAt = SystemClock.elapsedRealtime()
-                }
-
-                override fun dnsEnd(call: Call, domainName: String, inetAddressList: List<java.net.InetAddress>) {
-                    addElapsed(marks.dnsMs, dnsStartedAt)
-                    dnsStartedAt = 0L
-                }
-
-                override fun connectStart(call: Call, inetSocketAddress: InetSocketAddress, proxy: Proxy) {
-                    connectStartedAt = SystemClock.elapsedRealtime()
-                }
-
-                override fun connectEnd(
-                    call: Call,
-                    inetSocketAddress: InetSocketAddress,
-                    proxy: Proxy,
-                    protocol: Protocol?,
-                ) {
-                    addElapsed(marks.tcpMs, connectStartedAt)
-                    connectStartedAt = 0L
-                }
-
-                override fun secureConnectStart(call: Call) {
-                    tlsStartedAt = SystemClock.elapsedRealtime()
-                }
-
-                override fun secureConnectEnd(call: Call, handshake: Handshake?) {
-                    addElapsed(marks.tlsMs, tlsStartedAt)
-                    tlsStartedAt = 0L
-                }
-
-                override fun requestHeadersEnd(call: Call, request: Request) {
-                    requestHeadersEndedAt = SystemClock.elapsedRealtime()
-                }
-
-                override fun responseHeadersStart(call: Call) {
-                    if (requestHeadersEndedAt != 0L) {
-                        val elapsed = (SystemClock.elapsedRealtime() - requestHeadersEndedAt).coerceAtLeast(0L)
-                        marks.ttfbMs.compareAndSet(-1L, elapsed)
-                        requestHeadersEndedAt = 0L
-                    }
-                }
-            }
-        }
-    }
-
     private fun addElapsed(total: AtomicLong, startedAt: Long) {
         if (startedAt != 0L) {
             total.addAndGet((SystemClock.elapsedRealtime() - startedAt).coerceAtLeast(0L))
