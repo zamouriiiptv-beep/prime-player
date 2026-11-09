@@ -127,19 +127,19 @@ internal data class OpeningReading(
         lines += HudLine("@ " + events().joinToString(" · "), HudTone.MUTED)
 
         // Separate the moment Media3 entered the callback from the application work performed inside it.
-        val marks = timing.marks
+        val diagnosticMarks = timing.marks
         if (timing.engine == EngineId.PRIMARY) {
-            val callback = marks.tracksCallbackMs?.let { "${it} ms" } ?: if (running) "…" else DASH
-            val processing = marks.tracksProcessingMs?.let { "${it} ms" } ?: if (running) "…" else DASH
+            val callback = diagnosticMarks.tracksCallbackMs?.let { "${it} ms" } ?: if (running) "…" else DASH
+            val processing = diagnosticMarks.tracksProcessingMs?.let { "${it} ms" } ?: if (running) "…" else DASH
             lines += HudLine("tracks (ms): callback $callback · app processing $processing", HudTone.MUTED)
-            val reuse = when (marks.decoderReuseResult) {
+            val reuse = when (diagnosticMarks.decoderReuseResult) {
                 0 -> "NO"
                 1 -> "YES_WITH_FLUSH"
                 2 -> "YES_WITH_RECONFIGURATION"
                 null -> if (running) "…" else DASH
-                else -> "result ${marks.decoderReuseResult}"
+                else -> "result ${diagnosticMarks.decoderReuseResult}"
             }
-            val discard = marks.decoderReuseDiscardReasons?.let { " · discard reasons 0x${it.toString(16)}" } ?: ""
+            val discard = diagnosticMarks.decoderReuseDiscardReasons?.let { " · discard reasons 0x${it.toString(16)}" } ?: ""
             lines += HudLine("decoder reuse: $reuse$discard", HudTone.MUTED)
         }
 
