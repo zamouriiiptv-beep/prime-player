@@ -13,8 +13,16 @@ package com.castivio.playback.api
 data class OpeningMarks(
     /** The server answered: the connection is open, any redirect followed, the response begun. */
     val serverAnsweredMs: Long? = null,
-    /** The first bytes of the stream arrived. */
+    /** The first payload bytes delivered by Media3's transfer listener. */
     val firstBytesMs: Long? = null,
+    /** DNS lookup duration(s) observed on the actual HTTP call; null when no lookup occurred. */
+    val dnsMs: Long? = null,
+    /** TCP connection establishment duration(s) observed on the actual HTTP call. */
+    val tcpMs: Long? = null,
+    /** TLS handshake duration(s) observed on the actual HTTPS call. */
+    val tlsMs: Long? = null,
+    /** Request-headers-end to first response-headers-start on the actual HTTP call. */
+    val ttfbMs: Long? = null,
     /** When Media3 entered onTracksChanged, before application-side track enumeration. */
     val tracksCallbackMs: Long? = null,
     /** Time spent enumerating and mapping the callback's track groups, in milliseconds. */

@@ -143,17 +143,24 @@ internal data class OpeningReading(
             lines += HudLine("decoder reuse: $reuse$discard", HudTone.MUTED)
         }
 
-        // The HTTP stack does not expose individual DNS, TCP, TLS or request-to-first-byte boundaries.
-        // Never infer them from "server answered": that mark is taken after the data source opens.
-        // Media3 exposes the first payload-byte callback; LibVLC only exposes its first non-empty input buffer.
+        // Network phases come from Media3's actual HTTP call. TTFB is measured from request
+        // headers sent to response headers beginning; it is distinct from the later server mark.
+        // LibVLC does not expose these transport phases through this engine contract.
         val network = timing.marks
+        fun networkMs(value: Long?): String = value?.let { "$it" } ?: if (running) "…" else DASH
         val firstResponse = when {
             network.firstBytesMs == null -> if (!running) DASH else "…"
-            timing.engine == EngineId.BACKUP -> "≈${network.firstBytesMs} ms (first buffer)"
-            else -> "${network.firstBytesMs} ms"
+            timing.engine == EngineId.BACKUP -> "≈${network.firstBytesMs} (first buffer)"
+            else -> "${network.firstBytesMs}"
+        }
+        val transport = if (timing.engine == EngineId.PRIMARY) {
+            "DNS ${networkMs(network.dnsMs)} · TCP ${networkMs(network.tcpMs)} · TLS ${networkMs(network.tlsMs)} · " +
+                "TTFB ${networkMs(network.ttfbMs)}"
+        } else {
+            "DNS n/a · TCP n/a · TLS n/a · TTFB n/a"
         }
         lines += HudLine(
-            "network (ms): DNS n/a · TCP n/a · TLS n/a · TTFB n/a · first response bytes $firstResponse",
+            "network (ms): $transport · first response bytes $firstResponse",
             HudTone.MUTED,
         )
 

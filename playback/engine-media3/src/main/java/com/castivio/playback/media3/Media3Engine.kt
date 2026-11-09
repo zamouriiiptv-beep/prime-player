@@ -20,7 +20,6 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
-import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.TransferListener
 import androidx.media3.exoplayer.DecoderReuseEvaluation
 import androidx.media3.exoplayer.DefaultLoadControl
@@ -61,7 +60,16 @@ import com.castivio.playback.api.TrackSet
 import com.castivio.playback.api.TrackType
 import com.castivio.playback.api.VideoOutput
 import java.io.IOException
+import java.net.InetSocketAddress
+import java.net.Proxy
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
+import okhttp3.Call
+import okhttp3.EventListener
+import okhttp3.Handshake
+import okhttp3.OkHttpClient
+import okhttp3.Protocol
+import okhttp3.Request
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -228,10 +236,17 @@ class Media3Engine(
      * single most common cause of a stream that "does not exist" and plays perfectly in every
      * other application.
      */
-    private val http = DefaultHttpDataSource.Factory()
-        .setAllowCrossProtocolRedirects(true)
-        .setConnectTimeoutMs(CONNECT_TIMEOUT_MS)
-        .setReadTimeoutMs(READ_TIMEOUT_MS)
+    private val httpClient = OkHttpClient.Builder()
+        .connectTimeout(CONNECT_TIMEOUT_MS.toLong(), TimeUnit.MILLISECONDS)
+        .readTimeout(READ_TIMEOUT_MS.toLong(), TimeUnit.MILLISECONDS)
+        // ExoPlayer owns load retries; do not add invisible transport retries underneath it.
+        .retryOnConnectionFailure(false)
+        .followRedirects(true)
+        .followSslRedirects(true)
+        .eventListenerFactory(networkEvents)
+        .build()
+
+    private val http = androidx.media3.datasource.okhttp.OkHttpDataSource.Factory(httpClient)
 
     /**
      * Built eagerly with the engine, because the first thing that happens to an engine is
@@ -363,6 +378,7 @@ class Media3Engine(
         // does what it did before.
         transferMarks = TransferMarks(
             url = media.url,
+            generation = mine,
             attempts = if (DevDiagnostics.enabled) OpenAttemptLog(openedAtMs, SystemClock::elapsedRealtime) else null,
         )
         tracksCallbackAt = 0
@@ -558,6 +574,10 @@ class Media3Engine(
         return OpeningMarks(
             serverAnsweredMs = transfer?.let { since(it.answeredAt.get()) },
             firstBytesMs = transfer?.let { since(it.firstBytesAt.get()) },
+            dnsMs = transfer?.let { it.dnsMs.get().takeIf { value -> value >= 0L } },
+            tcpMs = transfer?.let { it.tcpMs.get().takeIf { value -> value >= 0L } },
+            tlsMs = transfer?.let { it.tlsMs.get().takeIf { value -> value >= 0L } },
+            ttfbMs = transfer?.let { it.ttfbMs.get().takeIf { value -> value >= 0L } },
             tracksCallbackMs = since(tracksCallbackAt),
             tracksProcessingMs = tracksProcessingMs,
             tracksKnownMs = since(tracksKnownAt),
@@ -854,6 +874,78 @@ class Media3Engine(
     }
 
     /**
+     * Timing events from the same OkHttp calls Media3 uses for its HTTP data source.
+     * Each listener captures the current opening's marks when its call is created. Late callbacks
+     * therefore update that opening's object, never whichever channel happens to be current later.
+     * Only the exact original media URL is measured; HLS manifests and segments are excluded.
+     */
+    private val networkEvents = EventListener.Factory { call ->
+        val marks = transferMarks
+        if (marks == null || marks.generation != generation || transferMarks !== marks ||
+            !marks.isFor(call.request().url.toString())
+        ) {
+            EventListener.NONE
+        } else {
+            object : EventListener() {
+                private var dnsStartedAt = 0L
+                private var connectStartedAt = 0L
+                private var tlsStartedAt = 0L
+                private var requestHeadersEndedAt = 0L
+
+                override fun dnsStart(call: Call, domainName: String) {
+                    dnsStartedAt = SystemClock.elapsedRealtime()
+                }
+
+                override fun dnsEnd(call: Call, domainName: String, inetAddressList: List<java.net.InetAddress>) {
+                    addElapsed(marks.dnsMs, dnsStartedAt)
+                    dnsStartedAt = 0L
+                }
+
+                override fun connectStart(call: Call, inetSocketAddress: InetSocketAddress, proxy: Proxy) {
+                    connectStartedAt = SystemClock.elapsedRealtime()
+                }
+
+                override fun connectEnd(
+                    call: Call,
+                    inetSocketAddress: InetSocketAddress,
+                    proxy: Proxy,
+                    protocol: Protocol?,
+                ) {
+                    addElapsed(marks.tcpMs, connectStartedAt)
+                    connectStartedAt = 0L
+                }
+
+                override fun secureConnectStart(call: Call) {
+                    tlsStartedAt = SystemClock.elapsedRealtime()
+                }
+
+                override fun secureConnectEnd(call: Call, handshake: Handshake?) {
+                    addElapsed(marks.tlsMs, tlsStartedAt)
+                    tlsStartedAt = 0L
+                }
+
+                override fun requestHeadersEnd(call: Call, request: Request) {
+                    requestHeadersEndedAt = SystemClock.elapsedRealtime()
+                }
+
+                override fun responseHeadersStart(call: Call) {
+                    if (requestHeadersEndedAt != 0L) {
+                        val elapsed = (SystemClock.elapsedRealtime() - requestHeadersEndedAt).coerceAtLeast(0L)
+                        marks.ttfbMs.compareAndSet(-1L, elapsed)
+                        requestHeadersEndedAt = 0L
+                    }
+                }
+            }
+        }
+    }
+
+    private fun addElapsed(total: AtomicLong, startedAt: Long) {
+        if (startedAt != 0L) {
+            total.addAndGet((SystemClock.elapsedRealtime() - startedAt).coerceAtLeast(0L))
+        }
+    }
+
+    /**
      * The HTTP source's account of each transfer, for the two marks that are the server's.
      *
      * It reports every transfer it makes -- an HLS playlist's segments as well as the address
@@ -985,9 +1077,17 @@ class Media3Engine(
      *
      * [attempts] is the record of the tries at the address, kept by a measuring build and null in any other.
      */
-    private class TransferMarks(val url: String, val attempts: OpenAttemptLog? = null) {
+    private class TransferMarks(
+        val url: String,
+        val generation: Int,
+        val attempts: OpenAttemptLog? = null,
+    ) {
         val answeredAt = AtomicLong(0)
         val firstBytesAt = AtomicLong(0)
+        val dnsMs = AtomicLong(-1)
+        val tcpMs = AtomicLong(-1)
+        val tlsMs = AtomicLong(-1)
+        val ttfbMs = AtomicLong(-1)
 
         /** Bytes received off the network since this open, and loads that failed without being cancelled: the quality reading's. */
         val received = AtomicLong(0)
