@@ -248,6 +248,7 @@ class Media3Engine(
                 private var connectStartedAt = 0L
                 private var tlsStartedAt = 0L
                 private var requestHeadersEndedAt = 0L
+                private var pendingTtfbMs = -1L
 
                 override fun dnsStart(call: Call, domainName: String) {
                     dnsStartedAt = SystemClock.elapsedRealtime()
@@ -286,11 +287,20 @@ class Media3Engine(
                 }
 
                 override fun responseHeadersStart(call: Call) {
-                    if (requestHeadersEndedAt != 0L) {
-                        val elapsed = (SystemClock.elapsedRealtime() - requestHeadersEndedAt).coerceAtLeast(0L)
-                        marks.ttfbMs.compareAndSet(-1L, elapsed)
-                        requestHeadersEndedAt = 0L
+                    pendingTtfbMs = if (requestHeadersEndedAt != 0L) {
+                        (SystemClock.elapsedRealtime() - requestHeadersEndedAt).coerceAtLeast(0L)
+                    } else {
+                        -1L
                     }
+                    requestHeadersEndedAt = 0L
+                }
+
+                override fun responseHeadersEnd(call: Call, response: okhttp3.Response) {
+                    // OkHttp emits these callbacks for every response in a redirect chain.
+                    // Keep the latest response's TTFB so the final value replaces any
+                    // intermediate 3xx response measurement.
+                    if (pendingTtfbMs >= 0L) marks.ttfbMs.set(pendingTtfbMs)
+                    pendingTtfbMs = -1L
                 }
             }
         }
