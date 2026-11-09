@@ -15,8 +15,16 @@ data class OpeningMarks(
     val serverAnsweredMs: Long? = null,
     /** The first bytes of the stream arrived. */
     val firstBytesMs: Long? = null,
+    /** When Media3 entered onTracksChanged, before application-side track enumeration. */
+    val tracksCallbackMs: Long? = null,
+    /** Time spent enumerating and mapping the callback's track groups, in milliseconds. */
+    val tracksProcessingMs: Long? = null,
     /** The stream had been read far enough to say what it carries: its tracks were known. */
     val tracksKnownMs: Long? = null,
+    /** Media3 DecoderReuseEvaluation result: 0=no, 1=yes with flush, 2=yes with reconfiguration. */
+    val decoderReuseResult: Int? = null,
+    /** Media3 DecoderReuseEvaluation discard-reason bitmask, when a reuse evaluation was reported. */
+    val decoderReuseDiscardReasons: Int? = null,
     /** The video decoder was ready for the picture. */
     val decoderReadyMs: Long? = null,
     /** How long building that decoder took, when one was built and the engine says. */
