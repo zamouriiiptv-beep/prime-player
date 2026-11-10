@@ -18,9 +18,11 @@ import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
 import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DataSink
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.TeeDataSource
 import androidx.media3.datasource.TransferListener
 import androidx.media3.exoplayer.DecoderReuseEvaluation
 import androidx.media3.exoplayer.DefaultLoadControl
@@ -40,6 +42,8 @@ import androidx.media3.extractor.ts.DefaultTsPayloadReaderFactory
 import com.castivio.core.common.FrameSize
 import com.castivio.core.platform.DevDiagnostics
 import com.castivio.playback.api.AspectMode
+import com.castivio.playback.api.DecoderHealth
+import com.castivio.playback.api.DecoderHealthLog
 import com.castivio.playback.api.DecoderReport
 import com.castivio.playback.api.FormatReport
 import com.castivio.playback.api.EngineId
@@ -58,9 +62,11 @@ import com.castivio.playback.api.PlaybackState
 import com.castivio.playback.api.PlaybackTuning
 import com.castivio.playback.api.QualityReading
 import com.castivio.playback.api.SourceRedaction
+import com.castivio.playback.api.StreamIntegrity
 import com.castivio.playback.api.Track
 import com.castivio.playback.api.TrackSet
 import com.castivio.playback.api.TrackType
+import com.castivio.playback.api.TsScanner
 import com.castivio.playback.api.VideoOutput
 import java.io.IOException
 import java.net.InetSocketAddress
@@ -372,6 +378,21 @@ class Media3Engine(
     private val http = androidx.media3.datasource.okhttp.OkHttpDataSource.Factory(httpClient)
 
     /**
+     * The HTTP source the player reads the stream through. In a measuring build, each source it makes is read in passing by
+     * the transport-stream scanner of the open that asked for it -- see [TsProbeSink] -- and in any other it is the plain
+     * source, which is all it ever was.
+     *
+     * Made for each load, and so after the open has set [transferMarks]: a load that begins before there are marks, or for a
+     * source other than the one open, reads nothing. Declared here, before the player, because the player is built from it.
+     */
+    private val probedHttp = DataSource.Factory {
+        val source = http.createDataSource()
+        val marks = transferMarks
+        val scanner = marks?.scanner
+        if (marks == null || scanner == null) source else TeeDataSource(source, TsProbeSink(marks, scanner))
+    }
+
+    /**
      * Built eagerly with the engine, because the first thing that happens to an engine is
      * that something opens a URL on it. Deferring construction would move the renderer and
      * decoder setup — tens of milliseconds of it — from where nobody is waiting to the
@@ -434,7 +455,7 @@ class Media3Engine(
         }
 
         val sources = DefaultMediaSourceFactory(
-            DefaultDataSource.Factory(appContext, http),
+            DefaultDataSource.Factory(appContext, probedHttp),
             extractors,
         )
 
@@ -504,7 +525,11 @@ class Media3Engine(
             generation = mine,
             attempts = if (DevDiagnostics.enabled) OpenAttemptLog(openedAtMs, SystemClock::elapsedRealtime) else null,
             hops = if (DevDiagnostics.enabled) HopLog(openedAtMs, SystemClock::elapsedRealtime, media.url) else null,
+            scanner = if (DevDiagnostics.enabled) TsScanner() else null,
+            health = if (DevDiagnostics.enabled) DecoderHealthLog() else null,
+            epochMs = openedAtMs,
         )
+        droppedFrames = 0
         tracksCallbackAt = 0
         tracksProcessingMs = null
         tracksKnownAt = 0
@@ -714,6 +739,26 @@ class Media3Engine(
             readyMs = since(readyAt),
             attempts = transfer?.attempts?.snapshot() ?: OpenAttempts.NONE,
             hops = transfer?.hops?.snapshot() ?: HttpHops.NONE,
+            integrity = transfer?.scanner?.snapshot(SystemClock.elapsedRealtime() - openedAtMs) ?: StreamIntegrity.NONE,
+            decoder = decoderHealth(),
+        )
+    }
+
+    /**
+     * What the video decoder did with the frames since the source was opened: its own counters, which the player keeps, and the
+     * events the analytics listener counted. Read where the player is read -- on its own thread -- and only in a measuring build,
+     * which is the only one that has a log.
+     */
+    private fun decoderHealth(): DecoderHealth {
+        val log = transferMarks?.health ?: return DecoderHealth.NONE
+        val counters = player.videoDecoderCounters ?: return log.snapshotEvents()
+        counters.ensureUpdated()
+        return log.snapshot(
+            rendered = counters.renderedOutputBufferCount,
+            dropped = counters.droppedBufferCount,
+            skipped = counters.skippedOutputBufferCount,
+            toKeyFrame = counters.droppedToKeyframeCount,
+            longestRun = counters.maxConsecutiveDroppedBufferCount,
         )
     }
 
@@ -913,6 +958,7 @@ class Media3Engine(
                 null
             }
 
+            transferMarks?.health?.sized(videoSize.width, videoSize.height)
             if (videoSize.width > 0 && videoSize.height > 0) {
                 displayWidth = videoSize.width
                 displayHeight = videoSize.height
@@ -1085,6 +1131,22 @@ class Media3Engine(
             decoderInitMs = initializationDurationMs
         }
 
+        /**
+         * Frames the decoder dropped for being late: counted for the statistics panel, which has always shown this figure and
+         * which nothing was writing, and for the decoder's health in a measuring build.
+         */
+        override fun onDroppedVideoFrames(eventTime: AnalyticsListener.EventTime, droppedFrames: Int, elapsedMs: Long) {
+            if (!current) return
+            this@Media3Engine.droppedFrames += droppedFrames
+            transferMarks?.health?.dropped(droppedFrames)
+        }
+
+        /** An error the decoder raised and the player went on from: kept by the name of its class, and never its message. */
+        override fun onVideoCodecError(eventTime: AnalyticsListener.EventTime, videoCodecError: Exception) {
+            if (!current) return
+            transferMarks?.health?.codecError(videoCodecError.javaClass.simpleName)
+        }
+
         override fun onVideoInputFormatChanged(
             eventTime: AnalyticsListener.EventTime,
             format: Format,
@@ -1148,6 +1210,12 @@ class Media3Engine(
         val generation: Int,
         val attempts: OpenAttemptLog? = null,
         val hops: HopLog? = null,
+        /** Reads the bytes of the stream as they arrive, for whether they arrived whole. A measuring build only. */
+        val scanner: TsScanner? = null,
+        /** The decoder's events, counted. A measuring build only. */
+        val health: DecoderHealthLog? = null,
+        /** The engine's clock when it was asked to open: what every instant in [scanner] is after. */
+        val epochMs: Long = 0,
     ) {
         val answeredAt = AtomicLong(0)
         val firstBytesAt = AtomicLong(0)
@@ -1161,6 +1229,30 @@ class Media3Engine(
         val loadErrors = AtomicLong(0)
 
         fun isFor(dataSpec: DataSpec): Boolean = dataSpec.uri.toString() == url
+    }
+
+    /**
+     * Hands the transport-stream scanner the bytes a transfer of the address being opened delivers, as the HTTP source delivers
+     * them to the player and not before: so the scanner sees what the extractor sees, and any piece a reconnection skipped is
+     * not in it. A load for any other address -- a playlist's segment, say -- is not read.
+     */
+    private class TsProbeSink(private val marks: TransferMarks, private val scanner: TsScanner) : DataSink {
+        private var reading = false
+
+        override fun open(dataSpec: DataSpec) {
+            reading = marks.isFor(dataSpec)
+            if (reading) scanner.opened(since())
+        }
+
+        override fun write(buffer: ByteArray, offset: Int, length: Int) {
+            if (reading) scanner.feed(buffer, offset, length, since())
+        }
+
+        override fun close() {
+            reading = false
+        }
+
+        private fun since(): Long = SystemClock.elapsedRealtime() - marks.epochMs
     }
 
     /**

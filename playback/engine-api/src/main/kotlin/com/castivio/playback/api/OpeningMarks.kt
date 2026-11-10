@@ -71,4 +71,11 @@ data class OpeningMarks(
      * client, and in any build that does not measure.
      */
     val hops: HttpHops = HttpHops.NONE,
+    /**
+     * **Development builds only.** Whether the stream's bytes arrived whole -- see [StreamIntegrity]. Read while the stream plays,
+     * and not only while it opens: a picture breaks up after the first frame as well. Empty for an engine that cannot say.
+     */
+    val integrity: StreamIntegrity = StreamIntegrity.NONE,
+    /** **Development builds only.** What the video decoder did with the frames -- see [DecoderHealth]. */
+    val decoder: DecoderHealth = DecoderHealth.NONE,
 )

@@ -1,15 +1,18 @@
 package com.castivio.feature.player
 
 import com.castivio.playback.api.AttemptOutcome
+import com.castivio.playback.api.DecoderHealth
 import com.castivio.playback.api.EngineId
 import com.castivio.playback.api.FinalAddress
 import com.castivio.playback.api.HostLookup
 import com.castivio.playback.api.HttpHop
 import com.castivio.playback.api.HttpHops
+import com.castivio.playback.api.IntegrityState
 import com.castivio.playback.api.OpenAttempt
 import com.castivio.playback.api.OpenAttempts
 import com.castivio.playback.api.PlaybackDiagnosis
 import com.castivio.playback.api.SourceRedaction
+import com.castivio.playback.api.StreamIntegrity
 import java.util.Locale
 
 /**
@@ -51,6 +54,18 @@ internal data class OpeningReading(
 
     val running: Boolean get() = status == OpeningStatus.WAITING
 
+    /**
+     * How long until this opening is read again, or null when it need not be: ten times a second while it runs; once a second
+     * while its picture is shown, because a picture breaks up after its first frame as often as before it and what the stream
+     * and the decoder do then is on the panel's health lines; and never for one that failed or was replaced, which has nothing
+     * playing to read.
+     */
+    fun readAgainInMs(): Long? = when {
+        running -> DIAGNOSTIC_TICK_MS
+        status == OpeningStatus.SHOWN -> HEALTH_TICK_MS
+        else -> null
+    }
+
     /** How the opening stands, as the colour of the panel's first line and of the card. */
     private fun standing(): HudTone = when (status) {
         OpeningStatus.WAITING -> HudTone.RUNNING
@@ -76,7 +91,7 @@ internal data class OpeningReading(
      */
     fun glance(): Glance = Glance(
         head = "#$attempt · ${engineName(timing.engine)} · ${seconds(totalMs)}${approximately()}",
-        detail = "${case.label} · ${endingText()}",
+        detail = "${case.label} · ${endingText()}${damageTag()}",
         tone = standing(),
     )
 
@@ -198,8 +213,112 @@ internal data class OpeningReading(
             },
             if (stalls.count == 0) HudTone.MUTED else HudTone.RUNNING,
         )
+
+        // And what the stream did after it arrived: whether its bytes were whole, and what the decoder did with the frames. These
+        // are read while the picture plays, not only while it opens, because that is when a picture breaks up.
+        lines += healthLines(timing.marks.integrity, timing.marks.decoder)
         return lines
     }
+
+    /** What the collapsed card adds when the stream or the decoder has something to say: the first thing a photograph of it shows. */
+    private fun damageTag(): String {
+        val integrity = timing.marks.integrity
+        val decoder = timing.marks.decoder
+        return when {
+            integrity.state == IntegrityState.DEMUXER && integrity.damaged ->
+                " · demux ${integrity.corrupted + integrity.gaps}"
+            integrity.gapsOnVideo > 0 -> " · video jumps ${integrity.gapsOnVideo}"
+            integrity.flaggedDamaged > 0 || integrity.syncLosses > 0 -> " · stream damaged"
+            decoder.dropped > 0 -> " · dropped ${decoder.dropped}"
+            decoder.codecErrors > 0 -> " · codec errors ${decoder.codecErrors}"
+            else -> ""
+        }
+    }
+
+    /**
+     * Whether the stream's bytes arrived whole, and what the decoder did with the frames: the two halves of a picture that breaks
+     * up. A picture can break because the stream lost a piece -- the counters of its packets jump -- or because the bytes were
+     * whole and the decoder or the surface went wrong; read together they say which. Instants are from the press, like the
+     * events above, and "ago" is counted from this reading.
+     */
+    private fun healthLines(integrity: StreamIntegrity, decoder: DecoderHealth): List<HudLine> =
+        streamLines(integrity) + decoderLines(decoder)
+
+    private fun streamLines(integrity: StreamIntegrity): List<HudLine> = when (integrity.state) {
+        IntegrityState.OFF -> emptyList()
+        IntegrityState.NOTHING_YET, IntegrityState.SCANNING ->
+            listOf(HudLine("stream: ${if (running) "waiting for bytes …" else "no bytes read"}", HudTone.MUTED))
+        IntegrityState.NOT_TRANSPORT_STREAM ->
+            listOf(HudLine("stream: not a transport stream (playlist or another container) · ${megabytes(integrity.bytes)}", HudTone.MUTED))
+        IntegrityState.DEMUXER -> listOf(
+            HudLine(
+                "stream: LibVLC demuxer · corrupted ${integrity.corrupted} · discontinuities ${integrity.gaps}",
+                if (integrity.damaged) HudTone.RUNNING else HudTone.MUTED,
+            ),
+        )
+        IntegrityState.TRANSPORT_STREAM -> transportLines(integrity)
+    }
+
+    private fun transportLines(integrity: StreamIntegrity): List<HudLine> {
+        val lines = ArrayList<HudLine>(3)
+        val video = integrity.videoPid?.let { "pid 0x${it.toString(16)}" } ?: "not known yet"
+        lines += HudLine(
+            "stream: transport stream · ${megabytes(integrity.bytes)} · ${count(integrity.packets)} packets · video $video",
+            HudTone.MUTED,
+        )
+        val reconnected = if (integrity.reconnects > 0) " · reconnected ${integrity.reconnects}" else ""
+        if (!integrity.damaged) {
+            lines += HudLine("  no counter jumps · no flagged packets · alignment kept$reconnected", HudTone.MUTED)
+            return lines
+        }
+        val others = integrity.gaps - integrity.gapsOnVideo
+        val jumps = if (integrity.videoPid != null) {
+            "VIDEO jumps ${integrity.gapsOnVideo} (at least ${integrity.lostOnVideoAtLeast} lost) · other jumps $others"
+        } else {
+            "jumps ${integrity.gaps} (at least ${integrity.lostAtLeast} lost; the video is not known yet)"
+        }
+        lines += HudLine(
+            "  $jumps · flagged ${integrity.flaggedDamaged} · alignment lost ${integrity.syncLosses}" +
+                " (${integrity.syncSkippedBytes} B) · repeated ${integrity.repeated}$reconnected",
+            if (integrity.videoDamaged) HudTone.RUNNING else HudTone.MUTED,
+        )
+        val first = integrity.firstDamageMs
+        val last = integrity.lastDamageMs
+        if (first != null && last != null) {
+            val ago = (integrity.atMs - last).coerceAtLeast(0)
+            lines += HudLine(
+                "  first damage ${seconds(timing.prepareMs + first)} · last ${seconds(timing.prepareMs + last)} (${seconds(ago)} ago)",
+                HudTone.MUTED,
+            )
+        }
+        return lines
+    }
+
+    private fun decoderLines(decoder: DecoderHealth): List<HudLine> {
+        val said = decoder.available || decoder.codecErrors > 0 || decoder.dropReports > 0 || decoder.sizeChanges > 0
+        if (!said) return emptyList()
+        val lines = ArrayList<HudLine>(2)
+        if (decoder.available) {
+            lines += HudLine(
+                "frames: rendered ${decoder.rendered} · dropped ${decoder.dropped} · skipped ${decoder.skipped}" +
+                    " · to key frame ${decoder.droppedToKeyFrame} · longest drop run ${decoder.longestDropRun}",
+                if (decoder.dropped > 0 || decoder.skipped > 0) HudTone.RUNNING else HudTone.MUTED,
+            )
+        }
+        val size = if (decoder.lastWidth > 0) " (${decoder.lastWidth}x${decoder.lastHeight})" else ""
+        val error = decoder.lastCodecError?.let { " $it" } ?: ""
+        lines += HudLine(
+            "decoder events: drop reports ${decoder.dropReports} (${decoder.droppedReported} frames)" +
+                " · codec errors ${decoder.codecErrors}$error · size changes ${decoder.sizeChanges}$size",
+            if (decoder.codecErrors > 0 || decoder.sizeChanges > 1) HudTone.RUNNING else HudTone.MUTED,
+        )
+        return lines
+    }
+
+    /** 12,345 with a comma: a count of packets is read by the eye, and it is a long number. */
+    private fun count(n: Long): String = String.format(Locale.ROOT, "%,d", n)
+
+    private fun megabytes(bytes: Long): String = String.format(Locale.ROOT, "%.2f MB", bytes / BYTES_PER_MEGABYTE)
 
     /**
      * The engine's tries at the address, one line when there was one and a line each when there were more, every
@@ -491,6 +610,7 @@ internal data class OpeningReading(
     private fun seconds(ms: Long): String = String.format(Locale.ROOT, "%.2f s", ms / MS_PER_SECOND)
 
     private companion object {
+        const val BYTES_PER_MEGABYTE = 1_048_576.0
         const val MS_PER_SECOND = 1_000.0
         const val MS_PER_MINUTE = 60_000L
         const val MS_PER_HOUR = 3_600_000L
@@ -565,3 +685,9 @@ internal fun engineName(engine: EngineId): String = when (engine) {
 
 /** The stretch the main thread may stand without a frame before it is a stall, in milliseconds. */
 internal const val STALL_MS = 100L
+
+/** How often the panel's reading is taken while a channel opens: ten times a second. */
+internal const val DIAGNOSTIC_TICK_MS = 100L
+
+/** How often it is taken once the picture is shown, for the stream's and the decoder's health: once a second. */
+internal const val HEALTH_TICK_MS = 1_000L

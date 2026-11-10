@@ -1720,7 +1720,8 @@ class PlayerViewModel @Inject constructor(
 
     /**
      * Begins the panel's reading of the attempt that has just begun, and keeps reading it every
-     * [DIAGNOSTIC_TICK_MS] until it ends: a picture, a failure, or another opening.
+     * [DIAGNOSTIC_TICK_MS] until it ends: a picture, a failure, or another opening. A picture that was shown goes on being
+     * read, once a second.
      *
      * Everything it reads is already kept -- [timing], the engine's marks, the state -- so it adds nothing to the
      * opening itself. The reading belongs to this attempt by number: one that finds the state on another is
@@ -1739,6 +1740,7 @@ class PlayerViewModel @Inject constructor(
         openingId = id
         mainThread.start()
         diagnosticJob = viewModelScope.launch {
+            var written = false
             while (true) {
                 val reading = readOpening(id, attempt, channel)
                 if (reading.status == OpeningStatus.REPLACED) {
@@ -1747,12 +1749,14 @@ class PlayerViewModel @Inject constructor(
                     return@launch
                 }
                 OpeningDiagnostics.publish(reading)
-                if (!reading.running) {
+                if (!reading.running && !written) {
                     mainThread.stop()
                     Log.i(TAG, "opening #$id ${reading.row()}")
-                    return@launch
+                    written = true
                 }
-                delay(DIAGNOSTIC_TICK_MS)
+                // A picture that was shown goes on being read until the next opening or the player ends it, and an opening
+                // that failed is not read again: see [OpeningReading.readAgainInMs].
+                delay(reading.readAgainInMs() ?: return@launch)
             }
         }
     }
@@ -2026,9 +2030,6 @@ class PlayerViewModel @Inject constructor(
 
         /** The tag of the debug trace of the stream-quality indicator: `adb logcat -s CastivioQuality`. */
         const val QUALITY_TAG = "CastivioQuality"
-
-        /** How often the opening panel's reading is taken while a channel opens: ten times a second. */
-        const val DIAGNOSTIC_TICK_MS = 100L
 
         /**
          * How long an engine waits for a channel, once the player was left or the engine was built ahead of a press: long

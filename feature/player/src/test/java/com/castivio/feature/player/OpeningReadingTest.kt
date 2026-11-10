@@ -1,14 +1,18 @@
 package com.castivio.feature.player
 
+import com.castivio.playback.api.DecoderHealth
 import com.castivio.playback.api.EngineId
 import com.castivio.playback.api.FinalAddress
 import com.castivio.playback.api.HttpHop
 import com.castivio.playback.api.HttpHops
+import com.castivio.playback.api.IntegrityState
 import com.castivio.playback.api.OpeningMarks
 import com.castivio.playback.api.PlaybackError
+import com.castivio.playback.api.StreamIntegrity
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -346,6 +350,263 @@ class OpeningReadingTest {
         val reading = media3(status = OpeningStatus.SHOWN, totalMs = 270, marks = OpeningMarks(firstFrameMs = 210))
 
         assertFalse(reading.lines().any { it.text.startsWith("hops") })
+    }
+
+    // ------------------------------------------------------------- the stream's health
+
+    private fun cleanStream() = StreamIntegrity(
+        state = IntegrityState.TRANSPORT_STREAM, bytes = 5_242_880, packets = 27_310, videoPid = 0x100, atMs = 6_000,
+    )
+
+    private fun lines(marks: OpeningMarks): String = media3(status = OpeningStatus.SHOWN, totalMs = 800, marks = marks)
+        .lines().joinToString("\n") { it.text }
+
+    @Test
+    fun `a stream that arrived whole says so, with what the decoder drew`() {
+        val reading = media3(
+            status = OpeningStatus.SHOWN,
+            totalMs = 800,
+            marks = OpeningMarks(
+                firstFrameMs = 300,
+                integrity = cleanStream(),
+                decoder = DecoderHealth(available = true, rendered = 560, sizeChanges = 1, lastWidth = 1920, lastHeight = 1080),
+            ),
+        )
+
+        val text = reading.lines().joinToString("\n") { it.text }
+
+        assertTrue(text, "stream: transport stream · 5.00 MB · 27,310 packets · video pid 0x100" in text)
+        assertTrue(text, "  no counter jumps · no flagged packets · alignment kept" in text)
+        assertTrue(text, "frames: rendered 560 · dropped 0 · skipped 0 · to key frame 0 · longest drop run 0" in text)
+        assertTrue(text, "decoder events: drop reports 0 (0 frames) · codec errors 0 · size changes 1 (1920x1080)" in text)
+        assertFalse("nothing wrong is not painted amber", reading.lines().filter { it.text.startsWith("  no counter") || it.text.startsWith("frames:") }.any { it.tone == HudTone.RUNNING })
+        assertFalse("and the collapsed card has nothing to add", "jumps" in reading.glance().detail || "dropped" in reading.glance().detail)
+    }
+
+    /** The finding the whole instrument exists for: video packets lost on the way, with when, so a photograph of the card is the account. */
+    @Test
+    fun `lost video packets are said in amber, with when and how many, and the collapsed card says so too`() {
+        val reading = media3(
+            status = OpeningStatus.SHOWN,
+            totalMs = 800,
+            marks = OpeningMarks(
+                firstFrameMs = 300,
+                integrity = cleanStream().copy(
+                    gaps = 4, gapsOnVideo = 3, lostAtLeast = 6, lostOnVideoAtLeast = 5, repeated = 1, reconnects = 1,
+                    firstDamageMs = 1_200, lastDamageMs = 4_200, lastVideoGapMs = 4_200,
+                ),
+            ),
+        )
+
+        val all = reading.lines()
+        val text = all.joinToString("\n") { it.text }
+        val jumps = all.first { it.text.contains("VIDEO jumps") }
+
+        assertEquals(
+            "  VIDEO jumps 3 (at least 5 lost) · other jumps 1 · flagged 0 · alignment lost 0 (0 B) · repeated 1 · reconnected 1",
+            jumps.text,
+        )
+        assertEquals(HudTone.RUNNING, jumps.tone)
+        // The engine was asked 60 ms after the press, so each instant is read 60 ms later than the engine says it.
+        assertTrue(text, "  first damage 1.26 s · last 4.26 s (1.80 s ago)" in text)
+        assertTrue(reading.glance().detail, reading.glance().detail.endsWith(" · video jumps 3"))
+    }
+
+    @Test
+    fun `a loss on the sound alone is told but is not a broken picture`() {
+        val reading = media3(
+            status = OpeningStatus.SHOWN, totalMs = 800,
+            marks = OpeningMarks(
+                firstFrameMs = 300,
+                integrity = cleanStream().copy(gaps = 2, lostAtLeast = 2, firstDamageMs = 900, lastDamageMs = 900),
+            ),
+        )
+
+        val jumps = reading.lines().first { it.text.contains("VIDEO jumps") }
+
+        assertTrue(jumps.text, "VIDEO jumps 0 (at least 0 lost) · other jumps 2" in jumps.text)
+        assertEquals("a picture does not break up for lost sound", HudTone.MUTED, jumps.tone)
+        assertFalse(reading.glance().detail, "jumps" in reading.glance().detail)
+    }
+
+    @Test
+    fun `before the tables say which stream is the video, the jumps are not told apart`() {
+        val reading = media3(
+            status = OpeningStatus.WAITING, totalMs = 400,
+            marks = OpeningMarks(
+                integrity = cleanStream().copy(videoPid = null, gaps = 2, lostAtLeast = 2, firstDamageMs = 100, lastDamageMs = 100),
+            ),
+        )
+
+        val text = reading.lines().joinToString("\n") { it.text }
+
+        assertTrue(text, "stream: transport stream · 5.00 MB · 27,310 packets · video not known yet" in text)
+        assertTrue(text, "jumps 2 (at least 2 lost; the video is not known yet)" in text)
+    }
+
+    @Test
+    fun `flagged packets and lost alignment are damage to the video too`() {
+        val reading = media3(
+            status = OpeningStatus.SHOWN, totalMs = 800,
+            marks = OpeningMarks(
+                firstFrameMs = 300,
+                integrity = cleanStream().copy(flaggedDamaged = 2, syncLosses = 1, syncSkippedBytes = 50, firstDamageMs = 10, lastDamageMs = 20),
+            ),
+        )
+
+        val jumps = reading.lines().first { it.text.contains("flagged 2") }
+
+        assertTrue(jumps.text, "flagged 2 · alignment lost 1 (50 B)" in jumps.text)
+        assertEquals(HudTone.RUNNING, jumps.tone)
+        assertTrue(reading.glance().detail, reading.glance().detail.endsWith(" · stream damaged"))
+    }
+
+    @Test
+    fun `a stream that is not a transport stream, one not read yet, and one not measured`() {
+        val notTs = lines(OpeningMarks(integrity = StreamIntegrity(state = IntegrityState.NOT_TRANSPORT_STREAM, bytes = 2_048)))
+        val waiting = lines(OpeningMarks(integrity = StreamIntegrity(state = IntegrityState.NOTHING_YET)))
+        val off = lines(OpeningMarks())
+
+        assertTrue(notTs, "stream: not a transport stream (playlist or another container) · 0.00 MB" in notTs)
+        assertTrue(waiting, "stream: no bytes read" in waiting)
+        assertFalse("an engine that does not measure draws nothing for it: $off", "stream:" in off || "frames:" in off || "decoder events:" in off)
+    }
+
+    @Test
+    fun `LibVLC's own count of what its demuxer found is told beside what the other engine finds`() {
+        val damaged = lines(OpeningMarks(integrity = StreamIntegrity.ofDemuxer(corrupted = 3, discontinuities = 7, atMs = 900)))
+        val clean = media3(
+            status = OpeningStatus.SHOWN, totalMs = 800,
+            marks = OpeningMarks(firstFrameMs = 300, integrity = StreamIntegrity.ofDemuxer(0, 0, 900)),
+        )
+
+        assertTrue(damaged, "stream: LibVLC demuxer · corrupted 3 · discontinuities 7" in damaged)
+        assertEquals(HudTone.MUTED, clean.lines().first { it.text.startsWith("stream: LibVLC") }.tone)
+        assertFalse("a demuxer that found nothing wrong adds nothing to the card: ${clean.glance().detail}", "demux" in clean.glance().detail)
+        val tagged = media3(
+            status = OpeningStatus.SHOWN, totalMs = 800,
+            marks = OpeningMarks(firstFrameMs = 300, integrity = StreamIntegrity.ofDemuxer(3, 7, 900)),
+        )
+        assertTrue(tagged.glance().detail, tagged.glance().detail.endsWith(" · demux 10"))
+    }
+
+    @Test
+    fun `a decoder that dropped frames, raised an error or changed size is told in amber`() {
+        val reading = media3(
+            status = OpeningStatus.SHOWN, totalMs = 800,
+            marks = OpeningMarks(
+                firstFrameMs = 300,
+                decoder = DecoderHealth(
+                    available = true, rendered = 400, dropped = 12, skipped = 2, droppedToKeyFrame = 1, longestDropRun = 5,
+                    dropReports = 3, droppedReported = 12, codecErrors = 1, lastCodecError = "CodecException",
+                    sizeChanges = 3, lastWidth = 1440, lastHeight = 1080,
+                ),
+            ),
+        )
+
+        val frames = reading.lines().first { it.text.startsWith("frames:") }
+        val events = reading.lines().first { it.text.startsWith("decoder events:") }
+
+        assertEquals("frames: rendered 400 · dropped 12 · skipped 2 · to key frame 1 · longest drop run 5", frames.text)
+        assertEquals(HudTone.RUNNING, frames.tone)
+        assertEquals("decoder events: drop reports 3 (12 frames) · codec errors 1 CodecException · size changes 3 (1440x1080)", events.text)
+        assertEquals(HudTone.RUNNING, events.tone)
+        assertTrue(reading.glance().detail, reading.glance().detail.endsWith(" · dropped 12"))
+    }
+
+    @Test
+    fun `frames skipped without being dropped are amber too, and a clean decoder is not`() {
+        fun frames(health: DecoderHealth) = media3(
+            status = OpeningStatus.SHOWN, totalMs = 800, marks = OpeningMarks(firstFrameMs = 300, decoder = health),
+        ).lines().first { it.text.startsWith("frames:") }
+
+        assertEquals(HudTone.RUNNING, frames(DecoderHealth(available = true, rendered = 300, skipped = 1)).tone)
+        assertEquals(HudTone.MUTED, frames(DecoderHealth(available = true, rendered = 300)).tone)
+    }
+
+    @Test
+    fun `the first size of a picture is not trouble, a second one is, and so is an error`() {
+        fun events(health: DecoderHealth) = media3(
+            status = OpeningStatus.SHOWN, totalMs = 800, marks = OpeningMarks(firstFrameMs = 300, decoder = health),
+        ).lines().first { it.text.startsWith("decoder events:") }
+
+        assertEquals(HudTone.MUTED, events(DecoderHealth(available = true, sizeChanges = 1, lastWidth = 1920, lastHeight = 1080)).tone)
+        assertEquals(HudTone.RUNNING, events(DecoderHealth(available = true, sizeChanges = 2, lastWidth = 1280, lastHeight = 720)).tone)
+        assertEquals(HudTone.RUNNING, events(DecoderHealth(available = true, codecErrors = 1, lastCodecError = "CodecException")).tone)
+        assertEquals(
+            "a size that was never reported is not printed as 0x0",
+            "decoder events: drop reports 0 (0 frames) · codec errors 0 · size changes 0",
+            events(DecoderHealth(available = true)).text,
+        )
+    }
+
+    @Test
+    fun `events heard before the decoder's own counters are told without the frames line`() {
+        val reading = media3(
+            status = OpeningStatus.WAITING, totalMs = 400,
+            marks = OpeningMarks(decoder = DecoderHealth(available = false, codecErrors = 1, lastCodecError = "CodecException")),
+        )
+
+        val text = reading.lines().joinToString("\n") { it.text }
+
+        assertFalse(text, "frames:" in text)
+        assertTrue(text, "decoder events: drop reports 0 (0 frames) · codec errors 1 CodecException · size changes 0" in text)
+    }
+
+    @Test
+    fun `a stream that has not arrived says it is waited for while the open runs and that none was read after`() {
+        val waiting = media3(status = OpeningStatus.WAITING, totalMs = 400, marks = OpeningMarks(integrity = StreamIntegrity(state = IntegrityState.NOTHING_YET)))
+        val scanning = media3(status = OpeningStatus.WAITING, totalMs = 400, marks = OpeningMarks(integrity = StreamIntegrity(state = IntegrityState.SCANNING, bytes = 900)))
+        val failed = media3(status = OpeningStatus.FAILED, totalMs = 4_000, marks = OpeningMarks(integrity = StreamIntegrity(state = IntegrityState.SCANNING, bytes = 900)), failure = "Source error")
+
+        assertTrue(waiting.lines().joinToString("\n") { it.text }, "stream: waiting for bytes …" in waiting.lines().map { it.text })
+        assertTrue(scanning.lines().joinToString("\n") { it.text }, "stream: waiting for bytes …" in scanning.lines().map { it.text })
+        assertTrue(failed.lines().joinToString("\n") { it.text }, "stream: no bytes read" in failed.lines().map { it.text })
+    }
+
+    @Test
+    fun `a clean stream that was joined again says so on its clean line`() {
+        val reading = media3(
+            status = OpeningStatus.SHOWN, totalMs = 800,
+            marks = OpeningMarks(firstFrameMs = 300, integrity = cleanStream().copy(reconnects = 2, lastReconnectMs = 3_000)),
+        )
+
+        val clean = reading.lines().first { it.text.contains("no counter jumps") }
+
+        assertEquals("  no counter jumps · no flagged packets · alignment kept · reconnected 2", clean.text)
+        assertEquals(HudTone.MUTED, clean.tone)
+    }
+
+    /** The edges of every "something is wrong" test: one is already something, and a picture breaks on one lost packet. */
+    @Test
+    fun `a single lost video packet, a single flagged one, a single lost alignment and a single dropped frame are each told`() {
+        fun tag(integrity: StreamIntegrity = cleanStream(), decoder: DecoderHealth = DecoderHealth.NONE) = media3(
+            status = OpeningStatus.SHOWN, totalMs = 800,
+            marks = OpeningMarks(firstFrameMs = 300, integrity = integrity, decoder = decoder),
+        ).glance().detail
+
+        assertTrue(tag(cleanStream().copy(gaps = 1, gapsOnVideo = 1, lostAtLeast = 1, lostOnVideoAtLeast = 1, firstDamageMs = 5, lastDamageMs = 5)).endsWith(" · video jumps 1"))
+        assertTrue(tag(cleanStream().copy(flaggedDamaged = 1, firstDamageMs = 5, lastDamageMs = 5)).endsWith(" · stream damaged"))
+        assertTrue(tag(cleanStream().copy(syncLosses = 1, syncSkippedBytes = 3, firstDamageMs = 5, lastDamageMs = 5)).endsWith(" · stream damaged"))
+        assertTrue(tag(decoder = DecoderHealth(available = true, rendered = 50, dropped = 1)).endsWith(" · dropped 1"))
+        assertTrue(tag(decoder = DecoderHealth(available = true, rendered = 50, codecErrors = 1, lastCodecError = "CodecException")).endsWith(" · codec errors 1"))
+        assertEquals(
+            "a stream and a decoder with nothing wrong add nothing to the card",
+            media3(status = OpeningStatus.SHOWN, totalMs = 800, marks = OpeningMarks(firstFrameMs = 300)).glance().detail,
+            tag(decoder = DecoderHealth(available = true, rendered = 50)),
+        )
+    }
+
+    /** The panel reads an opening while it runs, goes on reading a picture that is shown, and stops reading one that is not playing. */
+    @Test
+    fun `an opening that runs is read often, a picture that is shown goes on being read, and one that is over is not`() {
+        fun again(status: OpeningStatus) = media3(status = status, totalMs = 800, marks = OpeningMarks(firstFrameMs = 300)).readAgainInMs()
+
+        assertEquals(DIAGNOSTIC_TICK_MS, again(OpeningStatus.WAITING))
+        assertEquals(HEALTH_TICK_MS, again(OpeningStatus.SHOWN))
+        assertNull("an opening that failed has nothing playing to read", again(OpeningStatus.FAILED))
+        assertNull("nor one another press replaced", again(OpeningStatus.REPLACED))
+        assertTrue("a picture that plays is read more slowly than one that opens", HEALTH_TICK_MS > DIAGNOSTIC_TICK_MS)
     }
 
     // ------------------------------------------------------------- the main thread

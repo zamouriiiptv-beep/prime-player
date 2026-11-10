@@ -8,6 +8,7 @@ import android.util.Log
 import android.view.SurfaceView
 import android.view.View
 import com.castivio.core.common.FrameSize
+import com.castivio.core.platform.DevDiagnostics
 import com.castivio.playback.api.AspectMode
 import com.castivio.playback.api.EngineId
 import com.castivio.playback.api.MediaKind
@@ -21,6 +22,7 @@ import com.castivio.playback.api.PlaybackState
 import com.castivio.playback.api.PlaybackTuning
 import com.castivio.playback.api.QualityReading
 import com.castivio.playback.api.SourceRedaction
+import com.castivio.playback.api.StreamIntegrity
 import com.castivio.playback.api.Track
 import com.castivio.playback.api.TrackSet
 import com.castivio.playback.api.TrackType
@@ -644,6 +646,24 @@ class VlcPlaybackEngine(
             clockMovingMs = since(clockAtMs),
             // The video output appearing, which LibVLC says before it says anything of a picture: see above.
             firstFrameExact = false,
+            integrity = if (DevDiagnostics.enabled) demuxerIntegrity() else StreamIntegrity.NONE,
+        )
+    }
+
+    /**
+     * What LibVLC's demuxer says of the stream it is reading: the packets it called corrupt and the discontinuities it found. It
+     * counts them itself, so this reads two numbers and scans nothing -- and sets what the other engine's scanner finds beside it,
+     * for the same channel. Only in a measuring build: a read of LibVLC's counters is a call into its native code.
+     */
+    private fun demuxerIntegrity(): StreamIntegrity {
+        if (isReleased) return StreamIntegrity.NONE
+        val media = currentMedia ?: return StreamIntegrity.NONE
+        if (media.isReleased) return StreamIntegrity.NONE
+        val stats = runCatching { media.stats }.getOrNull() ?: return StreamIntegrity.NONE
+        return StreamIntegrity.ofDemuxer(
+            corrupted = stats.demuxCorrupted,
+            discontinuities = stats.demuxDiscontinuity,
+            atMs = SystemClock.elapsedRealtime() - openedAtMs,
         )
     }
 
