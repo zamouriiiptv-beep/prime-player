@@ -372,7 +372,8 @@ fun ChannelsScreen(
                         // The keys step through the channel's own bouquet from here -- see `rank` for why.
                         recent = latestState.recent,
                     )
-                    channel.asSelection()?.copy(listed = list)?.let(latestPlay)
+                    // What was on, for the loading screen: from the guide the board already holds, and only if it is this channel's.
+                    channel.asSelection()?.copy(listed = list)?.withProgramme(latestState.guide?.now)?.let(latestPlay)
                     Unit
                 }
                 when (pressVerdictFor(live = true, channelId = channel.id, known = lockModel.locked.value)) {

@@ -8,9 +8,14 @@ import com.castivio.domain.MediaGroup
 import com.castivio.domain.MediaItem
 import com.castivio.domain.MediaKind
 import com.castivio.domain.Movie
+import com.castivio.domain.Programme
 import com.castivio.domain.SectionLoad
 import com.castivio.domain.SectionRun
 import com.castivio.domain.Series
+import java.text.DateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 /**
  * The browsable sections, and the one place that says which kind each one reads.
@@ -113,6 +118,7 @@ fun MediaItem.asSelection(): CatalogSelection? = when (this) {
         epgChannelId = epgChannelId,
         catchUpHours = catchUpHours,
         mediaId = id,
+        artworkUrl = artworkUrl,
     )
 
     is Movie -> CatalogSelection(
@@ -130,6 +136,29 @@ fun MediaItem.asSelection(): CatalogSelection? = when (this) {
     )
 
     is Series -> null
+}
+
+/**
+ * The programme on the channel when it was pressed, put on the press: its title and its hours.
+ *
+ * Only a programme that is *this* channel's: the guide the board holds is the selected channel's, and a press on another row
+ * may arrive before the guide has moved, so one whose channel is not this one is dropped and the loading screen says nothing of
+ * the programme rather than something wrong. The hours are formatted here, in the press, and not in a composition.
+ */
+internal fun CatalogSelection.withProgramme(
+    now: Programme?,
+    zone: TimeZone = TimeZone.getDefault(),
+    locale: Locale = Locale.getDefault(),
+): CatalogSelection {
+    val id = epgChannelId ?: return this
+    val on = now?.takeIf { it.channelId == id } ?: return this
+    return copy(programme = on.title, programmeHours = hoursOf(on.startMs, on.stopMs, zone, locale))
+}
+
+/** `00:55 – 05:00`, as the reader's clock writes it. */
+internal fun hoursOf(startMs: Long, stopMs: Long, zone: TimeZone, locale: Locale): String {
+    val clock = DateFormat.getTimeInstance(DateFormat.SHORT, locale).apply { timeZone = zone }
+    return clock.format(Date(startMs)) + " \u2013 " + clock.format(Date(stopMs))
 }
 
 /**
@@ -173,6 +202,17 @@ data class CatalogSelection(
      * not a link that moved. See `PlayerRequest.archiveOf`.
      */
     val archiveOf: String? = null,
+    /**
+     * The channel's logo, which the list the press was made in has drawn and so holds already: the loading screen shows it
+     * beside the name. Null for everything that has none.
+     */
+    val artworkUrl: String? = null,
+    /**
+     * What was on the channel when it was pressed, from the guide the board already held, and its hours as they read on the
+     * screen -- or null for both where the board held none for this channel. Nothing is asked for to fill them.
+     */
+    val programme: String? = null,
+    val programmeHours: String? = null,
 )
 
 /**

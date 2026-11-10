@@ -3442,6 +3442,44 @@ class PlayerPathTest {
     }
 
     /**
+     * The provider is said to be slow only of a wait with no answer in it.
+     *
+     * Half a second after the spinner, if the server has still said nothing; an answer, or the picture, takes it away.
+     */
+    @Test
+    fun `the provider is slow only while the server has not answered`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        assertFalse(model.now().providerSlow)
+
+        advanceTimeBy(PlayerViewModel.PROVIDER_SLOW_MS - 300)
+        runCurrent()
+        assertFalse("not before its moment", model.now().providerSlow)
+
+        advanceTimeBy(500)
+        runCurrent()
+        assertTrue("the server is silent", model.now().providerSlow)
+
+        engines.last.renderFirstFrame()
+        runCurrent()
+        assertFalse("a picture ends it", model.now().providerSlow)
+    }
+
+    @Test
+    fun `a server that has answered is not called slow`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        engines.last.marks = OpeningMarks(serverAnsweredMs = 40)
+        runCurrent()
+
+        advanceTimeBy(PlayerViewModel.PROVIDER_SLOW_MS + 200)
+        runCurrent()
+
+        assertFalse("the wait is on the stream, not on the server", model.now().providerSlow)
+    }
+
+    /**
      * The picture's measured size reaches the pulse, and only this channel's.
      *
      * What the board's quality badge is read from: the decoder's own report, never the name.

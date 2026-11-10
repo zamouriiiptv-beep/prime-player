@@ -37,6 +37,9 @@
 
     <string name="player_opening">جارٍ الفتح…</string>
     <string name="player_buffering">جارٍ التحميل…</string>
+    <string name="player_opening_now">الآن</string>
+    <string name="player_connecting">جارٍ الاتصال بالقناة…</string>
+    <string name="player_provider_slow">مزوّد الاشتراك يستجيب ببطء لهذه القناة</string>
     <string name="player_reconnecting">انقطع الاتصال — إعادة المحاولة</string>
     <string name="player_attempt">المحاولة %1$d من %2$d</string>
     <string name="player_switching">المشغّل الأساسي لم يفتح هذا — جارٍ التحويل إلى الاحتياطي</string>

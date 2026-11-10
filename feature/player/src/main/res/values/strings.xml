@@ -46,6 +46,9 @@
     <!-- Opening, and what happens while it is late -->
     <string name="player_opening">Opening…</string>
     <string name="player_buffering">Buffering…</string>
+    <string name="player_opening_now">Now</string>
+    <string name="player_connecting">Connecting to the channel…</string>
+    <string name="player_provider_slow">Your provider is slow to answer for this channel</string>
     <string name="player_reconnecting">Connection lost — retrying</string>
     <!-- %1$d of %2$d -->
     <string name="player_attempt">Attempt %1$d of %2$d</string>

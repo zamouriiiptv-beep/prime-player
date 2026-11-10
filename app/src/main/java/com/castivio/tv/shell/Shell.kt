@@ -114,6 +114,7 @@ import com.castivio.feature.home.asSelection
 import com.castivio.feature.home.watchedChannel
 import com.castivio.feature.licence.R as LicenceStrings
 import com.castivio.feature.player.ChannelListContent
+import com.castivio.feature.player.OpeningFace
 import com.castivio.feature.player.PlayerMode
 import com.castivio.feature.player.PlayerOpener
 import com.castivio.feature.player.PlayerRequest
@@ -951,6 +952,7 @@ private fun CatalogSelection.asPlayerRequest() = PlayerRequest(
     channelNumber = channelNumber,
     catchUpHours = catchUpHours,
     archiveOf = archiveOf,
+    face = if (live && (artworkUrl != null || programme != null)) OpeningFace(artworkUrl, programme, programmeHours) else null,
 )
 
 /** Which rail entry a section belongs to, so Home's "see all" lands somewhere real. */

@@ -494,11 +494,17 @@ class PlayerViewModel @Inject constructor(
         var elapsed = 0L
         var bytesAt: Long? = null
         var tracksAt: Long? = null
+        var slowSaid = false
         while (true) {
             delay(OPENING_TICK_MS)
             elapsed += OPENING_TICK_MS
             if (running.firstFrameAtMs.value != null || _state.value?.picture is Picture.Failed) return
             val marks = running.openingMarks()
+            if (!slowSaid && elapsed >= PROVIDER_SLOW_MS && marks.serverAnsweredMs == null) {
+                // Said once, and only while it is still true of this opening: an answer, or the end of the wait, takes it away.
+                slowSaid = true
+                _state.value?.takeIf { it.picture is Picture.Opening }?.let { _state.value = it.copy(providerSlow = true) }
+            }
             if (bytesAt == null && marks.firstBytesMs != null) bytesAt = elapsed
             if (tracksAt == null && marks.tracksKnownMs != null) tracksAt = elapsed
             when (FallbackPolicy.primaryVerdict(elapsed, bytesAt, tracksAt)) {
@@ -581,6 +587,7 @@ class PlayerViewModel @Inject constructor(
             picture = card,
             switching = false,
             longWait = false,
+            providerSlow = false,
             diagnosis = engine?.diagnosis?.value ?: timeoutDiagnosis(card) ?: current.diagnosis,
         )
     }
@@ -644,6 +651,7 @@ class PlayerViewModel @Inject constructor(
             // The spinner belongs to the opening and goes with it: to the picture, to a card,
             // to the end of a source that ended before it began.
             longWait = settled.longWait && picture is Picture.Opening,
+            providerSlow = settled.providerSlow && picture is Picture.Opening,
             // Falls back to what is already on the state, because a healthy engine has no
             // diagnosis and must not erase the one belonging to the failure that put us
             // here. After a fallback the backup opens cleanly, and reading its empty
@@ -731,6 +739,7 @@ class PlayerViewModel @Inject constructor(
                 picture = card,
                 switching = false,
                 longWait = false,
+                providerSlow = false,
                 // `timeoutDiagnosis` belongs here as much as it does on the engine-state
                 // path, and leaving it out left the one failure with no evidence at all.
                 // A budget that expired has nothing to read out of the engine — that is
@@ -774,6 +783,7 @@ class PlayerViewModel @Inject constructor(
             diagnosis = report,
             attempt = if (hadPicture) beginWait(since = System.nanoTime()) else current.attempt,
             longWait = current.longWait && !hadPicture,
+            providerSlow = current.providerSlow && !hadPicture,
         )
         start(current.request, EngineId.BACKUP)
         // After a picture the viewer waits again, and that wait is an opening of its own; during one it is the same.
@@ -804,6 +814,7 @@ class PlayerViewModel @Inject constructor(
             switching = true,
             attempt = beginWait(since = pressed),
             longWait = false,
+            providerSlow = false,
         )
         start(current.request, EngineId.BACKUP)
         diagnose(OpeningCase.FALLBACK)
@@ -863,6 +874,7 @@ class PlayerViewModel @Inject constructor(
             switching = false,
             attempt = beginWait(since = pressed),
             longWait = false,
+            providerSlow = false,
             evidence = null,
         )
         start(request, on)
@@ -982,7 +994,7 @@ class PlayerViewModel @Inject constructor(
             ticker?.cancel(); ticker = null
             // Nothing is opening while the application is away; the return begins a new wait.
             waitJob?.cancel(); waitJob = null
-            _state.value = current.copy(picture = Picture.Opening, switching = false, longWait = false)
+            _state.value = current.copy(picture = Picture.Opening, switching = false, longWait = false, providerSlow = false)
             return
         }
 
@@ -1022,6 +1034,7 @@ class PlayerViewModel @Inject constructor(
                 switching = false,
                 attempt = beginWait(since = asked),
                 longWait = false,
+                providerSlow = false,
             )
             start(current.request, engineId)
             diagnose(OpeningCase.FIRST)
@@ -1921,6 +1934,13 @@ class PlayerViewModel @Inject constructor(
          * appears and is gone again a moment later is worse than none.
          */
         const val SPINNER_DELAY_MS = 2_000L
+
+        /**
+         * How long the server may be silent before the loading screen says it is the provider that is slow: half a second after
+         * the spinner, so the two never arrive together. Read from the primary's own marks, so it is said only of a wait that
+         * has no answer in it.
+         */
+        const val PROVIDER_SLOW_MS = 2_500L
 
         /** Close enough to call a seek landed: three ticks of ordinary playback. */
         const val SEEK_TOLERANCE_MS = 750L

@@ -139,7 +139,7 @@ private fun PlayerStage(
 
         // Before every branch, the lock's included: whatever else is drawn over an opening, the
         // frame the surface still holds is not. See `OpeningCover`.
-        if (state.picture is Picture.Opening) OpeningCover()
+        if (state.picture is Picture.Opening) OpeningCover(dimmed = state.request.face != null && state.request.isLive)
 
         // Locked hides everything but the way out of it, and it does so before the
         // opening branch: a screen that is locked while a channel opens must not draw a
@@ -432,8 +432,15 @@ private fun OpeningOverlay(state: PlayerState, inset: androidx.compose.ui.unit.D
             .padding(inset)
             .testTag(PlayerTags.OVERLAY),
     ) {
-        OpeningTitle(state, Modifier.align(Alignment.TopStart))
-        if (state.longWait) OpeningSpinner(state, Modifier.align(Alignment.Center))
+        val face = state.request.face?.takeIf { state.request.isLive }
+        if (face != null) {
+            // A channel that came with its logo and its programme: all of it centred, the wait's bar along the top.
+            OpeningBar(Modifier.align(Alignment.TopCenter))
+            OpeningFaceContent(state, face, Modifier.align(Alignment.Center))
+        } else {
+            OpeningTitle(state, Modifier.align(Alignment.TopStart))
+            if (state.longWait) OpeningSpinner(state, Modifier.align(Alignment.Center))
+        }
     }
 }
 
@@ -448,14 +455,21 @@ private fun OpeningOverlay(state: PlayerState, inset: androidx.compose.ui.unit.D
  * the first frame of this opening arrives, because that is when the picture stops being one.
  */
 @Composable
-private fun OpeningCover() {
+private fun OpeningCover(dimmed: Boolean) {
     Box(
         Modifier
             .fillMaxSize()
-            .background(CastivioTheme.colors.background)
+            .background(if (dimmed) CastivioTheme.colors.background.copy(alpha = COVER_DIMMED) else CastivioTheme.colors.background)
             .testTag(PlayerTags.COVER),
     )
 }
+
+/**
+ * How much of the player's ground lies over the channel that was on, for a channel that brings its own face: enough that it is
+ * plainly the one that has gone, little enough that it is still a picture and not a black screen. The picture is not blurred,
+ * because a `SurfaceView` cannot be.
+ */
+private const val COVER_DIMMED = 0.66f
 
 /** The band weights, read off the drawing. 38% and 46%, with the film between them. */
 private const val TOP_SCRIM = 38f

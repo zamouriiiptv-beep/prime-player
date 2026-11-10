@@ -13,10 +13,16 @@ import com.castivio.playback.api.MediaKind
  * handle, no way for the player to *ask* who this is. Everything the first frame needs is
  * a field, and the player has no means of fetching anything else before it draws.
  *
- * What is deliberately absent is as much of the design as what is present. No artwork
- * URL: a poster on the loading screen is a network request in front of the picture. No
- * programme, no synopsis, no episode list. Those arrive afterwards, into slots that are
- * already laid out, and the player asks for them only once there is a frame.
+ * What is deliberately absent is as much of the design as what is present. No poster:
+ * a poster on the loading screen is a network request in front of the picture. No
+ * synopsis, no episode list. Those arrive afterwards, into slots that are already laid
+ * out, and the player asks for them only once there is a frame.
+ *
+ * ## What a channel brings, and why it is not a fetch
+ *
+ * A channel press brings its [face]: its logo and what was on when it was pressed. Both are
+ * already on the screen the press was made on -- the row drew the logo and the board held
+ * the guide -- so the loading screen is handed them and asks for nothing.
  */
 data class PlayerRequest(
     val url: String,
@@ -63,6 +69,8 @@ data class PlayerRequest(
      * and the second replaces the first. See [MediaRequest.audioOnly] for why a station must say so.
      */
     val audioOnly: Boolean = false,
+    /** What the loading screen of a channel shows beside its name, or null where the opener had none. See [OpeningFace]. */
+    val face: OpeningFace? = null,
 ) {
 
     /**
@@ -87,4 +95,22 @@ data class PlayerRequest(
 
     /** Whether the timeshift controls exist on this source at all. */
     val supportsTimeshift: Boolean get() = isLive && (catchUpHours ?: 0) > 0
+}
+
+/**
+ * The channel's logo and what was on it when it was pressed, for the loading screen only.
+ *
+ * **Every one of these is equal to every other**, which is the point of the type. A request is compared to decide whether a
+ * press is for what is already playing, and what is on changes while a channel plays: with the programme part of the
+ * comparison, pressing the channel that is playing a minute after the programme changed would be a different request and
+ * would open it again. A face is decoration, and two requests that differ only in it are the same request.
+ */
+class OpeningFace(
+    val artworkUrl: String?,
+    val programme: String?,
+    val programmeHours: String?,
+) {
+    override fun equals(other: Any?): Boolean = other is OpeningFace
+
+    override fun hashCode(): Int = 0
 }

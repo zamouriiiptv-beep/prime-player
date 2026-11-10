@@ -157,6 +157,9 @@ internal object PlayerTags {
     const val STATISTICS = "player.statistics"
     const val TOAST = "player.toast"
 
+    /** The sentence that says the provider, and not the application, is the slow part of an opening. */
+    const val PROVIDER_SLOW = "player.providerSlow"
+
     /** The "+10 s" mark a jump raises over the picture, and the only proof a viewer gets. */
     const val JUMP_MARK = "player.jumpMark"
     const val LOCK_PILL = "player.lockPill"

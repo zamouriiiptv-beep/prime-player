@@ -6,6 +6,7 @@ import com.castivio.domain.Episode
 import com.castivio.domain.MediaGroup
 import com.castivio.domain.MediaKind
 import com.castivio.domain.Movie
+import com.castivio.domain.Programme
 import com.castivio.domain.SectionLoad
 import com.castivio.domain.SectionRun
 import com.castivio.domain.Series
@@ -15,6 +16,8 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.Locale
+import java.util.TimeZone
 
 /**
  * The rules the browse screens are built on, proved without a device.
@@ -181,6 +184,8 @@ class CatalogTest {
         assertEquals("128", selection.channelNumber)
         assertEquals("sky.docs", selection.epgChannelId)
         assertEquals(72, selection.catchUpHours)
+        // The logo the row drew, for the loading screen: carried, not fetched.
+        assertEquals("http://example.invalid/logo.png", selection.artworkUrl)
     }
 
     /** Catch-up is null rather than zero when the provider does not offer it, so no
@@ -299,5 +304,39 @@ class CatalogTest {
         assertEquals(SortOrder.entries.toSet(), visited.toSet())
         assertEquals(SortOrder.entries.size, visited.distinct().size)
         assertEquals(start, current.next())
+    }
+
+    // ------------------------------------------------------------------- what was on
+
+    private val night = Programme(
+        channelId = "sky.docs", title = "Programmes de la nuit", description = null,
+        startMs = 1_794_272_100_000L, stopMs = 1_794_286_800_000L,
+    )
+    private val pressed = CatalogSelection(url = "u", title = "Sky Documentaries", live = true, epgChannelId = "sky.docs")
+
+    /** 00:55 and 05:00 on 10 November 2026 in UTC, written as a French clock writes them. */
+    @Test
+    fun `the programme on the channel is put on the press with its hours`() {
+        val withProgramme = pressed.withProgramme(night, TimeZone.getTimeZone("UTC"), Locale.FRANCE)
+
+        assertEquals("Programmes de la nuit", withProgramme.programme)
+        assertEquals("00:55 \u2013 05:00", withProgramme.programmeHours)
+    }
+
+    @Test
+    fun `a programme of another channel is not put on the press`() {
+        val other = night.copy(channelId = "some.other")
+
+        val withProgramme = pressed.withProgramme(other, TimeZone.getTimeZone("UTC"), Locale.FRANCE)
+
+        assertNull("a press must not say what is on a channel it is not", withProgramme.programme)
+        assertNull(withProgramme.programmeHours)
+    }
+
+    @Test
+    fun `a channel with no guide id or a board with no programme leaves the press as it was`() {
+        val noId = pressed.copy(epgChannelId = null)
+        assertEquals(noId, noId.withProgramme(night, TimeZone.getTimeZone("UTC"), Locale.FRANCE))
+        assertEquals(pressed, pressed.withProgramme(null, TimeZone.getTimeZone("UTC"), Locale.FRANCE))
     }
 }

@@ -1608,6 +1608,52 @@ class PlayerLayoutTest {
         compose.onAllNodesWithTag(PlayerTags.COVER).assertCountEquals(1)
     }
 
+    private fun openingWithFace(slow: Boolean): PlayerState {
+        val face = OpeningFace(artworkUrl = null, programme = "Programmes de la nuit", programmeHours = "00:55 \u2013 05:00")
+        val live = playingLive()
+        return live.copy(
+            request = live.request.copy(face = face),
+            picture = Picture.Opening,
+            longWait = slow,
+            providerSlow = slow,
+        )
+    }
+
+    /** A channel that comes with its face names itself once, says what is on it, and keeps the player's ground under all of it. */
+    @Test
+    fun `a channel with a face shows its name once and what is on it`() {
+        compose.mainClock.autoAdvance = false
+        compose.show(HANDSET, DeviceClass.Expanded, openingWithFace(slow = false))
+        compose.mainClock.advanceTimeByFrame()
+
+        compose.onAllNodesWithTag(PlayerTags.TITLE).assertCountEquals(1)
+        compose.onAllNodesWithText("Programmes de la nuit").assertCountEquals(1)
+        compose.onAllNodesWithTag(PlayerTags.COVER).assertCountEquals(1)
+        compose.onAllNodesWithTag(PlayerTags.TOAST).assertCountEquals(0)
+        compose.onAllNodesWithTag(PlayerTags.PROVIDER_SLOW).assertCountEquals(0)
+    }
+
+    /** Once the server stays silent the screen says whose wait it is, and the spinner's line is still there. */
+    @Test
+    fun `a silent server is named on the loading screen`() {
+        compose.mainClock.autoAdvance = false
+        compose.show(HANDSET, DeviceClass.Expanded, openingWithFace(slow = true))
+        compose.mainClock.advanceTimeByFrame()
+
+        compose.onAllNodesWithTag(PlayerTags.PROVIDER_SLOW).assertCountEquals(1)
+        compose.onAllNodesWithTag(PlayerTags.TOAST).assertCountEquals(1)
+    }
+
+    /** A request with no face is the screen it has always been: the title, and the spinner when the wait is long. */
+    @Test
+    fun `an opening without a face never names the provider`() {
+        compose.mainClock.autoAdvance = false
+        compose.show(HANDSET, DeviceClass.Expanded, playingLive().copy(picture = Picture.Opening, longWait = true))
+        compose.mainClock.advanceTimeByFrame()
+
+        compose.onAllNodesWithTag(PlayerTags.PROVIDER_SLOW).assertCountEquals(0)
+    }
+
     private fun ComposeContentTestRule.assertCovers(over: String, under: String) {
         val cover = bounds(over)
         val surface = bounds(under)

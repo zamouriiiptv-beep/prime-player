@@ -1,6 +1,7 @@
 package com.castivio.feature.player
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -22,6 +23,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,10 +46,12 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.castivio.core.design.components.CastivioTextField
+import com.castivio.core.design.components.ProviderArtwork
 import com.castivio.core.design.icons.CastivioIcons
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
@@ -108,6 +112,144 @@ internal fun OpeningSpinner(state: PlayerState, modifier: Modifier = Modifier) {
         )
     }
 }
+
+/**
+ * What a channel's loading screen says, for a channel that came with a [OpeningFace]: its logo beside its name, what is on it, a
+ * thin bar for the wait, and -- as the wait goes on -- the spinner and its line and, if the server is the slow part, a sentence
+ * that says so.
+ *
+ * Everything in it was handed to the player with the press and is already laid out: the logo is the one the row drew, the
+ * programme is the one the board held, and nothing here asks for either. It is drawn over the player's ground ([OpeningCover]),
+ * which lets the channel that was on show through, dimmed, until the new one's first frame takes its place.
+ *
+ * The name is the title of the request, so it is the screen's one [PlayerTags.TITLE] here as it is without a face.
+ */
+@Composable
+internal fun OpeningFaceContent(state: PlayerState, face: OpeningFace, modifier: Modifier = Modifier) {
+    val colors = CastivioTheme.colors
+    Column(
+        modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.lg, Alignment.CenterVertically),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            face.artworkUrl?.let { url ->
+                val shape = RoundedCornerShape(Radius.md)
+                Box(
+                    Modifier
+                        .size(LocalPlayerMetrics.current.spinner * FACE_LOGO_OF_SPINNER)
+                        .clip(shape)
+                        .background(colors.glassFillStrong)
+                        .border(BorderStroke(1.dp, colors.cardSurfaceEdge), shape)
+                        .padding(Spacing.sm),
+                ) {
+                    ProviderArtwork(url = url, description = null, modifier = Modifier.fillMaxSize())
+                }
+            }
+            Column {
+                Text(
+                    text = state.request.title,
+                    style = CastivioType.titleMedium,
+                    color = colors.onBackground,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.testTag(PlayerTags.TITLE),
+                )
+                state.request.channelNumber?.let { number ->
+                    Text(
+                        text = number,
+                        style = CastivioType.labelMedium,
+                        color = colors.onBackgroundVariant,
+                    )
+                }
+            }
+        }
+        face.programme?.let { programme ->
+            // Each cell is its own text, so a word, a title and a pair of clock figures never share a line the bidirectional
+            // algorithm has to order; the hours are read left to right whatever the language around them.
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.player_opening_now),
+                    style = CastivioType.labelMedium,
+                    color = colors.onBackgroundVariant,
+                )
+                Text(
+                    text = programme,
+                    style = CastivioType.labelMedium,
+                    color = colors.onBackground,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                face.programmeHours?.let { hours ->
+                    Text(
+                        text = hours,
+                        style = CastivioType.labelMedium.copy(textDirection = TextDirection.Ltr),
+                        color = colors.onBackgroundVariant,
+                    )
+                }
+            }
+        }
+        if (state.longWait) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            ) {
+                CircularProgressIndicator(
+                    color = colors.focusRing,
+                    trackColor = colors.glassFillStrong,
+                    modifier = Modifier.size(LocalPlayerMetrics.current.spinner),
+                )
+                Text(
+                    text = stringResource(if (state.switching) R.string.player_switching else R.string.player_connecting),
+                    style = CastivioType.labelMedium,
+                    color = colors.onBackgroundVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.testTag(PlayerTags.TOAST),
+                )
+            }
+        }
+        if (state.providerSlow) {
+            // True of this wait and of no other: the server has said nothing, so the time is the provider's.
+            val shape = RoundedCornerShape(Radius.md)
+            Text(
+                text = stringResource(R.string.player_provider_slow),
+                style = CastivioType.labelMedium,
+                color = colors.warning,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .clip(shape)
+                    .background(colors.warning.copy(alpha = FACE_HINT_FILL))
+                    .border(BorderStroke(1.dp, colors.warning.copy(alpha = FACE_HINT_EDGE)), shape)
+                    .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
+                    .testTag(PlayerTags.PROVIDER_SLOW),
+            )
+        }
+    }
+}
+
+/** The thin bar along the top of a channel's loading screen, which moves for as long as the wait does. */
+@Composable
+internal fun OpeningBar(modifier: Modifier = Modifier) {
+    val colors = CastivioTheme.colors
+    LinearProgressIndicator(
+        color = colors.focusRing,
+        trackColor = colors.glassFillStrong,
+        modifier = modifier.fillMaxWidth().height(FACE_BAR),
+    )
+}
+
+/** The logo's frame as a multiple of the spinner's size, the bar's height, and the slow-provider sentence's fill and edge. */
+private const val FACE_LOGO_OF_SPINNER = 2.2f
+private val FACE_BAR = 3.dp
+private const val FACE_HINT_FILL = 0.12f
+private const val FACE_HINT_EDGE = 0.38f
 
 /**
  * Everything that appears over a picture that already exists.

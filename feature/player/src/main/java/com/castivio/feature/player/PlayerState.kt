@@ -46,6 +46,14 @@ data class PlayerState(
      * never shows one. Only ever true while [picture] is [Picture.Opening].
      */
     val longWait: Boolean = false,
+    /**
+     * Whether the server has still not answered, [PlayerViewModel.PROVIDER_SLOW_MS] after the engine was asked.
+     *
+     * The loading screen then says the provider is slow for this channel: it is the one sentence that is true of that wait and
+     * of no other, because a wait with an answer in it is spent on the stream and not on the server. Only ever true while
+     * [picture] is [Picture.Opening], and carried and cleared exactly as [longWait] is.
+     */
+    val providerSlow: Boolean = false,
     /** Which engine is actually playing. Shown only as a small badge, and only for the backup. */
     val engine: EngineId = EngineId.PRIMARY,
     /**
