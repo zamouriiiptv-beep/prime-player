@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -41,7 +42,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -156,13 +161,7 @@ private fun RadioPlayButton(phase: RadioPhase, onClick: () -> Unit, size: Dp, mo
     val colors = CastivioTheme.colors
     val interaction = remember { MutableInteractionSource() }
     var focused by remember { mutableStateOf(false) }
-    val label = stringResource(
-        when (phase) {
-            RadioPhase.PLAYING, RadioPhase.OPENING -> R.string.radio_pause
-            RadioPhase.FAILED -> R.string.radio_retry
-            RadioPhase.PAUSED, RadioPhase.IDLE -> R.string.radio_play
-        },
-    )
+    val label = stringResource(playLabel(phase))
     Box(
         modifier
             .size(size)
@@ -176,11 +175,7 @@ private fun RadioPlayButton(phase: RadioPhase, onClick: () -> Unit, size: Dp, mo
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            imageVector = when (phase) {
-                RadioPhase.PLAYING, RadioPhase.OPENING -> Icons.Rounded.Pause
-                RadioPhase.FAILED -> Icons.Rounded.Refresh
-                RadioPhase.PAUSED, RadioPhase.IDLE -> Icons.Rounded.PlayArrow
-            },
+            imageVector = playIcon(phase),
             contentDescription = null,
             tint = colors.onBackground,
             modifier = Modifier.size(size / 2),
@@ -188,27 +183,97 @@ private fun RadioPlayButton(phase: RadioPhase, onClick: () -> Unit, size: Dp, mo
     }
 }
 
-@Composable
-private fun FavoriteButton(plate: RadioPlateState, actions: RadioPlateActions) {
-    CastivioIconButton(
-        icon = if (plate.favorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-        contentDescription = stringResource(
-            if (plate.favorite) R.string.radio_favorite_remove else R.string.radio_favorite_add,
-        ),
-        onClick = actions.onFavorite,
-        tint = if (plate.favorite) CastivioTheme.colors.secondary else null,
-    )
+/** What the next press of the play control does, as the words a screen reader says. */
+private fun playLabel(phase: RadioPhase): Int = when (phase) {
+    RadioPhase.PLAYING, RadioPhase.OPENING -> R.string.radio_pause
+    RadioPhase.FAILED -> R.string.radio_retry
+    RadioPhase.PAUSED, RadioPhase.IDLE -> R.string.radio_play
 }
 
+private fun playIcon(phase: RadioPhase): ImageVector = when (phase) {
+    RadioPhase.PLAYING, RadioPhase.OPENING -> Icons.Rounded.Pause
+    RadioPhase.FAILED -> Icons.Rounded.Refresh
+    RadioPhase.PAUSED, RadioPhase.IDLE -> Icons.Rounded.PlayArrow
+}
+
+/**
+ * One button of the plate at the board's end: a rounded tile of the application's lifted glass with the card's edge, its glyph, and under it
+ * its word when it has one. Focus draws the ring over the edge, as every other control does.
+ *
+ * The word is for the eye: the description is what a screen reader says, so the word is not announced a second time.
+ */
 @Composable
-private fun SleepButton(plate: RadioPlateState, actions: RadioPlateActions) {
-    CastivioIconButton(
-        icon = Icons.Rounded.Timer,
-        contentDescription = stringResource(R.string.radio_sleep),
-        onClick = actions.onSleep,
-        // A running timer is lit in the chosen colour, as a favourite is: the button says it is doing something.
-        tint = if (plate.sleeping) CastivioTheme.colors.secondary else null,
-    )
+private fun PlateButton(
+    icon: ImageVector,
+    description: String,
+    onClick: () -> Unit,
+    m: ChannelsMetrics,
+    modifier: Modifier = Modifier,
+    word: String? = null,
+    tint: Color? = null,
+) {
+    val colors = CastivioTheme.colors
+    val interaction = remember { MutableInteractionSource() }
+    var focused by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(m.previewRadius * PLATE_BUTTON_RADIUS)
+    Column(
+        modifier
+            .castivioFocusScale(Motion.focusScaleButton, interaction)
+            .onFocusChanged { focused = it.isFocused || it.hasFocus }
+            .clip(shape)
+            .background(colors.glassFillStrong)
+            .border(if (focused) FOCUS_RING else 1.dp, if (focused) colors.focusRing else colors.cardSurfaceEdge, shape)
+            .clickable(interaction, indication = null, role = Role.Button, onClick = onClick)
+            .semantics(mergeDescendants = true) { contentDescription = description },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tint ?: colors.primary,
+            modifier = Modifier.size(m.frame.fsLabel * PLATE_ICON_OF_LABEL),
+        )
+        if (word != null) {
+            Text(
+                text = word,
+                style = castivioChipStyle(m.frame.fsChip),
+                color = colors.onBackgroundVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = m.nameGap / 2).clearAndSetSemantics {},
+            )
+        }
+    }
+}
+
+/** The play control on the plate: the board's primary gradient on a wide tile, the one lit control among the plate's quiet ones. */
+@Composable
+private fun PlatePlayButton(phase: RadioPhase, onClick: () -> Unit, m: ChannelsMetrics, modifier: Modifier = Modifier) {
+    val colors = CastivioTheme.colors
+    val interaction = remember { MutableInteractionSource() }
+    var focused by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(m.previewRadius * PLATE_BUTTON_RADIUS)
+    val label = stringResource(playLabel(phase))
+    Box(
+        modifier
+            .castivioFocusScale(Motion.focusScaleButton, interaction)
+            .onFocusChanged { focused = it.isFocused || it.hasFocus }
+            .clip(shape)
+            .background(colors.primaryBrush)
+            .then(if (focused) Modifier.border(FOCUS_RING, colors.focusRing, shape) else Modifier)
+            .clickable(interaction, indication = null, role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = label },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = playIcon(phase),
+            contentDescription = null,
+            tint = colors.onBackground,
+            modifier = Modifier.size(m.frame.fsLabel * PLATE_PLAY_OF_LABEL),
+        )
+    }
 }
 
 /** What the plate's second line says: the category and that it is live, or what is wrong with the sound. */
@@ -288,22 +353,39 @@ private fun RadioPlateCard(
     Column(
         modifier
             .clip(shape)
-            .background(colors.glassFill)
-            .border(1.dp, colors.glassBorderSoft, shape)
-            .padding(m.wellPad),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(m.nameGap, Alignment.CenterVertically),
+            .background(colors.cardSurface)
+            .border(1.dp, colors.cardSurfaceEdge, shape)
+            .padding(if (plate == null) m.wellPad else m.nameGap),
+        verticalArrangement = Arrangement.spacedBy(m.nameGap),
     ) {
         if (plate == null) {
             RadioIdle(m, Modifier.fillMaxSize())
             return@Column
         }
+        PlateStation(plate, m, Modifier.fillMaxWidth().weight(STATION_WEIGHT))
+        PlateControls(plate, actions, m, Modifier.fillMaxWidth().weight(CONTROLS_WEIGHT))
+    }
+}
+
+/** The station on the plate: its logo, its name and what the sound is doing, on a tile of its own. */
+@Composable
+private fun PlateStation(plate: RadioPlateState, m: ChannelsMetrics, modifier: Modifier = Modifier) {
+    val colors = CastivioTheme.colors
+    val shape = RoundedCornerShape(m.previewRadius * PLATE_INNER_RADIUS)
+    BoxWithConstraints(
+        modifier
+            .clip(shape)
+            .background(colors.glassFill)
+            .border(1.dp, colors.glassBorderSoft, shape),
+    ) {
+        // Read here, in the box's own scope: the Row below is a scope of its own and does not answer for the box's size.
+        val logo = (maxHeight - m.nameGap).coerceIn(PLATE_LOGO_MIN, PLATE_LOGO)
         Row(
-            Modifier.fillMaxWidth(),
+            Modifier.fillMaxSize().padding(horizontal = m.nameGap),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(m.nameGap),
         ) {
-            StationLogo(plate.artworkUrl, size = PLATE_LOGO)
+            StationLogo(plate.artworkUrl, size = logo)
             Column(Modifier.weight(1f)) {
                 Text(
                     text = plate.title,
@@ -323,16 +405,92 @@ private fun RadioPlateCard(
             StreamQualityIcon(quality = plate.quality)
             if (plate.phase == RadioPhase.PLAYING) Equaliser()
         }
-        RadioControls(plate, actions, button = Sizing.minTarget(CastivioTheme.device.isTv))
-        Row(horizontalArrangement = Arrangement.spacedBy(m.nameGap), verticalAlignment = Alignment.CenterVertically) {
-            FavoriteButton(plate, actions)
-            SleepButton(plate, actions)
-            actions.onOpen?.let { open ->
-                CastivioIconButton(
-                    icon = Icons.Rounded.KeyboardArrowUp,
-                    contentDescription = stringResource(R.string.radio_open_player),
-                    onClick = open,
+    }
+}
+
+/**
+ * The plate's controls on a tile of their own, in two rows that share its height: the station before, play or pause -- the wide one -- and
+ * the station after; and under them the favourite, the sleep timer and, on a handset, the way into the full view, each with its word.
+ * A station before the first one of a list is not drawn but its place is kept, so the play control does not move under a thumb.
+ */
+@Composable
+private fun PlateControls(plate: RadioPlateState, actions: RadioPlateActions, m: ChannelsMetrics, modifier: Modifier = Modifier) {
+    val colors = CastivioTheme.colors
+    val shape = RoundedCornerShape(m.previewRadius * PLATE_INNER_RADIUS)
+    val tile = Modifier.fillMaxHeight()
+    Column(
+        modifier
+            .clip(shape)
+            .background(colors.glassFill)
+            .border(1.dp, colors.glassBorderSoft, shape)
+            .padding(m.nameGap),
+        verticalArrangement = Arrangement.spacedBy(m.nameGap),
+    ) {
+        Row(
+            Modifier.fillMaxWidth().weight(TRANSPORT_WEIGHT),
+            horizontalArrangement = Arrangement.spacedBy(m.nameGap),
+        ) {
+            if (plate.canPrevious) {
+                PlateButton(
+                    icon = Icons.Rounded.SkipPrevious,
+                    description = stringResource(R.string.radio_previous),
+                    onClick = actions.onPrevious,
+                    m = m,
+                    modifier = tile.weight(SIDE_WEIGHT),
                 )
+            } else {
+                Spacer(Modifier.weight(SIDE_WEIGHT))
+            }
+            PlatePlayButton(plate.phase, actions.onToggle, m, tile.weight(PLAY_WEIGHT))
+            if (plate.canNext) {
+                PlateButton(
+                    icon = Icons.Rounded.SkipNext,
+                    description = stringResource(R.string.radio_next),
+                    onClick = actions.onNext,
+                    m = m,
+                    modifier = tile.weight(SIDE_WEIGHT),
+                )
+            } else {
+                Spacer(Modifier.weight(SIDE_WEIGHT))
+            }
+        }
+        val open = actions.onOpen
+        Row(
+            Modifier.fillMaxWidth().weight(OPTIONS_WEIGHT),
+            horizontalArrangement = Arrangement.spacedBy(m.nameGap),
+        ) {
+            // Where there is no way into the full view the two buttons keep a third of the width each, centred, and do not stretch.
+            if (open == null) Spacer(Modifier.weight(HALF_SLOT))
+            PlateButton(
+                icon = if (plate.favorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                description = stringResource(if (plate.favorite) R.string.radio_favorite_remove else R.string.radio_favorite_add),
+                onClick = actions.onFavorite,
+                m = m,
+                modifier = tile.weight(1f),
+                word = stringResource(R.string.channels_favorites),
+                tint = if (plate.favorite) colors.secondary else null,
+            )
+            PlateButton(
+                icon = Icons.Rounded.Timer,
+                description = stringResource(R.string.radio_sleep),
+                onClick = actions.onSleep,
+                m = m,
+                modifier = tile.weight(1f),
+                word = stringResource(R.string.radio_sleep),
+                // A running timer is lit in the chosen colour, as a favourite is: the button says it is doing something.
+                tint = if (plate.sleeping) colors.secondary else null,
+            )
+            if (open != null) {
+                PlateButton(
+                    icon = Icons.Rounded.KeyboardArrowUp,
+                    description = stringResource(R.string.radio_open_player),
+                    onClick = open,
+                    m = m,
+                    modifier = tile.weight(1f),
+                    word = stringResource(R.string.radio_open_player),
+                )
+            } else {
+                Spacer(Modifier.weight(HALF_SLOT))
             }
         }
     }
@@ -521,6 +679,31 @@ private const val PICTURE_SHARE = 0.46f
 
 /** The station's logo on the plate: a touch target's size, so it is the thing the eye lands on and leaves the controls room. */
 private val PLATE_LOGO = 40.dp
+
+/** The least the logo is drawn at where the plate is short; below it the tile is more picture than the plate can spare. */
+private val PLATE_LOGO_MIN = 24.dp
+
+/**
+ * How the plate's height is shared, from `design/mockups/radio-buttons-ar.png`: the station's tile and the controls' tile in
+ * [STATION_WEIGHT] to [CONTROLS_WEIGHT], and in the controls the transport row and the row of options in [TRANSPORT_WEIGHT] to
+ * [OPTIONS_WEIGHT]; across the transport row the station before, play and the station after in [SIDE_WEIGHT], [PLAY_WEIGHT] and
+ * [SIDE_WEIGHT]. [HALF_SLOT] is half of a button's share of the options row.
+ */
+private const val STATION_WEIGHT = 100f
+private const val CONTROLS_WEIGHT = 295f
+private const val TRANSPORT_WEIGHT = 112f
+private const val OPTIONS_WEIGHT = 147f
+private const val SIDE_WEIGHT = 160f
+private const val PLAY_WEIGHT = 279f
+private const val HALF_SLOT = 0.5f
+
+/** The corner of the plate's two inner tiles and of its buttons, as shares of the card's own. */
+private const val PLATE_INNER_RADIUS = 0.8f
+private const val PLATE_BUTTON_RADIUS = 0.7f
+
+/** A button's glyph as a multiple of the label size, and the play control's, which is the larger. */
+private const val PLATE_ICON_OF_LABEL = 2.2f
+private const val PLATE_PLAY_OF_LABEL = 2.6f
 
 /** The share of a logo's frame left empty around it, as the divisor of the frame: a ninth each side. */
 private const val LOGO_INSET = 9
