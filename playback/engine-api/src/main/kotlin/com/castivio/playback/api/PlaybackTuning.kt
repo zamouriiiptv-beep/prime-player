@@ -6,7 +6,7 @@ package com.castivio.playback.api
  *
  * ExoPlayer's defaults optimise for smoothness on mobile networks: 2.5 seconds
  * buffered before playback starts. For live TV that reads as a sluggish zap.
- * Castivio starts playing at half a second and lets the buffer fill behind the
+ * Castivio starts playing after 300 ms and lets the buffer fill behind the
  * picture — the difference between "instant" and "slow" is almost entirely
  * this one number.
  */
@@ -39,7 +39,7 @@ data class PlaybackTuning(
          * the same figure it was.
          */
         val LIVE_FAST = PlaybackTuning(
-            bufferForPlaybackMs = 500,
+            bufferForPlaybackMs = 300,
             bufferForPlaybackAfterRebufferMs = 1_000,
             minBufferMs = 20_000,
             maxBufferMs = 20_000,
