@@ -31,9 +31,10 @@ class PlaybackTuningTest {
     }
 
     @Test
-    fun `a live channel still starts at half a second`() {
-        assertEquals(500, PlaybackTuning.LIVE_FAST.bufferForPlaybackMs)
-        assertEquals(500, PlaybackTuning.LIVE_LEAN.bufferForPlaybackMs)
+    fun `a live channel starts at 300 ms on both live profiles`() {
+        assertEquals(300, PlaybackTuning.LIVE_FAST.bufferForPlaybackMs)
+        // The lean profile is the fast one with a smaller buffer, so it starts where the fast one does.
+        assertEquals(300, PlaybackTuning.LIVE_LEAN.bufferForPlaybackMs)
     }
 
     @Test
