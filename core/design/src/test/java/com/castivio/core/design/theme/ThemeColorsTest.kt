@@ -436,8 +436,9 @@ class ThemeColorsTest {
                 assertEquals("$name's Home card keeps the indigo's green", indigo.green, fill.green, 0.001f)
                 assertEquals("$name's Home card keeps the indigo's blue", indigo.blue, fill.blue, 0.001f)
             }
-            assertEquals("$name's Home card at its lit corner", 0.08f, ground.homeCardLit.alpha, 0.001f)
-            assertEquals("$name's Home card at its foot", 0.02f, ground.homeCardFoot.alpha, 0.001f)
+            // A colour keeps its alpha in eight bits, so the weights are compared as colours and not as floats against a tolerance.
+            assertEquals("$name's Home card at its lit corner", indigo.copy(alpha = 0.08f), ground.homeCardLit)
+            assertEquals("$name's Home card at its foot", indigo.copy(alpha = 0.02f), ground.homeCardFoot)
             assertTrue("$name's Home card is lit at its head", ground.homeCardLit.alpha > ground.homeCardFoot.alpha)
         }
         assertEquals(dark.homeCardLit, slate.homeCardLit)
