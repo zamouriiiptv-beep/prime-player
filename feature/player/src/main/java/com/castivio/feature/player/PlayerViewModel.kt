@@ -15,6 +15,7 @@ import com.castivio.playback.api.PlaybackEngine
 import com.castivio.playback.api.PlaybackDiagnosis
 import com.castivio.playback.api.PlaybackError
 import com.castivio.playback.api.PlayEvidence
+import com.castivio.playback.api.MediaKind
 import com.castivio.playback.api.PlaybackState
 import com.castivio.playback.api.PrimaryVerdict
 import com.castivio.playback.api.StreamQualityMonitor
@@ -105,6 +106,24 @@ class PlayerViewModel @Inject constructor(
     private var engine: PlaybackEngine? = null
     private var engineId: EngineId = EngineId.PRIMARY
     private var output: VideoOutput? = null
+
+    /**
+     * A primary engine for channels that is not playing: the one the viewer left the player with, or one built while
+     * the channels were on the screen and nobody was waiting -- see [leave] and [prepare]. The next channel opened on the
+     * primary is opened on it, rather than on one built at the press: what a first press used to pay for, the player
+     * and its threads built and the engine's connections made from nothing, is already paid.
+     *
+     * Stopped, so it holds no stream, no decoder and no connection to the provider of its own; never one that has
+     * failed. It is let go when anything else is opened, [PARKED_FOR_MS] after it was parked, when the application goes
+     * to the background, and with the view model: there is never a second engine beside it.
+     */
+    private var parked: PlaybackEngine? = null
+
+    /** Lets [parked] go once it has waited [PARKED_FOR_MS] for a channel. */
+    private var parkedFor: Job? = null
+
+    /** [prepare]'s build, waiting for the board's first frames to be drawn. */
+    private var preparing: Job? = null
 
     /** Cancelled by the first frame. Never allowed to outlive an open. */
     private var deadline: Job? = null
@@ -263,9 +282,18 @@ class PlayerViewModel @Inject constructor(
         val openedAt = System.nanoTime()
         val next = FallbackPolicy.first(FallbackPolicy.sourceKey(request.url), memory)
         val kept = engine?.takeIf { keeps(it, next, request) }
+        // The engine waiting for a channel, when there is none playing to keep -- see [parked].
+        val ready = if (engine == null) unpark(next, request) else null
         // For the opening panel: what this opening is, read before the engine and the state are replaced.
-        val case = if (force) OpeningCase.RETRY else openingCaseOf(hadEngine = engine != null, kept = kept != null)
+        val case = when {
+            force -> OpeningCase.RETRY
+            ready != null && _state.value?.picture !is Picture.Failed -> OpeningCase.READY
+            else -> openingCaseOf(hadEngine = engine != null, kept = kept != null)
+        }
         if (kept != null) releaseSource() else release()
+        // Whatever was waiting and is not this opening's is let go before anything is built: never two engines at once.
+        preparing?.cancel(); preparing = null
+        releaseParked()
         timeFrom(pressOf(request, openedAt), openedAt, releasedAt = System.nanoTime())
 
         backupTried = false
@@ -309,7 +337,7 @@ class PlayerViewModel @Inject constructor(
             subtitleStyle = style,
             subtitleSearch = subtitleSearch,
         )
-        if (kept != null) reopen(kept, request) else start(request, engineId)
+        if (kept != null) reopen(kept, request) else start(request, engineId, ready)
         diagnose(case)
     }
 
@@ -373,17 +401,22 @@ class PlayerViewModel @Inject constructor(
         if (!isDeviceFile(request.url)) watchQuality(kept)
     }
 
-    private fun start(request: PlayerRequest, id: EngineId) {
+    /**
+     * [request] on an engine of [id]: [ready], the engine that was waiting for a channel -- see [parked] -- or one built
+     * now. Either is given its listeners and the surface here, which is all a waiting engine lacks.
+     */
+    private fun start(request: PlayerRequest, id: EngineId, ready: PlaybackEngine? = null) {
         val kind = request.kind
         val building = System.nanoTime()
         frameAtNanos = null
         failureNoted = false
-        reused = false
+        // Not built for this opening, so its setup is the listeners and the surface alone.
+        reused = ready != null
         // Building an engine constructs decoders and renderers, and on an unusual device
         // that can fail outright. A player that dies here takes the application with it
         // and tells the user nothing; a player that catches it can at least say which
         // engine refused and offer the other one.
-        val created = runCatching { engines.create(id, kind) }.getOrElse { error ->
+        val created = ready ?: runCatching { engines.create(id, kind) }.getOrElse { error ->
             Log.e(TAG, "could not build the $id engine", error)
             _state.value = _state.value?.copy(
                 picture = Picture.Failed(PlaybackError.UNKNOWN, canTryBackup = id == EngineId.PRIMARY),
@@ -977,6 +1010,9 @@ class PlayerViewModel @Inject constructor(
      * good. A channel has no frame to come back to, so it is the live picture that returns.
      */
     fun pauseForBackground() {
+        // Nothing waits for a channel while the application is away: the engine kept for one is let go with the rest.
+        preparing?.cancel(); preparing = null
+        releaseParked()
         val current = _state.value ?: return
         val running = engine ?: return
         inBackground = true
@@ -1823,6 +1859,14 @@ class PlayerViewModel @Inject constructor(
     }
 
     private fun stopEngine() {
+        detachEngine()?.release()
+    }
+
+    /**
+     * The engine let go of by everything that listens to it, given no surface, and no longer this player's: released by
+     * the caller, or parked for the next channel -- see [leave].
+     */
+    private fun detachEngine(): PlaybackEngine? {
         stopQuality()
         deadline?.cancel(); deadline = null
         collector?.cancel(); collector = null
@@ -1832,9 +1876,10 @@ class PlayerViewModel @Inject constructor(
         shapeJob?.cancel(); shapeJob = null
         sizeJob?.cancel(); sizeJob = null
         cueJob?.cancel(); cueJob = null
-        engine?.setVideoOutput(null)
-        engine?.release()
+        val running = engine
+        running?.setVideoOutput(null)
         engine = null
+        return running
     }
 
     /**
@@ -1875,12 +1920,99 @@ class PlayerViewModel @Inject constructor(
      */
     fun leave() {
         Log.i(TAG, "leaving the player")
-        release()
+        val running = engine
+        val current = _state.value
+        if (running != null && current != null && parks(running, current)) {
+            // **Stopped, not released.** The sound and the stream go as they did, and the engine waits for the next
+            // channel -- see [parked] -- for [PARKED_FOR_MS] at most.
+            releaseSource()
+            detachEngine()
+            running.stop()
+            park(running)
+            Log.i(TAG, "the engine is kept, stopped, for the next channel")
+        } else {
+            release()
+        }
         _state.value = null
     }
 
+    /**
+     * The channels are on the screen, so a channel is about to be pressed: what its opening would wait for is got ready
+     * now, while nobody is waiting.
+     *
+     * Two things, and neither is in the way of what is on the screen. The engines' own -- the platform's decoder list,
+     * and LibVLC when a channel has needed it -- on a thread of the factory's: see [EngineFactory.warmUp]. And the
+     * primary engine for channels, built once the board has drawn its first frames, on the main thread as every engine
+     * is, and parked: the first press opens on it -- see [parked] -- rather than on one built at the press. Nothing is
+     * built while an engine is playing or waiting, or when the application is away.
+     */
+    fun prepare() {
+        if (inBackground) return
+        engines.warmUp(EngineId.PRIMARY)
+        engines.warmUp(EngineId.BACKUP)
+        if (engine != null || parked != null || preparing?.isActive == true) return
+        preparing = viewModelScope.launch {
+            delay(PREPARE_AFTER_MS)
+            preparing = null
+            if (engine != null || parked != null || inBackground) return@launch
+            val built = runCatching { engines.create(EngineId.PRIMARY, MediaKind.LIVE) }.getOrElse { error ->
+                Log.w(TAG, "the primary could not be got ready ahead of a press", error)
+                return@launch
+            }
+            Log.i(TAG, "the primary is ready ahead of the first press")
+            park(built)
+        }
+    }
+
+    /**
+     * Whether the engine the viewer is leaving waits for the next channel rather than being released: the primary, for
+     * channels, and only one that has not failed -- the conditions [keeps] has for the next channel, for the same reason.
+     * A film's engine is tuned for a film, and the backup does not offer to be kept.
+     */
+    private fun parks(running: PlaybackEngine, current: PlayerState): Boolean =
+        engineId == EngineId.PRIMARY &&
+            running.reusable &&
+            current.request.isLive &&
+            running.state.value !is PlaybackState.Failed &&
+            running.diagnosis.value == null &&
+            current.picture !is Picture.Failed
+
+    /** [idle], stopped, waits for the next channel -- see [parked] -- and is let go if none comes in [PARKED_FOR_MS]. */
+    private fun park(idle: PlaybackEngine) {
+        releaseParked()
+        parked = idle
+        parkedFor = viewModelScope.launch {
+            delay(PARKED_FOR_MS)
+            parkedFor = null
+            Log.i(TAG, "no channel came for the engine that was kept; letting it go")
+            releaseParked()
+        }
+    }
+
+    /**
+     * The waiting engine, taken for an opening on [next] of [request], when it can be: a channel on the primary, and an
+     * engine that has not failed while it waited. Null otherwise, and the caller lets it go.
+     */
+    private fun unpark(next: EngineId, request: PlayerRequest): PlaybackEngine? {
+        val idle = parked ?: return null
+        if (next != EngineId.PRIMARY || !request.isLive) return null
+        if (idle.state.value is PlaybackState.Failed || idle.diagnosis.value != null) return null
+        parkedFor?.cancel(); parkedFor = null
+        parked = null
+        return idle
+    }
+
+    private fun releaseParked() {
+        parkedFor?.cancel(); parkedFor = null
+        val idle = parked ?: return
+        parked = null
+        idle.release()
+    }
+
     override fun onCleared() {
+        preparing?.cancel(); preparing = null
         release()
+        releaseParked()
         super.onCleared()
     }
 
@@ -1897,6 +2029,16 @@ class PlayerViewModel @Inject constructor(
 
         /** How often the opening panel's reading is taken while a channel opens: ten times a second. */
         const val DIAGNOSTIC_TICK_MS = 100L
+
+        /**
+         * How long an engine waits for a channel, once the player was left or the engine was built ahead of a press: long
+         * enough for a viewer who went back to the channels to choose another, short enough that an engine nobody came
+         * for does not stay in the memory of a stick that has little.
+         */
+        const val PARKED_FOR_MS = 180_000L
+
+        /** How long after the channels appear the engine for them is built: once the board has drawn its first frames. */
+        const val PREPARE_AFTER_MS = 500L
 
         /**
          * How often the primary's opening is looked at for its first bytes and its tracks: ten times a

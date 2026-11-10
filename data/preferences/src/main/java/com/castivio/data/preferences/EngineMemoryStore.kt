@@ -79,6 +79,13 @@ class EngineMemoryStore @Inject constructor(
         }
 
     /**
+     * Whether any row says the backup: the primary is never written down, so a row is a source that needed the backup.
+     * Every row is looked at, which is why the caller is the thread that gets an engine ready and not the opening path.
+     */
+    override fun remembersAny(engine: EngineId): Boolean =
+        engine == EngineId.BACKUP && prefs.all.values.any { it == BACKUP }
+
+    /**
      * Record what worked, and only when it is worth recording.
      *
      * The primary engine is the default for anything unknown, so storing "this one used

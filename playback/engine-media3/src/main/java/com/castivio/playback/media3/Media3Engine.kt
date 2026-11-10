@@ -10,6 +10,7 @@ import androidx.annotation.OptIn
 import androidx.media3.common.C
 import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.text.CueGroup
@@ -42,6 +43,8 @@ import com.castivio.playback.api.AspectMode
 import com.castivio.playback.api.DecoderReport
 import com.castivio.playback.api.FormatReport
 import com.castivio.playback.api.EngineId
+import com.castivio.playback.api.HopLog
+import com.castivio.playback.api.HttpHops
 import com.castivio.playback.api.MediaKind
 import com.castivio.playback.api.MediaRequest
 import com.castivio.playback.api.OpenAttemptLog
@@ -65,6 +68,8 @@ import java.net.Proxy
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 import okhttp3.Call
+import okhttp3.Connection
+import okhttp3.ConnectionPool
 import okhttp3.EventListener
 import okhttp3.Handshake
 import okhttp3.OkHttpClient
@@ -250,17 +255,27 @@ class Media3Engine(
                 private var requestHeadersEndedAt = 0L
                 private var pendingTtfbMs = -1L
 
+                /** Each response of the chain on its own, for a measuring build: see [HopLog]. Null in any other. */
+                private val hops = marks.hops
+
+                override fun callStart(call: Call) {
+                    hops?.callStarted()
+                }
+
                 override fun dnsStart(call: Call, domainName: String) {
                     dnsStartedAt = SystemClock.elapsedRealtime()
+                    hops?.dnsStarted()
                 }
 
                 override fun dnsEnd(call: Call, domainName: String, inetAddressList: List<java.net.InetAddress>) {
                     addElapsed(marks.dnsMs, dnsStartedAt)
                     dnsStartedAt = 0L
+                    hops?.dnsEnded()
                 }
 
                 override fun connectStart(call: Call, inetSocketAddress: InetSocketAddress, proxy: Proxy) {
                     connectStartedAt = SystemClock.elapsedRealtime()
+                    hops?.connectStarted()
                 }
 
                 override fun connectEnd(
@@ -271,19 +286,40 @@ class Media3Engine(
                 ) {
                     addElapsed(marks.tcpMs, connectStartedAt)
                     connectStartedAt = 0L
+                    hops?.connectEnded()
+                }
+
+                override fun connectFailed(
+                    call: Call,
+                    inetSocketAddress: InetSocketAddress,
+                    proxy: Proxy,
+                    protocol: Protocol?,
+                    ioe: IOException,
+                ) {
+                    connectStartedAt = 0L
+                    tlsStartedAt = 0L
+                    hops?.connectFailed()
                 }
 
                 override fun secureConnectStart(call: Call) {
                     tlsStartedAt = SystemClock.elapsedRealtime()
+                    hops?.secureStarted()
                 }
 
                 override fun secureConnectEnd(call: Call, handshake: Handshake?) {
                     addElapsed(marks.tlsMs, tlsStartedAt)
                     tlsStartedAt = 0L
+                    hops?.secureEnded()
+                }
+
+                override fun connectionAcquired(call: Call, connection: Connection) {
+                    hops?.connectionAcquired()
                 }
 
                 override fun requestHeadersEnd(call: Call, request: Request) {
                     requestHeadersEndedAt = SystemClock.elapsedRealtime()
+                    // The host is compared with the last hop's and forgotten: nothing of it reaches the panel.
+                    hops?.requestSent(request.url.host, request.url.isHttps)
                 }
 
                 override fun responseHeadersStart(call: Call) {
@@ -293,6 +329,7 @@ class Media3Engine(
                         -1L
                     }
                     requestHeadersEndedAt = 0L
+                    hops?.responseBegan()
                 }
 
                 override fun responseHeadersEnd(call: Call, response: okhttp3.Response) {
@@ -301,12 +338,28 @@ class Media3Engine(
                     // intermediate 3xx response measurement.
                     if (pendingTtfbMs >= 0L) marks.ttfbMs.set(pendingTtfbMs)
                     pendingTtfbMs = -1L
+                    // The address only to fingerprint where the chain ended; see [HopLog.answered].
+                    hops?.answered(response.code, response.request.url.toString())
+                }
+
+                override fun requestFailed(call: Call, ioe: IOException) {
+                    hops?.failed(OpenAttemptProbes.describeFailure(ioe))
+                }
+
+                override fun responseFailed(call: Call, ioe: IOException) {
+                    hops?.failed(OpenAttemptProbes.describeFailure(ioe))
+                }
+
+                override fun callFailed(call: Call, ioe: IOException) {
+                    hops?.failed(OpenAttemptProbes.describeFailure(ioe))
                 }
             }
         }
     }
 
     private val httpClient = OkHttpClient.Builder()
+        // The process's connections, not this engine's: see [sharedConnections].
+        .connectionPool(sharedConnections)
         .connectTimeout(CONNECT_TIMEOUT_MS.toLong(), TimeUnit.MILLISECONDS)
         .readTimeout(READ_TIMEOUT_MS.toLong(), TimeUnit.MILLISECONDS)
         // ExoPlayer owns load retries; do not add invisible transport retries underneath it.
@@ -450,6 +503,7 @@ class Media3Engine(
             url = media.url,
             generation = mine,
             attempts = if (DevDiagnostics.enabled) OpenAttemptLog(openedAtMs, SystemClock::elapsedRealtime) else null,
+            hops = if (DevDiagnostics.enabled) HopLog(openedAtMs, SystemClock::elapsedRealtime, media.url) else null,
         )
         tracksCallbackAt = 0
         tracksProcessingMs = null
@@ -659,6 +713,7 @@ class Media3Engine(
             firstFrameMs = _firstFrameAtMs.value?.let { it - openedAtMs },
             readyMs = since(readyAt),
             attempts = transfer?.attempts?.snapshot() ?: OpenAttempts.NONE,
+            hops = transfer?.hops?.snapshot() ?: HttpHops.NONE,
         )
     }
 
@@ -1085,12 +1140,14 @@ class Media3Engine(
     /**
      * One open's server marks. Zero is "not yet", which `elapsedRealtime` never is on a running device.
      *
-     * [attempts] is the record of the tries at the address, kept by a measuring build and null in any other.
+     * [attempts] is the record of the tries at the address, and [hops] the record of the responses the latest try
+     * followed to reach the stream; both are kept by a measuring build and null in any other.
      */
     private class TransferMarks(
         val url: String,
         val generation: Int,
         val attempts: OpenAttemptLog? = null,
+        val hops: HopLog? = null,
     ) {
         val answeredAt = AtomicLong(0)
         val firstBytesAt = AtomicLong(0)
@@ -1481,6 +1538,50 @@ class Media3Engine(
             runCatching {
                 Class.forName("androidx.media3.decoder.ffmpeg.FfmpegAudioRenderer")
             }.isSuccess
+        }
+
+        /**
+         * The connections every engine's HTTP client keeps open, shared by all of them.
+         *
+         * Each engine built its own client, and with it its own pool, so an engine built again -- a film after a
+         * channel, the primary after the backup, the first channel after the player was left -- began with no
+         * connection at all and paid for a new one to the provider's first address, the lookup included, on its first
+         * open. One pool for the process keeps what the last engine had open for the next. A pool is made to be shared:
+         * each client keeps its own listener, timeouts and redirects, and a connection a client cannot use is not given
+         * to it.
+         */
+        internal val sharedConnections = ConnectionPool()
+
+        /**
+         * The formats channels and films arrive in, whose decoders the platform is asked for ahead of the first open:
+         * see [warmDecoderList].
+         */
+        private val WARM_MIMES = listOf(
+            MimeTypes.VIDEO_H264,
+            MimeTypes.VIDEO_H265,
+            MimeTypes.VIDEO_MPEG2,
+            MimeTypes.AUDIO_AAC,
+            MimeTypes.AUDIO_AC3,
+            MimeTypes.AUDIO_E_AC3,
+            MimeTypes.AUDIO_MPEG,
+            MimeTypes.AUDIO_MPEG_L2,
+        )
+
+        /**
+         * Asks the platform, once, which decoders it has for the formats channels arrive in.
+         *
+         * Media3 asks the same question when an open's tracks are known -- which decoder for this stream, and can it play
+         * it -- and keeps the answer for the life of the process. The first time, the answer is a walk of the platform's
+         * whole codec list, which on a stick is tens of milliseconds a format: on the way to the first picture of the
+         * first channel, and on no other. Asked here, on the caller's thread -- which must not be the main one -- the
+         * answers are in Media3's own cache before that open asks for them. Each format is asked on its own, so one the
+         * device cannot be questioned about does not stop the rest; nothing is decided here, and nothing is held.
+         */
+        @OptIn(UnstableApi::class)
+        fun warmDecoderList() {
+            for (mime in WARM_MIMES) {
+                runCatching { MediaCodecUtil.getDecoderInfos(mime, /* secure= */ false, /* tunneling= */ false) }
+            }
         }
     }
 }

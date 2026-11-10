@@ -2,7 +2,10 @@ package com.castivio.feature.player
 
 import com.castivio.playback.api.AttemptOutcome
 import com.castivio.playback.api.EngineId
+import com.castivio.playback.api.FinalAddress
 import com.castivio.playback.api.HostLookup
+import com.castivio.playback.api.HttpHop
+import com.castivio.playback.api.HttpHops
 import com.castivio.playback.api.OpenAttempt
 import com.castivio.playback.api.OpenAttempts
 import com.castivio.playback.api.PlaybackDiagnosis
@@ -146,27 +149,34 @@ internal data class OpeningReading(
         // Network phases come from Media3's actual HTTP call. TTFB is measured from request
         // headers sent to response headers beginning; it is distinct from the later server mark.
         // LibVLC does not expose these transport phases through this engine contract.
+        // DNS, TCP and TLS are sums over every hop of a redirect chain and TTFB is the last hop's alone, which the line
+        // says, so the two are never read as one hop's: the hops themselves are the lines after the tries. The first
+        // bytes are milliseconds after the engine was asked -- `+` -- which is why they are not the events' figure.
         val network = timing.marks
         fun networkMs(value: Long?): String = value?.let { "$it" } ?: if (running) "…" else DASH
-        val firstResponse = when {
+        val firstBytes = when {
             network.firstBytesMs == null -> if (!running) DASH else "…"
-            timing.engine == EngineId.BACKUP -> "≈${network.firstBytesMs} (first buffer)"
-            else -> "${network.firstBytesMs}"
+            timing.engine == EngineId.BACKUP -> "first buffer ≈+${network.firstBytesMs}"
+            else -> "first bytes +${network.firstBytesMs}"
         }
         val transport = if (timing.engine == EngineId.PRIMARY) {
             "DNS ${networkMs(network.dnsMs)} · TCP ${networkMs(network.tcpMs)} · TLS ${networkMs(network.tlsMs)} · " +
-                "TTFB ${networkMs(network.ttfbMs)}"
+                "TTFB ${networkMs(network.ttfbMs)} (last hop)"
         } else {
             "DNS n/a · TCP n/a · TLS n/a · TTFB n/a"
         }
         lines += HudLine(
-            "network (ms): $transport · first response bytes $firstResponse",
+            "network (ms): $transport · $firstBytes",
             HudTone.MUTED,
         )
 
         // And the tries at the address behind the first two of them, which are the last try's: a retry after a silent
         // wait and a slow answer are the same figure above and two different lines here. Development builds only.
         lines += attemptLines("tries", timing.marks.attempts.shifted(timing.prepareMs), ended = !running)
+
+        // The responses the latest try followed to reach the stream, one by one: whether a redirect or the stream's own
+        // server took the time, which the summed and last-hop figures above cannot say. Development builds only.
+        lines += hopLines(timing.marks.hops, ended = !running)
 
         // The two figures a reader asks for: how far the engine's readiness is from the picture, and the engine's
         // own share of the wait.
@@ -238,6 +248,83 @@ internal data class OpeningReading(
             AttemptOutcome.CLOSED -> append(" · closed ").append(sec(attempt.endedMs ?: attempt.startedMs))
             AttemptOutcome.ANSWERED -> Unit
         }
+    }
+
+    /**
+     * The responses the latest try at the address followed to reach the stream: a head line with how many there were
+     * and where the chain ended against the last open of the same address, then a line for each -- its status, how it
+     * had its connection, its server's own wait, and what it took from its beginning to its answer.
+     *
+     * Durations in milliseconds and no instants: the hops follow one another, so what each took is what it added to
+     * the opening. No address and no host name, only whether a hop went to another host and whether that host is
+     * written as a number. The head is amber when there was a redirect, the thing these lines are read for. Nothing
+     * at all for an engine that kept none, which is every engine in a build that does not measure, and LibVLC in any.
+     */
+    private fun hopLines(chain: HttpHops, ended: Boolean): List<HudLine> {
+        if (chain.isEmpty) return emptyList()
+        val redirects = chain.redirects
+        val head = buildString {
+            append("hops: ").append(chain.count).append(" · ")
+            append(
+                when (redirects) {
+                    0 -> "no redirect"
+                    1 -> "1 redirect"
+                    else -> "$redirects redirects"
+                },
+            )
+            append(" · final address: ").append(finalAddressText(chain.finalAddress, ended))
+        }
+        val lines = ArrayList<HudLine>(chain.hops.size + 2)
+        lines += HudLine(head, if (redirects > 0) HudTone.RUNNING else HudTone.MUTED)
+        chain.hops.forEach { hop ->
+            lines += HudLine("  " + hopText(hop, ended), if (hop.failure != null) HudTone.RUNNING else HudTone.MUTED)
+        }
+        if (chain.more > 0) lines += HudLine("  +${chain.more} more, not kept", HudTone.MUTED)
+        return lines
+    }
+
+    /** One hop: `#2 200 · other host · numeric host · connect 58 · wait 84 · took 142 ms`, or how it failed or waits. */
+    private fun hopText(hop: HttpHop, ended: Boolean): String = buildString {
+        append('#').append(hop.number).append(' ')
+        append(hop.status?.toString() ?: if (hop.failure != null) "FAILED" else "…")
+        if (hop.otherHost) append(" · other host")
+        if (hop.numericHost) append(" · numeric host")
+        if (hop.secure) append(" · https")
+        if (hop.reusedConnection) {
+            append(" · kept connection")
+        } else {
+            hop.dnsMs?.let { append(" · dns ").append(it) }
+            hop.connectMs?.let { append(" · connect ").append(it) }
+            hop.tlsMs?.let { append(" (tls ").append(it).append(')') }
+        }
+        if (hop.failedConnects > 0) append(" · ").append(hop.failedConnects).append(" connect failed")
+        hop.waitMs?.let { append(" · wait ").append(it) }
+        val took = hop.tookMs
+        when {
+            took != null -> append(" · took ").append(took).append(" ms")
+            hop.failure != null -> append(" · ").append(hop.failure)
+            ended -> append(" · never answered")
+            else -> append(" · waiting")
+        }
+    }
+
+    /** Where the chain ended against the last open of the same address in this process -- never the address itself. */
+    private fun finalAddressText(final: FinalAddress?, ended: Boolean): String {
+        val same = final?.sameAsLast
+        return when {
+            final == null -> if (ended) DASH else "…"
+            same == null -> "first open of it"
+            same -> "same as ${ago(final.lastSeenAgoMs)}"
+            else -> "changed since ${ago(final.lastSeenAgoMs)}"
+        }
+    }
+
+    /** `12 s ago`, `3 min ago`, `2 h ago`: how long before, to the unit a reader would say it in. */
+    private fun ago(ms: Long?): String = when {
+        ms == null -> "before"
+        ms < MS_PER_MINUTE -> "${ms / MS_PER_SECOND.toLong()} s ago"
+        ms < MS_PER_HOUR -> "${ms / MS_PER_MINUTE} min ago"
+        else -> "${ms / MS_PER_HOUR} h ago"
     }
 
     /** What the host's lookup found, by count -- and that it is what the resolver offers, not what the connection used. */
@@ -405,6 +492,8 @@ internal data class OpeningReading(
 
     private companion object {
         const val MS_PER_SECOND = 1_000.0
+        const val MS_PER_MINUTE = 60_000L
+        const val MS_PER_HOUR = 3_600_000L
         const val CHANNEL_ROW = 24
         const val DASH = "-"
         const val UNAVAILABLE = "غير متاح"
@@ -427,6 +516,12 @@ internal enum class OpeningCase(val label: String) {
 
     /** The last channel's engine was let go and another built. */
     REBUILT("engine rebuilt"),
+
+    /**
+     * An engine was waiting for this channel: kept, stopped, when the player was left, or built while the channels were
+     * on the screen -- see `PlayerViewModel.prepare`. Neither built at the press nor playing the channel before.
+     */
+    READY("engine ready"),
 
     /** The attempt before it had failed, or this is a retry of one. */
     AFTER_FAILURE("after a failure"),

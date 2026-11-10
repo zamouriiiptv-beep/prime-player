@@ -1,6 +1,9 @@
 package com.castivio.feature.player
 
 import com.castivio.playback.api.EngineId
+import com.castivio.playback.api.FinalAddress
+import com.castivio.playback.api.HttpHop
+import com.castivio.playback.api.HttpHops
 import com.castivio.playback.api.OpeningMarks
 import com.castivio.playback.api.PlaybackError
 import org.junit.After
@@ -231,6 +234,118 @@ class OpeningReadingTest {
         assertTrue(panel.toString(), panel.any { it.startsWith("primary left: DECODER_INIT") })
         assertTrue(panel.toString(), panel.any { "fallback (DECODER_INIT, bytes)" in it && it.startsWith("#7 LIBVLC") })
         assertTrue(panel.toString(), panel.any { "fallback (TIMEOUT, no bytes)" in it })
+    }
+
+    // ---------------------------------------------------------------- the hops
+
+    /**
+     * The owner's TF1 SERIES 4K: the server answered 0.53 s after the try began, the connection and the last answer
+     * were 0.14 s of it, and the rest was a redirect's wait on a connection kept from the last channel. The panel has
+     * to say so in so many words.
+     */
+    @Test
+    fun `a redirect and the stream's server are a line each, with what each took`() {
+        val reading = media3(
+            status = OpeningStatus.SHOWN,
+            totalMs = 840,
+            marks = OpeningMarks(
+                serverAnsweredMs = 550, firstBytesMs = 546, tcpMs = 58, ttfbMs = 84, firstFrameMs = 780,
+                hops = HttpHops(
+                    hops = listOf(
+                        HttpHop(number = 1, startedMs = 20, reusedConnection = true, sentMs = 20, waitMs = 386, answeredMs = 410, status = 302),
+                        HttpHop(
+                            number = 2, startedMs = 411, connectMs = 58, sentMs = 469, waitMs = 84, answeredMs = 553,
+                            status = 200, otherHost = true, numericHost = true,
+                        ),
+                    ),
+                    finalAddress = FinalAddress(sameAsLast = true, lastSeenAgoMs = 185_000),
+                ),
+            ),
+        )
+
+        val lines = reading.lines()
+        val head = lines.first { it.text.startsWith("hops:") }
+        val text = lines.joinToString("\n") { it.text }
+
+        assertEquals("hops: 2 · 1 redirect · final address: same as 3 min ago", head.text)
+        assertEquals("a redirect is what these lines are read for", HudTone.RUNNING, head.tone)
+        assertTrue(text, "  #1 302 · kept connection · wait 386 · took 390 ms" in text)
+        assertTrue(text, "  #2 200 · other host · numeric host · connect 58 · wait 84 · took 142 ms" in text)
+        assertTrue("the summed and last-hop figures say which they are: $text", "TTFB 84 (last hop)" in text)
+        assertTrue("the first bytes are after the engine was asked, not a count of bytes: $text", "first bytes +546" in text)
+        assertFalse(text, "first response bytes" in text)
+    }
+
+    @Test
+    fun `an address answered directly is one hop, quiet, and a final address seen for the first time says so`() {
+        val reading = media3(
+            status = OpeningStatus.SHOWN,
+            totalMs = 400,
+            marks = OpeningMarks(
+                firstFrameMs = 300,
+                hops = HttpHops(
+                    hops = listOf(
+                        HttpHop(
+                            number = 1, startedMs = 5, dnsMs = 12, connectMs = 72, tlsMs = 40, sentMs = 89, waitMs = 90,
+                            answeredMs = 179, status = 200, secure = true,
+                        ),
+                    ),
+                    finalAddress = FinalAddress(sameAsLast = null, lastSeenAgoMs = null),
+                ),
+            ),
+        )
+
+        val lines = reading.lines()
+        val head = lines.first { it.text.startsWith("hops:") }
+
+        assertEquals("hops: 1 · no redirect · final address: first open of it", head.text)
+        assertEquals(HudTone.MUTED, head.tone)
+        assertTrue(lines.any { it.text == "  #1 200 · https · dns 12 · connect 72 (tls 40) · wait 90 · took 174 ms" })
+    }
+
+    @Test
+    fun `a final address that changed, a hop still waiting and a hop that failed are each said in words`() {
+        val changed = FinalAddress(sameAsLast = false, lastSeenAgoMs = 12_000)
+        val waiting = media3(
+            status = OpeningStatus.WAITING,
+            totalMs = 900,
+            marks = OpeningMarks(
+                hops = HttpHops(
+                    hops = listOf(
+                        HttpHop(number = 1, startedMs = 10, reusedConnection = true, sentMs = 10, waitMs = 300, answeredMs = 312, status = 302),
+                        HttpHop(number = 2, startedMs = 313, sentMs = 380, failedConnects = 1, connectMs = 3_060),
+                    ),
+                ),
+            ),
+        )
+        val failed = media3(
+            status = OpeningStatus.FAILED,
+            totalMs = 8_000,
+            failure = "NETWORK",
+            marks = OpeningMarks(
+                hops = HttpHops(
+                    hops = listOf(HttpHop(number = 1, startedMs = 10, reusedConnection = true, sentMs = 10, failure = "SocketTimeoutException")),
+                    finalAddress = changed,
+                ),
+            ),
+        )
+
+        val waitingText = waiting.lines().joinToString("\n") { it.text }
+        val failedLines = failed.lines()
+
+        assertTrue(waitingText, "hops: 2 · 1 redirect · final address: …" in waitingText)
+        assertTrue(waitingText, "  #2 … · connect 3060 · 1 connect failed · waiting" in waitingText)
+        assertTrue(failedLines.any { it.text == "hops: 1 · no redirect · final address: changed since 12 s ago" })
+        val hop = failedLines.first { it.text.startsWith("  #1") }
+        assertEquals("  #1 FAILED · kept connection · SocketTimeoutException", hop.text)
+        assertEquals(HudTone.RUNNING, hop.tone)
+    }
+
+    @Test
+    fun `an engine that kept no hops has no hops line`() {
+        val reading = media3(status = OpeningStatus.SHOWN, totalMs = 270, marks = OpeningMarks(firstFrameMs = 210))
+
+        assertFalse(reading.lines().any { it.text.startsWith("hops") })
     }
 
     // ------------------------------------------------------------- the main thread

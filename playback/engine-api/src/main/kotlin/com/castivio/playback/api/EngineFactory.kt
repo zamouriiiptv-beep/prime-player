@@ -26,7 +26,21 @@ interface EngineFactory {
      * player's decision, made one channel change at a time: only for an engine that offers it
      * ([PlaybackEngine.reusable]), has not failed, and is tuned for the same kind. What that
      * saves is not construction alone. Releasing an engine waits on the main thread for its
-     * decoders to be let go, and the one built after it has to build them again.
+     * decoders to be let go, and the one built after it has to build them again. So is keeping
+     * one, stopped, for the next channel after the viewer has left the player, or building one
+     * before the first press: the player's too, and only for an engine that has not failed.
      */
     fun create(id: EngineId, kind: MediaKind): PlaybackEngine
+
+    /**
+     * Gets ready, off the main thread, what building or opening an engine of [id] would otherwise wait for: the
+     * platform's list of decoders for the primary, the process's one LibVLC for the backup.
+     *
+     * Returns at once; the work is done on a thread of the factory's own, at most once in the process, and anything
+     * that goes wrong in it is the engine's to meet again later, as it would have without this. Whether it is worth
+     * doing -- a native library loaded for a viewer whose channels never need the backup is memory spent for nothing --
+     * is the factory's to decide: the player only says when a channel is likely to be pressed soon. A factory with
+     * nothing to get ready does nothing, which is the default.
+     */
+    fun warmUp(id: EngineId) {}
 }

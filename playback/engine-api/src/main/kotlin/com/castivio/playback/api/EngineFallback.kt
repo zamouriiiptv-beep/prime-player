@@ -95,6 +95,13 @@ interface EngineMemory {
     /** Record what actually worked. Called after a frame, never before. */
     fun remember(sourceKey: String, engine: EngineId)
 
+    /**
+     * Whether any source is remembered as needing [engine]: whether that engine is likely to be asked for, before any
+     * source is. Read off the main thread -- it is about every row, not one -- by what gets an engine ready ahead of a
+     * press. Nothing is remembered by default.
+     */
+    fun remembersAny(engine: EngineId): Boolean = false
+
     /** Nothing remembered. The default in a test, and in a build with no store wired. */
     companion object {
         val NONE: EngineMemory = object : EngineMemory {

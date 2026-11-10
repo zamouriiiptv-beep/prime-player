@@ -119,6 +119,7 @@ import com.castivio.feature.player.PlayerMode
 import com.castivio.feature.player.PlayerOpener
 import com.castivio.feature.player.PlayerRequest
 import com.castivio.feature.player.PlayerRoute
+import com.castivio.feature.player.PlayerViewModel
 import com.castivio.feature.player.RadioAudioRoute
 import com.castivio.playback.api.MediaKind
 import com.castivio.tv.R
@@ -666,20 +667,28 @@ fun ShellScreen(
                     // stands between Home and the section to say they are not. Live TV is
                     // entered sooner, by Home itself, with its first complete category: the
                     // board lists the categories that are complete, and the rest join it.
-                    Dest.Live -> ChannelsScreen(
-                        onPlay = playInPreview,
-                        // Two presses on the name under the picture, reaching the very action
-                        // the picture's own press reaches — `Overlay.Play` on the request that
-                        // is already playing, which `PlayerViewModel.open` recognises and
-                        // declines to reopen, so expanding moves the surface and leaves the
-                        // decoder alone. Guarded here and not in the board: the request is what
-                        // decides whether there is anything to expand, and the shell holds it.
-                        onExpand = { livePreview?.let(expandPreview) },
-                        // Read only while a player exists to be playing it: a stream that was
-                        // playing when the plate went away has no one left to say it stopped.
-                        pulse = pulse.takeIf { livePreview != null || overlay is Overlay.Play },
-                        preview = preview,
-                    )
+                    Dest.Live -> {
+                        // **The engine for channels is got ready while the channels are on the screen**, so the first
+                        // press does not wait for one to be built: see `PlayerViewModel.prepare`. The same activity-scoped
+                        // view model every shape of the player binds, asked from here because the board must not know
+                        // the player exists.
+                        val player: PlayerViewModel = hiltViewModel()
+                        LaunchedEffect(player) { player.prepare() }
+                        ChannelsScreen(
+                            onPlay = playInPreview,
+                            // Two presses on the name under the picture, reaching the very action
+                            // the picture's own press reaches — `Overlay.Play` on the request that
+                            // is already playing, which `PlayerViewModel.open` recognises and
+                            // declines to reopen, so expanding moves the surface and leaves the
+                            // decoder alone. Guarded here and not in the board: the request is what
+                            // decides whether there is anything to expand, and the shell holds it.
+                            onExpand = { livePreview?.let(expandPreview) },
+                            // Read only while a player exists to be playing it: a stream that was
+                            // playing when the plate went away has no one left to say it stopped.
+                            pulse = pulse.takeIf { livePreview != null || overlay is Overlay.Play },
+                            preview = preview,
+                        )
+                    }
                     // The films have a screen of their own: a sidebar of categories, a wall of posters and a
                     // page per film -- see `MoviesScreen`. Series and radio keep the generic section screen.
                     Dest.Movies -> MoviesScreen(

@@ -3735,16 +3735,228 @@ class PlayerPathTest {
     }
 
     /** Leaving lets a kept engine go like any other: the sound must not outlive the player. */
+    /**
+     * Leaving a channel stops its engine and keeps it for the next channel, where it used to be released.
+     *
+     * The sound and the stream go as they always did: the engine is stopped and loses its surface. What is kept is the
+     * player itself, so the next channel after the viewer comes back to the board does not wait for one to be built.
+     */
     @Test
-    fun `leaving the player releases a kept engine`() = playerTest {
+    fun `leaving a channel stops its engine and keeps it for the next one`() = playerTest {
         engines.primaryReusable = true
         val model = model()
         model.open(liveRequest())
         runCurrent()
         model.switchTo(secondChannel())
         runCurrent()
+        val playing = engines.last
 
         model.leave()
+
+        assertFalse("kept for the next channel", playing.released)
+        assertEquals("but stopped, so the sound and the stream go with the viewer", 1, playing.stops)
+        assertNull("and given no surface", playing.outputs.lastOrNull())
+        assertNull("and the screen has nothing left to draw", model.state.value)
+    }
+
+    /* --------------------------------------------------------- the engine that waits for a channel */
+
+    @Test
+    fun `the next channel after leaving opens on the engine that waited, and nothing is built`() = playerTest {
+        engines.primaryReusable = true
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        val waited = engines.last
+        model.leave()
+
+        model.open(secondChannel())
+        runCurrent()
+
+        assertEquals("one engine, ever", listOf(EngineId.PRIMARY), engines.built)
+        assertEquals(secondChannel().url, waited.opened.last().url)
+        assertFalse(waited.released)
+        assertTrue("an engine not built for this opening has no build in its setup", model.opening!!.reused)
+        waited.renderFirstFrame()
+        runCurrent()
+        assertEquals(Picture.Playing, model.state.value?.picture)
+    }
+
+    @Test
+    fun `an engine nobody came for is let go once it has waited`() = playerTest {
+        engines.primaryReusable = true
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        val waited = engines.last
+        model.leave()
+
+        advanceTimeBy(PlayerViewModel.PARKED_FOR_MS - 1)
+        runCurrent()
+        assertFalse("still waiting", waited.released)
+        advanceTimeBy(2)
+        runCurrent()
+
+        assertTrue("let go when nobody came for it", waited.released)
+    }
+
+    @Test
+    fun `a film after leaving lets the waiting engine go before its own is built`() = playerTest {
+        engines.primaryReusable = true
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        val waited = engines.last
+        model.leave()
+
+        model.open(vodRequest())
+        runCurrent()
+
+        assertTrue("a channel's engine is not a film's", waited.released)
+        assertEquals(listOf(EngineId.PRIMARY, EngineId.PRIMARY), engines.built)
+        assertEquals("never two engines at once", 1, engines.mostAlive)
+    }
+
+    @Test
+    fun `a channel remembered for the backup lets the waiting primary go`() = playerTest {
+        engines.primaryReusable = true
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        val waited = engines.last
+        model.leave()
+        memory.remember(FallbackPolicy.sourceKey(secondChannel().url), EngineId.BACKUP)
+
+        model.open(secondChannel())
+        runCurrent()
+
+        assertTrue(waited.released)
+        assertEquals(listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.built)
+        assertEquals(1, engines.mostAlive)
+    }
+
+    @Test
+    fun `the background lets a waiting engine go`() = playerTest {
+        engines.primaryReusable = true
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        val waited = engines.last
+        model.leave()
+
+        model.pauseForBackground()
+
+        assertTrue(waited.released)
+    }
+
+    /** A failure the backup cannot help with is a card on the same engine; leaving it does not keep that engine. */
+    @Test
+    fun `an engine that failed is released on leaving, never kept`() = playerTest {
+        engines.primaryReusable = true
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        val failing = engines.last
+        failing.fail(PlaybackError.NETWORK)
+        runCurrent()
+        assertEquals("still the engine on screen, with its card", listOf(EngineId.PRIMARY), engines.built)
+
+        model.leave()
+
+        assertTrue("an engine that failed is in a state nobody knows", failing.released)
+    }
+
+    @Test
+    fun `an engine that does not offer to be kept is released on leaving, as before`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+
+        model.leave()
+
+        assertTrue(engines.last.released)
+    }
+
+    /* ---------------------------------------------------------------- getting ready ahead of a press */
+
+    @Test
+    fun `the board gets the primary ready after its first frames, and the first press opens on it`() = playerTest {
+        engines.primaryReusable = true
+        val model = model()
+
+        model.prepare()
+        runCurrent()
+        assertEquals("the engines' own warm-ups are asked at once, off the main thread", listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.warmed)
+        assertTrue("nothing is built while the board draws its first frames", engines.built.isEmpty())
+        advanceTimeBy(PlayerViewModel.PREPARE_AFTER_MS)
+        runCurrent()
+        assertEquals(listOf(EngineId.PRIMARY), engines.built)
+        val ready = engines.last
+        assertTrue("built and not opened", ready.opened.isEmpty())
+
+        model.open(liveRequest())
+        runCurrent()
+
+        assertEquals("the press built nothing", listOf(EngineId.PRIMARY), engines.built)
+        assertEquals(liveRequest().url, ready.opened.single().url)
+        assertTrue(model.opening!!.reused)
+    }
+
+    @Test
+    fun `a press before the board has drawn opens as before, and nothing is built after it`() = playerTest {
+        engines.primaryReusable = true
+        val model = model()
+
+        model.prepare()
+        model.open(liveRequest())
+        runCurrent()
+        advanceTimeBy(PlayerViewModel.PREPARE_AFTER_MS)
+        runCurrent()
+
+        assertEquals(listOf(EngineId.PRIMARY), engines.built)
+        assertEquals(1, engines.mostAlive)
+    }
+
+    @Test
+    fun `nothing is built ahead while a channel plays`() = playerTest {
+        engines.primaryReusable = true
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+
+        model.prepare()
+        advanceTimeBy(PlayerViewModel.PREPARE_AFTER_MS)
+        runCurrent()
+
+        assertEquals(listOf(EngineId.PRIMARY), engines.built)
+    }
+
+    @Test
+    fun `asked again while an engine waits, nothing more is built`() = playerTest {
+        engines.primaryReusable = true
+        val model = model()
+        model.prepare()
+        advanceTimeBy(PlayerViewModel.PREPARE_AFTER_MS)
+        runCurrent()
+
+        model.prepare()
+        advanceTimeBy(PlayerViewModel.PREPARE_AFTER_MS)
+        runCurrent()
+
+        assertEquals(listOf(EngineId.PRIMARY), engines.built)
+        assertFalse(engines.last.released)
+    }
+
+    @Test
+    fun `an engine got ready and never pressed for is let go once it has waited`() = playerTest {
+        engines.primaryReusable = true
+        val model = model()
+        model.prepare()
+        advanceTimeBy(PlayerViewModel.PREPARE_AFTER_MS)
+        runCurrent()
+
+        advanceTimeBy(PlayerViewModel.PARKED_FOR_MS)
+        runCurrent()
 
         assertTrue(engines.last.released)
     }
@@ -4343,6 +4555,13 @@ class PlayerPathTest {
         val built = mutableListOf<EngineId>()
         lateinit var last: FakeEngine
 
+        /** Every warm-up asked for, in order: see [EngineFactory.warmUp]. */
+        val warmed = mutableListOf<EngineId>()
+
+        override fun warmUp(id: EngineId) {
+            warmed += id
+        }
+
         /** How long building takes, in real time, so the setup figure has something to measure. */
         var buildTakesMs = 0L
 
@@ -4469,7 +4688,13 @@ class PlayerPathTest {
             playing = false
         }
 
-        override fun stop() = Unit
+        /** How many times the engine was stopped: leaving a channel stops the engine it keeps. */
+        var stops = 0
+
+        override fun stop() {
+            stops++
+        }
+
         override fun seekTo(positionMs: Long) {
             seeks += positionMs
         }

@@ -737,6 +737,9 @@ class VlcPlaybackEngine(
                 ).also { shared = it }
             }
 
+        /** Whether the process's LibVLC has been built: an engine that needs it now does not wait for it. */
+        fun libVlcBuilt(): Boolean = shared != null
+
         /** Android's own provider scheme, which LibVLC has no access module for. */
         const val SCHEME_CONTENT = "content"
 
@@ -754,5 +757,27 @@ class VlcPlaybackEngine(
          */
         internal fun requiresDescriptor(url: String): Boolean =
             url.startsWith("$SCHEME_CONTENT://", ignoreCase = true)
+    }
+}
+
+/**
+ * The backup engine's one costly thing to get ready, got ready before an engine needs it: the process's LibVLC.
+ *
+ * Building it loads LibVLC's native library and starts its modules, and the engine built it the first time it touched
+ * it -- when it was given its surface or its first source, on the main thread, in the middle of an opening. The panel
+ * showed what that costs a channel the backup plays: the screen standing still for the length of it. Built here, on
+ * the caller's thread, it is the same one LibVLC [VlcPlaybackEngine.sharedLibVlc] hands every engine afterwards, and
+ * an engine that asks while it is being built waits for this build rather than starting another.
+ *
+ * Public because the factory that decides when it is worth it lives in another module: see `Media3EngineFactory`.
+ */
+object LibVlcWarmUp {
+
+    /** Whether the process's LibVLC exists. */
+    val ready: Boolean get() = VlcPlaybackEngine.libVlcBuilt()
+
+    /** Builds the process's LibVLC, on the calling thread, which must not be the main one. Nothing when it exists. */
+    fun build(context: Context) {
+        VlcPlaybackEngine.sharedLibVlc(context)
     }
 }

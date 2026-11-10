@@ -48,6 +48,20 @@ class EngineMemoryStoreTest {
         assertNull(store().preferred(KEY))
     }
 
+    /** What decides whether LibVLC is got ready ahead of a press: a source that needed it, and not one that no longer does. */
+    @Test
+    fun `the backup is said to be needed while one source is remembered for it, and not after`() {
+        val store = store()
+        assertFalse("nothing remembered", store.remembersAny(EngineId.BACKUP))
+
+        store.remember(KEY, EngineId.BACKUP)
+        assertTrue(store.remembersAny(EngineId.BACKUP))
+        assertFalse("the primary is never written down, so it is never said", store.remembersAny(EngineId.PRIMARY))
+
+        store.remember(KEY, EngineId.PRIMARY)
+        assertFalse("the only source plays on the primary now", store.remembersAny(EngineId.BACKUP))
+    }
+
     @Test
     fun `the primary playing a source removes the row it was once remembered under`() {
         val store = store()

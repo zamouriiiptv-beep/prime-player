@@ -2,10 +2,14 @@ package com.castivio.playback.media3
 
 import com.castivio.core.platform.ConservativeCapabilities
 import com.castivio.playback.api.EngineId
+import com.castivio.playback.api.EngineMemory
 import com.castivio.playback.api.MediaKind
 import com.castivio.playback.api.OpeningMarks
 import com.castivio.playback.api.PlaybackTuning
+import com.castivio.playback.vlc.LibVlcWarmUp
 import com.castivio.playback.vlc.VlcPlaybackEngine
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -108,6 +112,7 @@ class EngineProfileTest {
         val factory = Media3EngineFactory(
             context = RuntimeEnvironment.getApplication(),
             capabilities = ConservativeCapabilities,
+            memory = EngineMemory.NONE,
         )
 
         val primary = factory.create(EngineId.PRIMARY, MediaKind.VOD)
@@ -143,6 +148,7 @@ class EngineProfileTest {
         val factory = Media3EngineFactory(
             context = RuntimeEnvironment.getApplication(),
             capabilities = ConservativeCapabilities,
+            memory = EngineMemory.NONE,
         )
         val primary = factory.create(EngineId.PRIMARY, MediaKind.LIVE)
         try {
@@ -170,6 +176,7 @@ class EngineProfileTest {
         val factory = Media3EngineFactory(
             context = RuntimeEnvironment.getApplication(),
             capabilities = ConservativeCapabilities,
+            memory = EngineMemory.NONE,
         )
         val primary = factory.create(EngineId.PRIMARY, MediaKind.LIVE)
         try {
@@ -192,6 +199,7 @@ class EngineProfileTest {
         val factory = Media3EngineFactory(
             context = RuntimeEnvironment.getApplication(),
             capabilities = ConservativeCapabilities,
+            memory = EngineMemory.NONE,
         )
         val primary = factory.create(EngineId.PRIMARY, MediaKind.LIVE)
         try {
@@ -200,6 +208,37 @@ class EngineProfileTest {
             primary.release()
         }
         assertFalse("the backup must be released between channels", factory.create(EngineId.BACKUP, MediaKind.LIVE).reusable)
+    }
+
+    /**
+     * Getting the engines ready ahead of a press loads no LibVLC for a viewer none of whose channels has needed it.
+     *
+     * The warm-up asks the memory on its own thread and builds LibVLC only when a channel is remembered for the backup:
+     * a native library is memory a stick does not have to spare. The latch is the memory being asked, so the assertion
+     * is made after the warm-up thread has decided, not before it has run.
+     */
+    @Test
+    fun `getting ready builds no LibVLC when no channel has needed the backup`() {
+        val asked = CountDownLatch(1)
+        val nothingRemembered = object : EngineMemory {
+            override fun preferred(sourceKey: String): EngineId? = null
+            override fun remember(sourceKey: String, engine: EngineId) = Unit
+            override fun remembersAny(engine: EngineId): Boolean {
+                asked.countDown()
+                return false
+            }
+        }
+        val factory = Media3EngineFactory(
+            context = RuntimeEnvironment.getApplication(),
+            capabilities = ConservativeCapabilities,
+            memory = nothingRemembered,
+        )
+
+        factory.warmUp(EngineId.PRIMARY)
+        factory.warmUp(EngineId.BACKUP)
+
+        assertTrue("the warm-up asked whether any channel needs the backup", asked.await(5, TimeUnit.SECONDS))
+        assertFalse("and, told none does, built no LibVLC", LibVlcWarmUp.ready)
     }
 
     /**

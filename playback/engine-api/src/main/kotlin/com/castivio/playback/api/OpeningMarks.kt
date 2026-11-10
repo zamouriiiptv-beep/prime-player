@@ -15,13 +15,13 @@ data class OpeningMarks(
     val serverAnsweredMs: Long? = null,
     /** The first payload bytes delivered by Media3's transfer listener. */
     val firstBytesMs: Long? = null,
-    /** DNS lookup duration(s) observed on the actual HTTP call; null when no lookup occurred. */
+    /** DNS lookup duration(s) observed on the actual HTTP call, summed over every hop; null when no lookup occurred. */
     val dnsMs: Long? = null,
-    /** TCP connection establishment duration(s) observed on the actual HTTP call. */
+    /** TCP connection establishment duration(s) observed on the actual HTTP call: the sum over every hop of a redirect chain. */
     val tcpMs: Long? = null,
-    /** TLS handshake duration(s) observed on the actual HTTPS call. */
+    /** TLS handshake duration(s) observed on the actual HTTPS call: the sum over every hop of a redirect chain. */
     val tlsMs: Long? = null,
-    /** Request-headers-end to first response-headers-start on the actual HTTP call. */
+    /** Request-headers-end to first response-headers-start on the actual HTTP call: the last hop's alone. See [hops]. */
     val ttfbMs: Long? = null,
     /** When Media3 entered onTracksChanged, before application-side track enumeration. */
     val tracksCallbackMs: Long? = null,
@@ -64,4 +64,11 @@ data class OpeningMarks(
      * see its tries, and in any build that does not measure.
      */
     val attempts: OpenAttempts = OpenAttempts.NONE,
+    /**
+     * **Development builds only.** The responses the latest try followed to reach the stream -- each redirect, then the
+     * answer -- with each one's own lookup, connection and wait: the parts [serverAnsweredMs] is the end of, which the
+     * summed and last-hop transport figures above cannot separate. Empty for an engine that does not see its HTTP
+     * client, and in any build that does not measure.
+     */
+    val hops: HttpHops = HttpHops.NONE,
 )
