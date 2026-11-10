@@ -352,6 +352,7 @@ fun ChannelsScreen(
     val scope = rememberCoroutineScope()
     val latestPlay by rememberUpdatedState(onPlay)
     val latestState by rememberUpdatedState(state)
+    val latestPreview by rememberUpdatedState(previewed)
     val lock = remember(lockedIds) {
         LockUi(
             locked = lockedIds,
@@ -373,7 +374,7 @@ fun ChannelsScreen(
                         recent = latestState.recent,
                     )
                     // What was on, for the loading screen: from the guide the board already holds, and only if it is this channel's.
-                    channel.asSelection()?.copy(listed = list)?.withProgramme(latestState.guide?.now)?.let(latestPlay)
+                    channel.asSelection()?.copy(listed = list)?.withProgramme(latestPreview.guide?.now)?.let(latestPlay)
                     Unit
                 }
                 when (pressVerdictFor(live = true, channelId = channel.id, known = lockModel.locked.value)) {
