@@ -99,7 +99,7 @@ never fetch 100k rows. M3U has no such API — hence the streaming path above.
 `LIKE '%q%'` over 400k rows is a full table scan and is never used.
 
 **FTS4** virtual table (FTS4, not FTS5 — FTS5 is not guaranteed on the SQLite
-shipped with API 21) with prefix queries (`nova*`). Sub-30 ms on 400k rows.
+shipped with API 23, the floor) with prefix queries (`nova*`). Sub-30 ms on 400k rows.
 
 The query pipeline is `debounce(120ms)` → `flatMapLatest` → IO dispatcher, so a
 fast typist issues one query, not eight, and every superseded query is

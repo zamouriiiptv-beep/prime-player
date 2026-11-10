@@ -84,7 +84,7 @@ object CallMetrics {
      *
      * Plain sums and a few small sets of names. The names are protocol and encoding tokens -- `h2`, `gzip` -- read
      * from headers the provider sent back; nothing here is, or is built from, an address or a credential.
-     * Sets are maps because `ConcurrentHashMap.newKeySet` is API 24 and this module ships to API 21.
+     * Sets are maps because `ConcurrentHashMap.newKeySet` is API 24 and this module ships to API 23.
      */
     internal class Wire {
         private val protocols = ConcurrentHashMap<String, Boolean>()
@@ -266,7 +266,7 @@ object CallMetrics {
         tally.waitNanos.addAndGet(waitNanos)
         tally.bytes.addAndGet(bytes)
         // A plain compare-and-set loop: `updateAndGet` would be tidier and is API 24,
-        // and this module ships to API 21.
+        // and this module ships to API 23.
         while (true) {
             val current = tally.slowestNanos.get()
             if (nanos <= current || tally.slowestNanos.compareAndSet(current, nanos)) break

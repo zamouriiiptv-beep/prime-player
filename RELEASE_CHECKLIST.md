@@ -83,8 +83,11 @@ behind it. That is what a JVM can hold. What follows is what it cannot.
   3. **restart the process**, so the key is re-fetched rather than remembered
   4. open the record and get the same bytes back
   5. edit one byte of the ciphertext and confirm it is rejected
-- [ ] Run on **API 21 or 22** as well as a modern API level — the two paths through
-      `VaultKeys` are different code, and the older one is the untested one.
+- [ ] Run on **API 23** (Android 6.0, the floor) as well as a modern API level —
+      `AndroidKeyStore` first held an AES key on 23, so it is the oldest keystore the app
+      meets and the one most likely to behave differently. The Android 5 path in
+      `VaultKeys` cannot run on a supported device since the floor moved to 23, and is
+      not a release gate.
 
 ## 2b. The other test that needs a real device: locale resolution
 
@@ -104,8 +107,9 @@ therefore a proposal with an argument behind it, not a verified fact.
 
 - [ ] **Sentinel resolution on a real device, at both ends of the range.** Every
       one of the 37 canonical tags asked for, and `locale_sentinel` confirming
-      which directory answered. Run on **API 21 or 22** and on a current API
-      level: those are different resolvers and the older one is the untested one.
+      which directory answered. Run on **API 23** and on a current API
+      level: those are different resolvers (the multi-locale list arrived in 24) and
+      the older one is the untested one.
 - [ ] **The result decides the mapping.** If verification shows a compatibility
       alias is genuinely required — `values-no`, `values-tl` — it is added, and
       if one is shown unnecessary it stays out. Correct resolution is the

@@ -53,8 +53,9 @@ class AndroidDeviceCapabilities(private val context: Context) : DeviceCapabiliti
 
     override val maxResolution: Resolution by lazy {
         val d = runCatching { context.mainDisplayCompat() }.getOrNull() ?: return@lazy Resolution.FHD
-        // Display.getMode() is API 23. minSdk is 21 — old boxes are exactly the
-        // devices this class exists for, so the legacy path is not optional.
+        // Display.getMode() is API 23, which is minSdk since Media3 1.9 raised it, so the legacy
+        // path below can no longer run on a supported device. The pass that moved the floor
+        // changed no behaviour and left it in place; deleting it is a separate cleanup.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val mode = runCatching { d.mode }.getOrNull()
             if (mode != null) return@lazy Resolution(mode.physicalWidth, mode.physicalHeight)

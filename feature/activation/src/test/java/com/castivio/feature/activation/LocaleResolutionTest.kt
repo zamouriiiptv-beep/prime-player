@@ -38,7 +38,7 @@ import java.util.Locale
  * which is the whole class of error worth catching early, and it runs on every
  * commit with no device.
  *
- * It is not the last word. A real device's native resolver on **API 21** and on a
+ * It is not the last word. A real device's native resolver on **API 23** and on a
  * **current API level** is what finally settles it; those two are different code
  * paths and the older one is the untested one. That gate is recorded in
  * `RELEASE_CHECKLIST.md`, and until it has run, 39 directories is the best

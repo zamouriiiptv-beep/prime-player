@@ -13,13 +13,16 @@ import javax.crypto.spec.SecretKeySpec
 /**
  * Where the sealing key comes from. The one part of this module a JVM cannot exercise.
  *
- * Two paths, because Castivio's floor is Android 5 and `AndroidKeyStore` did not learn
- * to hold an AES key until Android 6:
+ * Two paths, written when Castivio's floor was Android 5 and `AndroidKeyStore` had not
+ * yet learned to hold an AES key (it did in Android 6). The floor is Android 6 now, so
+ * every supported device takes the first path; the second cannot run on one and stays
+ * only until it is deleted on purpose:
  *
  *  - **Android 6 and later** — a 256-bit AES key generated inside `AndroidKeyStore`.
  *    The key material never enters the app's address space; on most hardware it never
  *    leaves the secure element. Root does not hand it over.
- *  - **Android 5** — a 256-bit AES key generated here and stored beside the ciphertext.
+ *  - **Android 5**, unreachable now — a 256-bit AES key generated here and stored beside
+ *    the ciphertext.
  *    This is obfuscation, not protection: anyone who can read the file can read the
  *    key. It is still worth doing, because the thing it stops is a text editor, and it
  *    is worth saying out loud, because pretending otherwise would be worse than the
@@ -27,7 +30,7 @@ import javax.crypto.spec.SecretKeySpec
  *
  * The pre-Marshmallow alternative — an RSA keypair in the keystore wrapping an AES key
  * — was considered and rejected. It is real protection on paper, and on the cheap
- * Android 5 boxes this floor exists for, the keystore implementations are exactly the
+ * Android 5 boxes the old floor existed for, the keystore implementations are exactly the
  * ones that throw on generation and strand the app. A licence that cannot be read is
  * worse than a licence that can be edited, and the server is the authority in both
  * cases.
@@ -45,7 +48,8 @@ internal object VaultKeys {
     private const val LEGACY_KEY = "vault.key"
 
     /**
-     * @param fallbackStore where the Android 5 key lives. Ignored on Android 6 and later.
+     * @param fallbackStore where the Android 5 key lives. Ignored on Android 6 and later, which is
+     * every supported device.
      */
     fun sealingKey(fallbackStore: SharedPreferences): SecretKey =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) keystoreKey() else localKey(fallbackStore)

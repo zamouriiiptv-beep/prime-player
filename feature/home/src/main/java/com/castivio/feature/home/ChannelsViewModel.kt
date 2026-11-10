@@ -578,7 +578,7 @@ data class FullGuide(
  * Splits an ordered schedule into the days it actually covers.
  *
  * By the programme's *start*, in the device's zone, using `Calendar` rather than
- * `java.time` because this module compiles to minSdk 21 without desugaring. A programme
+ * `java.time` because this module compiles to minSdk 23 without desugaring. A programme
  * that runs past midnight belongs to the day it began on, which is where a viewer looks
  * for it.
  *

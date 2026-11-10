@@ -43,11 +43,11 @@ android {
             }
         }
     }
-    compileSdk = 34
+    compileSdk = 36 // Media3 1.11 requires consumers to compile against 36: see buildSrc Config.kt
 
     defaultConfig {
         applicationId = "com.castivio.tv"
-        minSdk = 21
+        minSdk = 23 // Media3 1.9+ requires 23: see buildSrc Config.kt
         targetSdk = 34
         versionCode = 1
         versionName = "1.0.0"

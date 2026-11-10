@@ -51,7 +51,7 @@ object CastivioType {
      * rather than partly an accident of which script a string happens to be in.
      *
      * Four static faces rather than the variable font: variable weight axes are
-     * honoured from API 26 and Castivio's minSdk is 21. A file per weight is
+     * honoured from API 26 and Castivio's minSdk is 23. A file per weight is
      * bigger on disk and correct on every device.
      */
     val PlexSans: FontFamily = FontFamily(

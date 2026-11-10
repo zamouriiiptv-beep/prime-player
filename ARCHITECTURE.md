@@ -378,9 +378,12 @@ each sealed with AES-256-GCM. Its own file, not the app's, so a future "reset se
 cannot take a paid licence with it.
 
 The key comes from `AndroidKeyStore` on Android 6 and later, where the material never
-enters the app's address space. On Android 5 — still Castivio's floor — the keystore
-cannot hold an AES key, so one is generated and stored beside the ciphertext. That is
-obfuscation, not protection, and it is written down here rather than implied.
+enters the app's address space. Android 6 is now Castivio's floor (Media3 1.9 raised its
+minSdk to 23 and the app followed), so every supported device takes that path.
+`VaultKeys` still holds the Android 5 path — a key generated and stored beside the
+ciphertext, because that release's keystore cannot hold an AES key — and no supported
+device reaches it. That path is obfuscation, not protection, it is written down here
+rather than implied, and it stays only until someone deletes it on purpose.
 
 Nothing in the record is a secret; the customer knows all of it. GCM is there because
 the trial expiry and the high-water mark are exactly what someone wanting a second free
@@ -396,7 +399,7 @@ open per read.
 
 `VaultKeys` is the one part no JVM can exercise, and it is a documented release gate:
 an instrumented test on a real device covering create, seal, process restart, open and
-tamper-rejection, on API 21–22 as well as a modern level. See `RELEASE_CHECKLIST.md`.
+tamper-rejection, on API 23 (the floor) as well as a modern level. See `RELEASE_CHECKLIST.md`.
 
 ## Testing posture
 

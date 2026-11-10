@@ -21,7 +21,7 @@ heading, and redrawing its letterforms is a decision about the brand.
 
 Four weights each and no italics: roughly 0.8, 1.0 and 1.6 MB of the APK.
 Static faces rather than the variable fonts, because variable weight axes are
-only honoured from API 26 and Castivio's minSdk is 21.
+only honoured from API 26 and Castivio's minSdk is 23.
 
 No Reserved Font Name is used in a modified form, and no file is modified —
 they are the release binaries, unaltered.

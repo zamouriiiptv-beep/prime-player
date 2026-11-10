@@ -1556,7 +1556,8 @@ class Media3Engine(
         return try {
             val info = MediaCodecUtil.getDecoderInfos(mime, false, false).firstOrNull { it.name == decoder }
                 ?: return "decoder $decoder n/a (not in the device's list for $mime)"
-            val formatOk = info.isFormatSupported(format)
+            // Media3 1.11 asks for a Context here; 1.4 took the format alone.
+            val formatOk = info.isFormatSupported(appContext, format)
             val sizeOk = if (format.width > 0 && format.height > 0) {
                 val rate = if (format.frameRate > 0f) format.frameRate.toDouble() else Format.NO_VALUE.toDouble()
                 info.isVideoSizeAndRateSupportedV21(format.width, format.height, rate)

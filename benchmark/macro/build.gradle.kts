@@ -23,9 +23,12 @@ android {
     defaultConfig {
         // Macrobenchmark reads the platform's own startup and frame counters, which
         // arrived in API 23 and 24 respectively. Not related to the app's own minSdk of
-        // 21: this APK never reaches a user's device.
+        // 23: this APK never reaches a user's device.
         minSdk = 24
-        targetSdk = Config.COMPILE_SDK
+        // The app's own target, 34. This line followed `Config.COMPILE_SDK` while that was 34;
+        // when Media3 1.11 moved the compile SDK to 36 it would have moved this measurement
+        // APK's target with it, and nobody asked for that.
+        targetSdk = Config.TARGET_SDK
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

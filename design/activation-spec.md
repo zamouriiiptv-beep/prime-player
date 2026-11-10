@@ -464,7 +464,7 @@ result. A test written on this machine's default would have "confirmed"
 
 Not verifiable here, and therefore **not asserted**: whether AAPT2 canonicalises
 a locale qualifier when it writes the resource table, and how the runtime matches
-it on API 21 against API 34. `dl.google.com` is unreachable from this sandbox, so
+it on API 23 against API 34. `dl.google.com` is unreachable from this sandbox, so
 there is no `aapt2`, no emulator, and no way to run the only experiment that
 answers it.
 
@@ -493,7 +493,7 @@ by this paragraph, which is the entire point of having built the thing.
 Each of the 39 directories carries one extra string, `locale_sentinel`, whose
 value is that directory's own tag. An instrumented test walks all 37 canonical
 locales, sets each one, resolves `locale_sentinel`, and asserts it came from the
-directory that locale is supposed to reach. Run on **API 21 and on a current API
+directory that locale is supposed to reach. Run on **API 23 and on a current API
 level**, because those are two different resolvers.
 
 That turns "does Android match this directory?" from a question three people
@@ -662,7 +662,7 @@ Only the mechanism is open, and §10.6.1 compares the candidates.
 | Persistence | library store, or the framework on 33+ | framework, 33+ only | our own store — the one thing fully in our hands | needs C underneath anyway |
 | Visible in Android Settings | **yes**, on 33+ | **yes**, on 33+ | yes on 33+ if we also call `LocaleManager` | no |
 | Activity recreation | yes | yes | yes | **no** |
-| `minSdk 21` | yes, backported | **no** — dead below 33 | yes | yes |
+| `minSdk 23` | yes, backported | **no** — dead below 33 | yes | yes |
 | Compose | fine, but drags `Theme.AppCompat` in | fine | fine | fine, and nothing else |
 | Dependencies | `appcompat` **+ `AppCompatActivity`** | none | none | none |
 | Architectural cost | **base-class change**; an AppCompat theme parent; a view toolkit Castivio uses nothing else from | none, and no behaviour below 33 | ~80 lines in `:app` and `:data:preferences`, all ours to test | leaks: only Compose sees it |
@@ -855,7 +855,7 @@ that the wrong font cannot be replaced, so the measurement is not taken.
 screen takes the full viewport, so on a device whose landscape navigation bar
 sits at the side, that bar overlaps the 26–30dp edge padding. Nothing in this
 round changes the composition for it; it belongs to the inset pass, with the
-API 21 and current-API resolver checks in `RELEASE_CHECKLIST.md`.
+API 23 and current-API resolver checks in `RELEASE_CHECKLIST.md`.
 
 
 Run from `design/mockups/` — non-zero exit on any failure.

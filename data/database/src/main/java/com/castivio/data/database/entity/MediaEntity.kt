@@ -145,7 +145,7 @@ data class MediaEntity(
  * The search index.
  *
  * **FTS4, not FTS5** — FTS5 is not guaranteed on the SQLite that ships with
- * API 21, and this app runs on boxes that old.
+ * API 23, the floor, and this app runs on boxes that old.
  *
  * The default tokenizer is deliberate too. `unicode61` is not guaranteed to be
  * compiled in on every device's SQLite, and its main benefit is case folding for

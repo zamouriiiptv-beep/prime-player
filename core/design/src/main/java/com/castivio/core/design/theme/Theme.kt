@@ -165,7 +165,7 @@ fun CastivioTheme(
             // the time this runs, and a screenshot in Arabic cannot be rendered
             // in a Latin face.
             // `ConfigurationCompat` and not `configuration.locales`, which is API
-            // 24 and this app's minSdk is 21.
+            // 24 and this app's minSdk is 23.
             val language = ConfigurationCompat.getLocales(LocalConfiguration.current)
                 .get(0)?.language.orEmpty()
             CompositionLocalProvider(
