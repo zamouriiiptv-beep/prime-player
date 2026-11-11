@@ -269,6 +269,18 @@ fun ActivationRoute(
         }
     }
 
+    // **A subscription that Refresh brought in is the same event from another button.** It was
+    // added by the same sequence as one typed on this device, so it leaves by the same door, and
+    // it is consumed the same way and for the same reason: `identityModel` outlives this route,
+    // and `Found` would otherwise be reported again by every later composition.
+    val arrived = identity.arrived
+    LaunchedEffect(arrived) {
+        if (arrived) {
+            identityModel.arrivalHandled()
+            activated()
+        }
+    }
+
     /**
      * **What going back means here — one answer, for every way of asking.**
      *

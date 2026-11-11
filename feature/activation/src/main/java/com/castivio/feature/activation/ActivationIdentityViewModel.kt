@@ -8,8 +8,10 @@ import com.castivio.domain.entitlement.EntitlementRepository
 import com.castivio.domain.entitlement.EntitlementState
 import com.castivio.domain.identity.DeviceIdentity
 import com.castivio.domain.identity.IdentityProvenance
+import com.castivio.domain.portal.SentSubscriptionReceiver
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,21 +20,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
-
-/**
- * What the refresh button is doing, as a closed set.
- *
- * Refresh is never a dead control: it says what it is doing while it does it and
- * what it found when it stops, and "nothing yet" is a sentence on a status line
- * rather than a dialogue somebody has to dismiss with a remote.
- */
-internal sealed interface RefreshState {
-    data object Idle : RefreshState
-    data object Checking : RefreshState
-    data object Found : RefreshState
-    data object None : RefreshState
-    data object Error : RefreshState
-}
 
 /**
  * Which identifier was copied most recently, for the one status line to describe.
@@ -62,6 +49,17 @@ internal data class ActivationIdentityState(
     /** Encodes the central activation URL and nothing else. See [activationQrBitmap]. */
     val qr: Bitmap? = null,
     val refresh: RefreshState = RefreshState.Idle,
+
+    /**
+     * True from the moment a press of Refresh adds a subscription until the route has acted on it.
+     *
+     * [refresh] stays [RefreshState.Found], because that is what happened and the status line
+     * says it; but this view model outlives the route, so a route that read `Found` would
+     * report it again on every later composition. The same fault `ActivationUiState.completed`
+     * was made to end, and ended the same way: the route takes this off the state and
+     * reports once. See [ActivationIdentityViewModel.arrivalHandled].
+     */
+    val arrived: Boolean = false,
 
     /**
      * Whether each control is showing its confirmation, independently.
@@ -111,6 +109,14 @@ internal class ActivationIdentityViewModel @Inject constructor(
      */
     private val entitlement: EntitlementRepository,
     private val dispatchers: AppDispatchers,
+    /**
+     * What the owner sent from the website, and the two things this screen does about it.
+     *
+     * The screen asks, and has no idea how: which portal, which request, how a subscription
+     * is added. All of that is `ReceiveSentSubscriptions`, proved without a device, and the
+     * answer is a closed set this file maps to the lines it already has.
+     */
+    private val portal: SentSubscriptionReceiver,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ActivationIdentityState())
@@ -153,6 +159,14 @@ internal class ActivationIdentityViewModel @Inject constructor(
                     deviceKey = resolved.deviceKey,
                 )
             }
+
+            // **The portal is told as soon as the key is on screen**, and not only when Refresh
+            // is pressed. The owner reads the address and the key off the television and types
+            // them on the website, which can only recognise a device that has already said it
+            // exists; announcing on the press would leave a first visit to the website refused
+            // for a reason nobody on the couch could guess. Best effort: no connection means
+            // the device is simply not known yet, and the press announces again.
+            portal.announce()
         }
     }
 
@@ -165,23 +179,46 @@ internal class ActivationIdentityViewModel @Inject constructor(
     )
 
     /**
-     * Ask whether a subscription has appeared.
+     * Ask the portal whether the owner has sent a subscription from the website, and add it.
      *
-     * There is no portal to ask yet, so the honest answer is [RefreshState.None]
-     * — the state that means "nothing found", which is exactly true. It is not a
-     * stub standing in for a real call: when the licence backend exists this
-     * reaches it, and the four outcomes the screen already renders are the four
-     * it can return.
+     * The four outcomes the screen already renders are the four this can return: it says
+     * [RefreshState.Checking] while it asks, then what it found. A subscription that was
+     * added is [RefreshState.Found] and sets [ActivationIdentityState.arrived], which is what
+     * takes the user off this screen — by the same door a subscription typed on the
+     * television does, because it was added by the same sequence.
+     *
+     * A second press while one is running is ignored: the button is disabled for the same
+     * reason, but a remote repeats a key more readily than a finger.
      */
     fun refresh() {
         if (_state.value.refresh == RefreshState.Checking) return
         viewModelScope.launch {
             _state.update { it.copy(refresh = RefreshState.Checking) }
-            // Long enough that the state is legible rather than a flicker, which
-            // is a property of the control and not a fake network delay.
-            delay(CHECK_FLOOR_MS)
-            _state.update { it.copy(refresh = RefreshState.None) }
+            val reception = coroutineScope {
+                // A floor under the wait, running beside the request and not after it: an
+                // answer that comes back in thirty milliseconds would otherwise be a flicker
+                // the user cannot read, and a slow one costs nothing extra. It is a property of
+                // the control, not a delay on the network.
+                val floor = launch { delay(CHECK_FLOOR_MS) }
+                val answer = portal.receive()
+                floor.join()
+                answer
+            }
+            val next = reception.toRefreshState()
+            _state.update { it.copy(refresh = next, arrived = next == RefreshState.Found) }
         }
+    }
+
+    /**
+     * Takes the arrival off the state, having acted on it.
+     *
+     * Called by the route the moment it sees one, before it tells anyone, so a route torn
+     * down by that very report leaves nothing for the next one to find. [refresh] is
+     * untouched: it stays [RefreshState.Found], because that is what happened.
+     */
+    fun arrivalHandled() {
+        if (!_state.value.arrived) return
+        _state.update { it.copy(arrived = false) }
     }
 
     /**

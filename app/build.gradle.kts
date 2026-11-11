@@ -26,6 +26,23 @@ val debugKeystorePassword = "android"
 
 val debugKeystoreAlias = "androiddebugkey"
 
+/* ----------------------------------------------------------- where subscriptions are fetched
+ *
+ * Where the Refresh button asks for the subscriptions its owner sent from the website. Declared
+ * here, above `android { }`, for the reason the signing block above gives.
+ *
+ * **A debug APK asks the test deployment**, because that is where the website is today. **A
+ * release APK says nothing**, and an empty value is read by `PortalConfig` as the product's own
+ * address, which is stated once, there, and not repeated in a build script.
+ *
+ * `-Pcastivio.portalBaseUrl=https://...` overrides both, for a build that has to ask somewhere else.
+ */
+
+/** The deployment the website is built on until the product's own domain serves it. */
+val portalTestBaseUrl = "https://castivio-activation-portal.vercel.app"
+
+val portalBaseUrlOverride: String? = providers.gradleProperty("castivio.portalBaseUrl").orNull
+
 android {
     namespace = "com.castivio.tv"
 
@@ -114,8 +131,13 @@ android {
     }
 
     buildTypes {
+        debug {
+            buildConfigField("String", "PORTAL_BASE_URL", "\"${portalBaseUrlOverride ?: portalTestBaseUrl}\"")
+        }
+
         release {
             isMinifyEnabled = false
+            buildConfigField("String", "PORTAL_BASE_URL", "\"${portalBaseUrlOverride ?: ""}\"")
         }
 
         /**

@@ -23,9 +23,9 @@ with its own contract, and none may be invented from inside the UI:
 | | Workstream | Status |
 |---|---|---|
 | B | Device identity | `DeviceIdentity` v1, frozen |
-| C | Device key issuance and validation | **not designed** |
-| D | QR pairing protocol | **not designed** |
-| E | Web portal | **does not exist** |
+| C | Device key issuance and validation | **partly**: the portal *registers* the key a device announces and limits wrong attempts (§6.1.1). Issuing, rotating, and binding a key to a licence is **not designed** |
+| D | QR pairing protocol | **not designed.** Refresh does not use the QR (§6.1.1) |
+| E | Web portal | **a test deployment exists** and serves subscriptions to the device (§6.1.1). The product's own host does not yet |
 | F | Licensing backend | **does not exist** |
 | G | `VerificationRequest` authentication | **blocker, see §11** |
 
@@ -287,6 +287,54 @@ Idle ──press──▶ Checking ──┬─ found ─▶ Found ──▶ (le
 `Found` is terminal for this screen: the app proceeds. `Empty` and `Error` return
 to `Checking` on the next press. Nothing here is a dialogue — a routine "nothing
 yet" must never be something the user dismisses with a remote.
+
+### 6.1.1 What Refresh asks
+
+Refresh used to answer from nowhere: there was no portal, and `Empty` was true only
+because nothing could have been sent. It now asks the Castivio portal. The five states
+above are unchanged; this is what produces them.
+
+```
+announce ──► waiting ──► add each, oldest first ──► acknowledge what was added
+```
+
+| Step | Request | Notes |
+|---|---|---|
+| announce | `POST /api/v1/device/register` | address and key in the body. The first announcement of an address fixes its key |
+| waiting | `POST /api/v1/device/inbox` | what the owner sent from the website and the device has not taken, oldest first |
+| add | — | each one through `ActivateProvider`, as if it had been typed: an Xtream line is checked first, a playlist is adopted. The last one added is the one the app shows |
+| acknowledge | `POST /api/v1/device/inbox/ack` | the exact `id` and `version` that were added. One the owner edited in the meantime stays waiting |
+
+| How it ended | State | Line |
+|---|---|---|
+| A subscription was added | `Found` | *Subscription found*, and the screen is left by the same door a typed subscription leaves by |
+| Nothing was sent | `Empty` (`None` in code) | the "add your first…" line |
+| Something was sent and none of it could be added; the portal could not be reached or answered something unreadable; the portal knows this address under another key | `Error` | *Couldn't refresh — try again* |
+
+Three sentences for four kinds of failure is deliberate: a fourth line is a fourth string in
+every language, and what the owner does about any of them is the same — look at the website,
+where the subscription is still shown as waiting.
+
+**Rules.**
+
+- **The key is in the body of the request and never in its address**, which proxies and logs
+  keep. `HttpSubscriptionInboxTest` asserts it.
+- **The device also announces itself when this screen opens**, not only on a press: the owner
+  reads the address and key off the television and types them on the website, which can only
+  recognise a device that has already said it exists.
+- **The QR is untouched** (§5.2). Nothing derived from the address or the key goes anywhere
+  except to the portal, over HTTPS, in a request body.
+- **Safety rests on the portal**, as §4.2 says it must: wrong keys are counted per address
+  (ten in fifteen minutes, then the address is refused even for the right key), and the first
+  announcement of an address fixes its key, so nobody can choose the key of a device they do
+  not hold.
+- **Where the portal is** comes from `PortalConfig`, stated by `:app`'s build: a debug APK asks
+  the test deployment, a release APK the product's own host.
+
+**Not covered yet, and said so.** A subscription the device could not add (a wrong password
+typed on the website) is not reported back, so the website shows it as *waiting*. A device
+announces only from this screen, so one that never opens it is unknown to the website. A
+different key already held for an address can be cleared only by an administrator.
 
 ### 6.2 Copy — two independent instances
 
