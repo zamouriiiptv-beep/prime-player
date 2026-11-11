@@ -1,15 +1,15 @@
 package com.castivio.core.design.theme
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.ProvidableCompositionLocal
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -19,10 +19,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import kotlin.math.PI
-import kotlin.math.abs
-import kotlin.math.sin
-import kotlin.random.Random
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.InfiniteAnimationPolicy
+import kotlin.coroutines.coroutineContext
 
 /**
  * **The Castivio background. The only one.**
@@ -46,6 +45,38 @@ import kotlin.random.Random
  * used to paint `colors.background`, a flat `Palette.Void`, which is not the
  * Castivio background but the colour that happens to sit underneath it.
  *
+ * ## What it costs to move, and why it costs so little now
+ *
+ * This is the one thing in the application that is always animating, which makes it
+ * the one thing whose cost is paid on *every* screen, in every frame, whatever the
+ * screen is doing. It is therefore held to four rules, each of which was once a thing
+ * it did not do.
+ *
+ *  1. **The motion level decides.** The aurora moves at [MotionLevel.FULL] and holds
+ *     still at the other two — [MotionLevel.backdropAnimates], which the design
+ *     documents promised and nothing read. A device that cannot afford it is not a
+ *     special case here: its *default* level is [MotionLevel.REDUCED], and a person
+ *     who asks for more or for less in Settings gets it.
+ *  2. **The clock is read where it is drawn.** One [BackdropClock] ticks for the whole
+ *     window and is read inside the draw block, never in composition. Read in
+ *     composition, a clock recomposed its reader sixty times a second and rebuilt the
+ *     modifier chain each time; read in draw, a tick invalidates the drawing and
+ *     nothing else.
+ *  3. **The drawing is its own layer, and so is everything on top of it.** A tick
+ *     invalidates "the nearest layer", which, with none in between, is the whole
+ *     window: every text, every image, every row of every list re-recorded to move a
+ *     faint line. [castivioBackdrop] puts its drawing in one layer and the node's
+ *     content in another, so a tick re-records the backdrop and replays the content.
+ *  4. **Nothing is rebuilt that has not changed.** The brushes and the glows' geometry
+ *     are made when the ground or the colours change, not on each tick; one `Path` is
+ *     reused for all seventeen waves; the motes are a table, not a generator seeded
+ *     afresh. And it moves thirty times a second rather than sixty — see
+ *     [BackdropCycle.TICK_NANOS] for why that is the same to the eye.
+ *
+ * None of it changes what is drawn: `BackdropMotion.kt` holds the numbers — the cycles,
+ * the mesh, the motes — and `BackdropMotionTest` holds them to the arithmetic the
+ * backdrop drew with before they were taken out of the draw function.
+ *
  * ## Everything else in the product that fills a region, and why none of it is this
  *
  * Audited across `app`, `core`, `data`, `domain`, `feature`, `playback` and
@@ -66,7 +97,19 @@ import kotlin.random.Random
  */
 @Composable
 fun CastivioBackdrop(content: @Composable () -> Unit) {
-    Box(Modifier.fillMaxSize().castivioBackdrop()) { content() }
+    // The level, not the device: the device chose the level's starting value, and a
+    // person's choice in Settings is the level that arrives here.
+    val moves = LocalMotionLevel.current.backdropAnimates
+    val clock = if (moves) remember { BackdropClock() } else null
+    if (clock != null) {
+        LaunchedEffect(clock) { clock.run() }
+    }
+
+    // Provided to the whole tree, so a surface that asks for its own backdrop — a cover,
+    // a popup — moves with this one and does not start a clock of its own.
+    CompositionLocalProvider(LocalBackdropClock provides clock) {
+        Box(Modifier.fillMaxSize().castivioBackdrop()) { content() }
+    }
 }
 
 /**
@@ -79,6 +122,14 @@ fun CastivioBackdrop(content: @Composable () -> Unit) {
  * A screen that is *not* covering another one should use neither this nor
  * [CastivioBackdrop]: the theme has already put the backdrop behind it, and a
  * second copy is a second full-screen canvas for a pixel-identical result.
+ *
+ * ## Two layers, and why a modifier can have them
+ *
+ * `graphicsLayer` wraps what comes *after* it in a chain, so this is three links:
+ * a layer, the drawing, a layer. The drawing lands in the first; everything the node
+ * holds — its children, and any modifier written after this one — lands in the second.
+ * A move of the clock invalidates the first and replays the second. Nothing about how
+ * a caller writes it changes: it is still one modifier, in the same place.
  *
  * ## [ground], and why a small surface needs it
  *
@@ -104,141 +155,243 @@ fun CastivioBackdrop(content: @Composable () -> Unit) {
 @Composable
 fun Modifier.castivioBackdrop(ground: (() -> Rect?)? = null): Modifier {
     val colors = CastivioTheme.colors
-    val profile = LocalPerformanceProfile.current
-    val (wave, drift) = backdropPhase(profile)
-    return drawBehind {
-        // Read at *draw* time, which is the whole reason this is a lambda rather than
-        // a value. A popup only learns where it sits during the layout pass, and
-        // `onGloballyPositioned` fires at the end of that pass — before drawing, in
-        // the same frame. A `Rect` parameter would have been captured at composition,
-        // one frame early, and the menu would have drawn its first frame against the
-        // wrong ground and corrected itself on the second: a visible flash at exactly
-        // the moment the menu appears.
-        paintBackdrop(
-            wave, drift, colors, profile.backdropParticles,
-            ground = ground?.invoke() ?: Rect(Offset.Zero, size),
-        )
+    val particles = LocalPerformanceProfile.current.backdropParticles
+    // Null when nothing above is animating: a backdrop outside the theme, or at a level
+    // that holds still. Read below, inside the draw block — never here.
+    val clock = LocalBackdropClock.current
+    val paint = remember { BackdropPaint() }
+
+    return this
+        .graphicsLayer { }
+        .drawBehind {
+            // Read at *draw* time, which is the whole reason this is a lambda rather than
+            // a value. A popup only learns where it sits during the layout pass, and
+            // `onGloballyPositioned` fires at the end of that pass — before drawing, in
+            // the same frame. A `Rect` parameter would have been captured at composition,
+            // one frame early, and the menu would have drawn its first frame against the
+            // wrong ground and corrected itself on the second: a visible flash at exactly
+            // the moment the menu appears.
+            paint.draw(
+                scope = this,
+                ground = ground?.invoke() ?: Rect(Offset.Zero, size),
+                colors = colors,
+                particles = particles,
+                wave = clock?.wave ?: STILL_WAVE,
+                drift = clock?.drift ?: STILL_DRIFT,
+            )
+        }
+        .graphicsLayer { }
+}
+
+/**
+ * Where the wave and the drift are when nothing moves them: the wave at its start, the
+ * drift a fifth of the way round.
+ *
+ * These are the positions the still backdrop has always been drawn at — the one the
+ * weakest devices have had from the start, and what a person who chooses
+ * [MotionLevel.REDUCED] or [MotionLevel.DISABLED] now sees. Not chosen here: kept.
+ */
+private const val STILL_WAVE = 0f
+private const val STILL_DRIFT = 0.2f
+
+/**
+ * The backdrop's clock, shared by everything on the screen that draws one.
+ *
+ * Absent (null) is the still backdrop, which is a different thing from a clock that is
+ * stopped: nothing reads state, so nothing is ever invalidated, and a still backdrop
+ * is drawn once and then only replayed.
+ *
+ * Internal, and provided by [CastivioBackdrop] alone — a screen cannot start a second
+ * clock, which is how the cost of the backdrop stays one clock's worth however many
+ * covers and popups are open at once.
+ */
+internal val LocalBackdropClock: ProvidableCompositionLocal<BackdropClock?> =
+    staticCompositionLocalOf { null }
+
+/**
+ * One position in the backdrop's cycles, advanced thirty times a second.
+ *
+ * The state holds only elapsed time. [wave] and [drift] turn it into the two positions
+ * that are wanted, on demand, so that the reader pays for the arithmetic it uses and a
+ * tick writes one number.
+ */
+internal class BackdropClock {
+
+    private val elapsedNanos = mutableLongStateOf(0L)
+
+    /** Radians into the wave's cycle. Reads the clock: call it from a draw block. */
+    val wave: Float
+        get() = BackdropCycle.radians(BackdropCycle.fraction(elapsedNanos.longValue, Motion.ambientWave))
+
+    /** How far round the drift's cycle, 0..1. Reads the clock: call it from a draw block. */
+    val drift: Float
+        get() = BackdropCycle.fraction(elapsedNanos.longValue, Motion.ambientDrift)
+
+    /**
+     * Runs the clock until the composition that started it leaves.
+     *
+     * One callback per display frame, and a write on one in two. The callback is the
+     * cheap part — a frame that is skipped touches nothing — and it is what ties the
+     * backdrop to the display: it stops with the screen, pauses with the activity, and
+     * never draws a frame nobody would see.
+     *
+     * The *infinite* kind of frame callback, which is what `rememberInfiniteTransition`
+     * asked for and a plain one does not: a test that composes the theme with motion on
+     * installs a policy that ends loops like this one, and a loop that never asked to
+     * be ended is a test that never goes idle.
+     */
+    suspend fun run() {
+        var origin = BackdropCycle.NEVER
+        var last = BackdropCycle.NEVER
+        while (true) {
+            withInfiniteFrameNanos { now ->
+                if (BackdropCycle.due(now, last)) {
+                    // The first frame is the start of the cycle, as it was when the cycle
+                    // began at zero on every launch.
+                    if (origin == BackdropCycle.NEVER) origin = now
+                    last = now
+                    elapsedNanos.longValue = now - origin
+                }
+            }
+        }
     }
 }
 
 /**
- * The four layers, stated once.
+ * A frame callback that, like `rememberInfiniteTransition`'s, can be ended by a policy.
  *
- * Private, and the only place any of these numbers appears. Both entry points above
- * are three lines of plumbing around this call — which is what makes "change the
- * background in one place" a property of the code rather than a convention someone
- * has to keep.
+ * A Compose test installs an [InfiniteAnimationPolicy] in the coroutine context that ends
+ * any loop which says it never finishes, because a loop that never finishes is a test that
+ * never goes idle. Outside a test there is no policy and this is [withFrameNanos].
+ *
+ * Written out here, three lines, rather than imported: the helper `:ui` has for it is
+ * internal to `:ui`, and this uses only what a test framework itself is given.
  */
-private fun DrawScope.paintBackdrop(
-    wave: Float,
-    drift: Float,
-    colors: CastivioColors,
-    particles: Boolean,
-    ground: Rect,
-) {
-    drawRect(
-        Brush.linearGradient(
-            colors = colors.backdropStops,
-            start = ground.topLeft,
-            end = ground.bottomRight,
-        )
-    )
+private suspend fun <R> withInfiniteFrameNanos(onFrame: (frameTimeNanos: Long) -> R): R {
+    val policy = coroutineContext[InfiniteAnimationPolicy]
+    return if (policy == null) {
+        withFrameNanos(onFrame)
+    } else {
+        policy.onInfiniteOperation { withFrameNanos(onFrame) }
+    }
+}
+
+/**
+ * What one backdrop keeps between two draws.
+ *
+ * The ground is made of three brushes whose geometry depends only on the rectangle and
+ * the colours, so they are made when either changes and then reused: a native shader is
+ * created the first time a brush is used at a size, and a brush made afresh on every
+ * draw is a shader made afresh on every draw. One `Path`, rewound between waves, is the
+ * rest of it. Held by the modifier that draws, on the UI thread that draws — nothing
+ * here is shared.
+ */
+private class BackdropPaint {
+
+    private val path = Path()
+    private val stroke = Stroke(width = BackdropMesh.STROKE)
+    private var built: Ground? = null
+
+    /** The four layers, stated once: both entry points are plumbing around this. */
+    fun draw(
+        scope: DrawScope,
+        ground: Rect,
+        colors: CastivioColors,
+        particles: Boolean,
+        wave: Float,
+        drift: Float,
+    ) {
+        val g = groundFor(ground, colors)
+        with(scope) {
+            drawRect(g.base)
+            // A glow of no radius is not a glow, and the platform refuses to make one.
+            if (g.warmRadius > 0f) drawCircle(g.warm, g.warmRadius, g.warmCentre)
+            if (g.coolRadius > 0f) drawCircle(g.cool, g.coolRadius, g.coolCentre)
+            mesh(wave, colors.primary, ground)
+            if (particles) motes(drift, colors.backdropMote, ground)
+        }
+    }
+
+    private fun groundFor(rect: Rect, colors: CastivioColors): Ground {
+        val cached = built
+        if (cached != null && cached.rect == rect && cached.colors === colors) return cached
+        return buildGround(rect, colors).also { built = it }
+    }
+
+    /** Perspective contour waves across the lower half. */
+    private fun DrawScope.mesh(phase: Float, color: Color, ground: Rect) {
+        val steps = BackdropMesh.STEPS
+        for (line in 0..BackdropMesh.LINES) {
+            val depth = BackdropMesh.depth(line)
+            val row = BackdropMesh.row(ground.top, ground.bottom, depth)
+            val amplitude = BackdropMesh.amplitude(depth)
+            path.rewind()
+            for (step in 0..steps) {
+                val across = step / steps.toFloat()
+                val x = ground.left + ground.width * across
+                val y = row + amplitude * BackdropMesh.swing(across, line, phase)
+                if (step == 0) path.moveTo(x, y) else path.lineTo(x, y)
+            }
+            drawPath(path, color = color.copy(alpha = BackdropMesh.alpha(depth)), style = stroke)
+        }
+    }
+
+    /** A handful of slow motes that rise, wrap and twinkle. */
+    private fun DrawScope.motes(drift: Float, tint: Color, ground: Rect) {
+        val motes = BackdropMotes.all
+        for (k in motes.indices) {
+            val mote = motes[k]
+            drawCircle(
+                color = tint.copy(alpha = BackdropMotes.ALPHA * BackdropMotes.twinkle(mote, drift)),
+                radius = mote.radius,
+                center = ground.topLeft +
+                    Offset(ground.width * mote.x, ground.height * BackdropMotes.height(mote, drift)),
+            )
+        }
+    }
+}
+
+/** The gradient and the two glows for one [rect] in one set of [colors]. */
+private class Ground(
+    val rect: Rect,
+    val colors: CastivioColors,
+    val base: Brush,
+    val warm: Brush,
+    val warmCentre: Offset,
+    val warmRadius: Float,
+    val cool: Brush,
+    val coolCentre: Offset,
+    val coolRadius: Float,
+)
+
+private fun buildGround(ground: Rect, colors: CastivioColors): Ground {
     // The geometry is the theme's business, not the ground's: both glows keep their
     // corner, their radius and their alpha in either mode, and only the hue is asked
     // for again. A light page with the aurora somewhere else would be a second layout.
-    glow(
-        ground.topLeft + Offset(ground.width * 0.05f, ground.height),
-        ground.width * 0.55f,
-        colors.backdropWarmGlow, colors.backdropGlowWarm,
+    val warmCentre = ground.topLeft + Offset(ground.width * 0.05f, ground.height)
+    val warmRadius = ground.width * 0.55f
+    val coolCentre = ground.topLeft + Offset(ground.width * 0.95f, ground.height * 0.30f)
+    val coolRadius = ground.width * 0.52f
+    return Ground(
+        rect = ground,
+        colors = colors,
+        base = Brush.linearGradient(
+            colors = colors.backdropStops,
+            start = ground.topLeft,
+            end = ground.bottomRight,
+        ),
+        warm = glow(colors.backdropWarmGlow, colors.backdropGlowWarm, warmCentre, warmRadius),
+        warmCentre = warmCentre,
+        warmRadius = warmRadius,
+        cool = glow(colors.backdropCoolGlow, colors.backdropGlowCool, coolCentre, coolRadius),
+        coolCentre = coolCentre,
+        coolRadius = coolRadius,
     )
-    glow(
-        ground.topLeft + Offset(ground.width * 0.95f, ground.height * 0.30f),
-        ground.width * 0.52f,
-        colors.backdropCoolGlow, colors.backdropGlowCool,
-    )
-    mesh(wave, colors.primary, ground)
-    if (particles) motes(drift, colors.backdropMote, ground)
 }
 
-/**
- * Where the wave and the drift are in their cycles.
- *
- * On a weak GPU this canvas competes with the scroll for fill rate, so the animation
- * is a capability decision rather than a taste one. The static fallback still reads
- * as Castivio — it just costs one draw instead of sixty a second.
- */
-@Composable
-private fun backdropPhase(profile: PerformanceProfile): Pair<Float, Float> {
-    if (!profile.animatedBackdrop) return 0f to 0.2f
-
-    val transition = rememberInfiniteTransition(label = "backdrop")
-    val wave by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = (2f * PI).toFloat(),
-        animationSpec = infiniteRepeatable(
-            tween(Motion.ambientWave, easing = LinearEasing), RepeatMode.Restart,
-        ),
-        label = "wave",
-    )
-    val drift by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            tween(Motion.ambientDrift, easing = LinearEasing), RepeatMode.Restart,
-        ),
-        label = "drift",
-    )
-    return wave to drift
-}
-
-private fun DrawScope.glow(center: Offset, radius: Float, color: Color, alpha: Float) {
-    drawCircle(
-        brush = Brush.radialGradient(
-            colors = listOf(color.copy(alpha = alpha), color.copy(alpha = 0f)),
-            center = center,
-            radius = radius,
-        ),
+private fun glow(color: Color, alpha: Float, centre: Offset, radius: Float): Brush =
+    Brush.radialGradient(
+        colors = listOf(color.copy(alpha = alpha), color.copy(alpha = 0f)),
+        center = centre,
         radius = radius,
-        center = center,
     )
-}
-
-/** Perspective contour waves across the lower half. */
-private fun DrawScope.mesh(phase: Float, color: Color, ground: Rect) {
-    val horizon = ground.top + ground.height * 0.40f
-    val lines = 16
-    for (i in 0..lines) {
-        val t = i / lines.toFloat()
-        val y = horizon + (ground.bottom - horizon) * (t * t)
-        val amp = 7f + 44f * t
-        val alpha = 0.025f + 0.07f * t
-        val path = Path()
-        val steps = 64
-        for (s in 0..steps) {
-            val p = s / steps.toFloat()
-            val x = ground.left + ground.width * p
-            val yy = y + amp * sin(p * 11f + i * 0.6f + phase)
-            if (s == 0) path.moveTo(x, yy) else path.lineTo(x, yy)
-        }
-        drawPath(path, color = color.copy(alpha = alpha), style = Stroke(width = 1.2f))
-    }
-}
-
-/** A handful of slow motes that rise, wrap and twinkle. */
-private fun DrawScope.motes(drift: Float, tint: Color, ground: Rect) {
-    val rng = Random(7)
-    repeat(13) {
-        val baseX = rng.nextFloat()
-        val baseY = rng.nextFloat()
-        val speed = 0.5f + rng.nextFloat()
-        val radius = 1.4f + rng.nextFloat() * 2.2f
-        val phase = rng.nextFloat()
-        val y = ((baseY - drift * speed) % 1f + 1f) % 1f
-        val twinkle = 0.25f + 0.55f * abs(sin((drift + phase) * 2f * PI.toFloat()))
-        drawCircle(
-            color = tint.copy(alpha = 0.20f * twinkle),
-            radius = radius,
-            center = ground.topLeft + Offset(ground.width * baseX, ground.height * y),
-        )
-    }
-}

@@ -10,17 +10,18 @@ import org.junit.Test
 /**
  * The backdrop's geometry, as arithmetic rather than as pixels.
  *
- * `paintBackdrop` is a `DrawScope` function and cannot be called without a canvas, so
- * what is asserted here is the *rule* it now follows: every layer is a proportion of
- * the ground rectangle, and the ground defaults to the draw box. That default is what
- * keeps `ShowScreen` and the shell drawing exactly what they drew before this
- * parameter existed — they pass nothing — and it is the one property worth a test,
- * because it is the one a future edit could break without anybody noticing until two
- * screens were photographed side by side.
+ * The backdrop's draw function (`BackdropPaint.draw`, in `Backdrop.kt`) needs a canvas
+ * and cannot be called without one, so what is asserted here is the *rule* it follows:
+ * every layer is a proportion of the ground rectangle, and the ground defaults to the
+ * draw box. That default is what keeps `ShowScreen` and the shell drawing exactly what
+ * they drew before this parameter existed — they pass nothing — and it is the one
+ * property worth a test, because it is the one a future edit could break without
+ * anybody noticing until two screens were photographed side by side.
  *
- * The numbers below mirror the ones in `paintBackdrop`. They are deliberately written
+ * The numbers below mirror the ones in `buildGround`. They are deliberately written
  * out a second time: a test that computed them from the same expression would agree
- * with a mistake as readily as with the intent.
+ * with a mistake as readily as with the intent. (The numbers of the waves and the
+ * motes are held the same way in `BackdropMotionTest`.)
  */
 class BackdropGroundTest {
 

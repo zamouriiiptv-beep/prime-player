@@ -22,4 +22,6 @@ dependencies {
     // compile. That is the seam, enforced by the build rather than by review.
     implementation(libs.coil.compose)
     testImplementation(libs.junit)
+    // The backdrop's clock is run on a frame clock of the test's own: see `BackdropClockTest`.
+    testImplementation(libs.coroutines.test)
 }

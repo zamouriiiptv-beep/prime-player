@@ -162,11 +162,28 @@ reports the split so a slow provider is visibly the provider.
 
 ### The design system pays this tax too
 
-The animated aurora backdrop redraws every frame. On a weak GPU that competes
+The animated aurora backdrop is the one thing in the application that is always
+moving, so what it costs is paid on every screen. On a weak GPU that competes
 directly with scrolling, so it is **capability-gated**: full animation on
-capable devices, a static gradient on `MemoryClass.LOW`. The Settings toggle
-exists for users who want it back — but the default is chosen by the device,
-not by taste.
+capable devices, a static gradient on `MemoryClass.LOW`. The gate is the *motion
+level* (`MotionLevel.backdropAnimates`): the device chooses the level's starting
+value, and the Settings → Motion choice that follows is honoured in both
+directions — Reduced and Disabled hold the backdrop still, on any device.
+
+What it costs while it *does* move is held to four rules (`Backdrop.kt`):
+
+- **The clock is read in draw, never in composition.** A transition read in
+  composition recomposed its reader every frame; read in draw, a tick invalidates
+  the drawing and nothing else.
+- **The drawing is its own layer, and the content on top of it is another.** A
+  tick invalidates the nearest layer, which with none in between is the whole
+  window — every text, image and list row re-recorded to move a faint line.
+- **Nothing is rebuilt that has not changed.** Brushes and glow geometry are made
+  when the rectangle or the colours change; one `Path` serves all seventeen
+  waves; the motes are a table.
+- **Thirty moves a second, not sixty, and thirty-two segments a wave, not
+  sixty-four.** `BackdropMotionTest` holds both to the look: one move shifts no
+  wave by more than a pixel, and the polyline stays within a pixel of the curve.
 
 This is the rule working as intended: the project's own signature effect yields
 to frame rate.

@@ -16,7 +16,14 @@ import androidx.compose.runtime.staticCompositionLocalOf
  */
 @Immutable
 data class PerformanceProfile(
-    /** Animate the aurora backdrop. The single most expensive ambient effect. */
+    /**
+     * Whether this device can afford to animate the aurora backdrop — the single most
+     * expensive ambient effect.
+     *
+     * An answer about the device, which is what makes it the *starting point* of the
+     * motion level ([suggestedMotion]) and no more. The backdrop itself follows the level
+     * in force, so a person's choice in Settings is honoured in both directions.
+     */
     val animatedBackdrop: Boolean,
     /** Drifting particles. Cheap individually, pointless without the animation. */
     val backdropParticles: Boolean,
