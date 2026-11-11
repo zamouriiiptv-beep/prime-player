@@ -9,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.castivio.core.design.components.DelayedSpinner
 import com.castivio.core.platform.DevDiagnostics
@@ -28,7 +29,10 @@ import com.castivio.tv.licence.LicenceWithLanguage
  *
  * Nothing is drawn until the answer arrives, beyond a spinner that waits a beat first. A
  * splash that flashes the activation screen and then replaces it with Home is a worse
- * first impression than a blank half-second.
+ * first impression than a blank half-second. That is also why a device with nothing on it
+ * waits a few seconds for the website's answer before choosing: a subscription sent while the
+ * app was closed should open on Home, not on the screen that was about to be replaced. The
+ * wait, and the reasons it exists only there, are in `AppOpening`.
  */
 @Composable
 internal fun SplashGate(
@@ -44,6 +48,15 @@ internal fun SplashGate(
 
     val model: SplashViewModel = hiltViewModel()
     val state by model.state.collectAsStateWithLifecycle()
+
+    // **The app is in front.** Opened, or returned to from another app or from the launcher's Home
+    // button: whatever the owner sent from the website meanwhile is asked for here, without a press
+    // of Refresh. The first call of a launch finds the gate still deciding and does nothing -- the
+    // opening has asked already -- and a second within a few seconds of the last is the same ask.
+    LifecycleStartEffect(model) {
+        model.cameForward()
+        onStopOrDispose { }
+    }
 
     when (val destination = state.destination) {
         null -> Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

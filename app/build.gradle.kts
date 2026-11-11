@@ -238,6 +238,9 @@ dependencies {
     // with every other gate green -- because every other gate tests a screen in
     // isolation, and no screen is the thing that starts.
     testImplementation(libs.junit)
+    // The gate's view model is driven on a virtual clock: its wait for the website is a number
+    // of seconds, and a test that really waited them would be the slowest in the module.
+    testImplementation(libs.coroutines.test)
     testImplementation(libs.robolectric)
     testImplementation(platform(libs.compose.bom))
     testImplementation(libs.compose.ui.test.junit4)

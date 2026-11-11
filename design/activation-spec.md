@@ -321,7 +321,8 @@ where the subscription is still shown as waiting.
   keep. `HttpSubscriptionInboxTest` asserts it.
 - **The device also announces itself when this screen opens**, not only on a press: the owner
   reads the address and key off the television and types them on the website, which can only
-  recognise a device that has already said it exists.
+  recognise a device that has already said it exists. It announces again each time the app
+  opens (§6.1.2).
 - **The QR is untouched** (§5.2). Nothing derived from the address or the key goes anywhere
   except to the portal, over HTTPS, in a request body.
 - **Safety rests on the portal**, as §4.2 says it must: wrong keys are counted per address
@@ -332,9 +333,53 @@ where the subscription is still shown as waiting.
   the test deployment, a release APK the product's own host.
 
 **Not covered yet, and said so.** A subscription the device could not add (a wrong password
-typed on the website) is not reported back, so the website shows it as *waiting*. A device
-announces only from this screen, so one that never opens it is unknown to the website. A
+typed on the website) is not reported back, so the website shows it as *waiting*. A
 different key already held for an address can be cleared only by an administrator.
+
+### 6.1.2 Without a press
+
+Refresh is the button for someone looking at the screen. This is the same question asked when
+nobody pressed it: each time the app opens, and each time it comes back to the front, it asks
+the portal what was sent (§6.1.1) and adds it. **Nothing on screen is new** — no state, no
+string, no button. The spinner the gate already draws is the only thing that can be seen, and
+only for a device with nothing on it.
+
+| The device… | What opens |
+|---|---|
+| may not use Castivio (licence) | the licence screen; nothing is asked |
+| has a subscription | Home at once; what was sent is added behind it, and Home shows it when it lands |
+| has none, and the portal answers within 5 s | **Home**, with the subscription — the activation screen is never drawn |
+| has none, and the portal has nothing, refuses it or cannot be reached | the activation screen, after at most 5 s behind the spinner |
+| has none, and the answer is slower than 5 s | the activation screen; Home replaces it if the late answer added a subscription |
+
+```
+opening ─ licence says no ─────────────────────────────▶ Licence
+        └ licence says yes ─ a subscription is here ───▶ Home          (asked behind it)
+                           └ none ─ ask, wait ≤ 5 s ───▶ Home | Activation
+                                                         └ late answer: Activation, then Home
+back to the front ─ asks again; moves only Activation ▶ Home
+```
+
+**Rules.**
+
+- **Only a device with nothing on it waits**, and for at most `AppOpening.PATIENCE_MS` (5 s). A
+  device with a subscription never waits on a website to open. An offline television reaches the
+  activation screen — which works offline — after the patience and no later.
+- **The last subscription added is the one shown**, as with Refresh. On a device that already has
+  one, an arrival therefore changes the one Home shows; the earlier one stays in Settings.
+- **One ask at a time, and not again within 10 s of the last** (`PullOnOpen`): the gate and the
+  activity both ask on a launch, and a screen that starts twice is one ask.
+- **Never fatal.** Any failure of the ask is an unreachable portal, and the app opens as it did
+  before there was one.
+- **A portal that does not know this device's key is asked once per run.** The portal counts every
+  wrong key against the address and locks it, the website included. Refresh, pressed by hand,
+  still asks.
+- **The ask belongs to the process, not to the screen.** Closing the app mid-way still finishes
+  adding what was found and acknowledging it.
+- **The licence is judged at the launch**, as before. Coming forward does not judge it again, asks
+  nobody once it has lapsed, and moves the user only from the activation screen to Home.
+- **The device is known to the portal as soon as the app has opened once**, not only after its
+  activation screen has been seen.
 
 ### 6.2 Copy — two independent instances
 
