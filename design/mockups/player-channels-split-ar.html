@@ -37,7 +37,7 @@
   What the build changes from the drawing, on a television: the head of the top bar also carries the stream-quality mark
   (26dp, not drawn here), so with the list open the title has about 78dp and only the LIVE chip fits under it -- a long
   name is cut with an ellipsis; and the transport's end group (fill, lock) needs more than half of the room the two ends
-  share, so the play control sits about 32dp to the start side of the centre line, and where the pill that takes the
+  share, so the play control sits about 35dp to the start side of the centre line, and where the pill that takes the
   viewer back to the live edge is there too the gaps close to make room (`TransportPlan`). Neither is drawn below.
 
     ?frame=<name>      one frame at its device size
@@ -156,11 +156,12 @@ function rowHtml(r,m,focusIdx,i){
   </div>`;
 }
 // TransportPlan (feature/player): how the three groups of the transport share their row.
+const SLACK=3;                          // TRANSPORT_SLACK: what each end is planned for beyond what it asks, for whole pixels
 function planRow(room,middle,count,start,end,gap,minGap){
-  const gaps=count+1,shared=room-middle-gap*gaps,half=shared/2;
-  if(half>=start&&half>=end)return {s:1,e:1,gap};                                   // as drawn
-  if(shared>=start+end){const atEnd=end>half?end:shared-start;return {s:shared-atEnd,e:atEnd,gap};}   // unequal
-  const fit=(room-middle-start-end)/gaps;return {s:start,e:end,gap:Math.min(gap,Math.max(fit,minGap))}; // closer
+  const gaps=count+1,ws=start>0?start+SLACK:start,we=end>0?end+SLACK:end,shared=room-middle-gap*gaps,half=shared/2;
+  if(half>=ws&&half>=we)return {s:1,e:1,gap};                                       // as drawn
+  if(shared>=ws+we){const atEnd=we>half?we:shared-ws;return {s:shared-atEnd,e:atEnd,gap};}            // unequal
+  const fit=(room-middle-ws-we)/gaps;return {s:ws,e:we,gap:Math.min(gap,Math.max(fit,minGap))};         // closer
 }
 function chrome(aw,H,m,o){
   const t=m.t,i=m.inset,ring=m.ring,bg=m.bg;

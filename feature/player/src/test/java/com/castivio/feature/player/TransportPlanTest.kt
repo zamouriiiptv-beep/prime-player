@@ -82,7 +82,7 @@ class TransportPlanTest {
 
     /**
      * Beside the list the end group is wider than half of what is left, on a television by a good deal: it takes
-     * what it asks for, the start group keeps the rest, and the gaps stay as drawn.
+     * what it asks for -- and the slack, for the pixels -- the start group keeps the rest, and the gaps stay as drawn.
      */
     @Test
     fun `beside the list the wider end takes what it asks for`() {
@@ -92,18 +92,23 @@ class TransportPlanTest {
         for (row in listOf(handsetRow, tvRow)) {
             assertEquals("$row: the gap is the design's", row.gap.value, row.plan.gap.value, 0.001f)
             assertTrue("$row: the weights are still equal", row.plan.startWeight != row.plan.endWeight)
-            assertEquals("$row: the end group has what it asks for", row.end.value, row.endShare.value, 0.01f)
-            assertTrue("$row: the start group ${row.startShare} is under its ${row.start}", row.startShare >= row.start)
+            assertEquals(
+                "$row: the end group has what it asks for and the slack",
+                (row.end + TRANSPORT_SLACK).value,
+                row.endShare.value,
+                0.01f,
+            )
+            assertTrue("$row: the start group ${row.startShare} is under its ${row.start}", row.startShare >= row.start + TRANSPORT_SLACK)
         }
 
-        // The play control leaves the centre line by half the difference between the ends: 32dp on a television.
+        // The play control leaves the centre line by half the difference between the ends: about 35dp on a television.
         val shift = (tvRow.endShare - tvRow.startShare) / 2
-        assertTrue("the television's play control moved ${shift.value}dp", shift.value in 30f..34f)
+        assertTrue("the television's play control moved ${shift.value}dp", shift.value in 32f..38f)
     }
 
     /**
      * The pill that takes the viewer back to the live edge is one more control at the end, and unequal shares are
-     * not enough: the gaps close, to exactly the width at which every group has what it asks for.
+     * not enough: the gaps close, to exactly the width at which every group has what it asks for and the slack.
      */
     @Test
     fun `behind the live edge the gaps close to what is needed`() {
@@ -113,8 +118,8 @@ class TransportPlanTest {
         for (row in listOf(tvRow, handsetRow)) {
             assertTrue("$row: the gap ${row.plan.gap} did not close", row.plan.gap < row.gap)
             assertTrue("$row: the gap ${row.plan.gap} closed under the floor", row.plan.gap >= MIN_GAP)
-            assertEquals("$row: the end group has what it asks for", row.end.value, row.endShare.value, 0.01f)
-            assertEquals("$row: the start group has what it asks for", row.start.value, row.startShare.value, 0.01f)
+            assertEquals("$row: the end group has what it asks for", (row.end + TRANSPORT_SLACK).value, row.endShare.value, 0.01f)
+            assertEquals("$row: the start group has what it asks for", (row.start + TRANSPORT_SLACK).value, row.startShare.value, 0.01f)
         }
     }
 
@@ -126,8 +131,16 @@ class TransportPlanTest {
     fun `under the floor the gap is the floor`() {
         val plan = transportPlan(room = 300.dp, middle = 200.dp, count = 3, start = 56.dp, end = 200.dp, gap = 24.dp, minGap = MIN_GAP)
         assertEquals("the gap", MIN_GAP.value, plan.gap.value, 0f)
-        assertEquals("the start group's weight", 56f, plan.startWeight, 0.001f)
-        assertEquals("the end group's weight", 200f, plan.endWeight, 0.001f)
+        assertEquals("the start group's weight", 56f + TRANSPORT_SLACK.value, plan.startWeight, 0.001f)
+        assertEquals("the end group's weight", 200f + TRANSPORT_SLACK.value, plan.endWeight, 0.001f)
+    }
+
+    /** A group with nothing in it asks for nothing, and the slack is not asked of it either. */
+    @Test
+    fun `an empty group is not given slack`() {
+        // 120dp is what the end group needs with its slack, and is all there is: the gaps stay as drawn.
+        val plan = transportPlan(room = 300.dp, middle = 100.dp, count = 3, start = 0.dp, end = 117.dp, gap = 20.dp, minGap = MIN_GAP)
+        assertEquals("the gaps closed for a group that is not there", 20f, plan.gap.value, 0f)
     }
 
     /** A weight has to be above zero, and a group with nothing in it asks for nothing. */
@@ -136,6 +149,29 @@ class TransportPlanTest {
         val plan = transportPlan(room = 400.dp, middle = 200.dp, count = 3, start = 0.dp, end = 160.dp, gap = 24.dp, minGap = MIN_GAP)
         assertTrue("start ${plan.startWeight}", plan.startWeight > 0f)
         assertTrue("end ${plan.endWeight}", plan.endWeight > 0f)
+    }
+
+    /**
+     * The slack is the whole pixels the row is laid out in and not more, and the two frames that fix it say so.
+     *
+     * Not less: on the 827dp handset build #623 gave the end group 109px for two 48dp targets and the gap between
+     * them, which is 110, and the second was laid out at 47 -- so the end group is planned for two dp over what it
+     * needs. Not more: on the 851dp handset the drawing was made on, the list's pill is shown with its word, which
+     * it is when its group has the target and 64dp of room for the label, and that group has under a dp to spare.
+     */
+    @Test
+    fun `the slack covers a pixel and does not cost the playlist pill its word`() {
+        val squeezed = Row("827 handset", tv = false, handset, listBeside = true)
+        assertTrue(
+            "the end group ${squeezed.endShare} has under two dp over the ${squeezed.end} it needs",
+            squeezed.endShare >= squeezed.end + 2.dp,
+        )
+
+        val drawn = Row("851 handset", tv = false, 851.dp to 393.dp, listBeside = true)
+        assertTrue(
+            "the playlist pill's group is ${drawn.startShare}: under the ${drawn.target + LABEL_ROOM} a word needs",
+            drawn.startShare >= drawn.target + LABEL_ROOM,
+        )
     }
 
     /**
@@ -155,15 +191,22 @@ class TransportPlanTest {
                 for (timeshift in listOf(false, true)) {
                     for (circles in listOf(0, 2, 4)) {
                         val row = Row("$width tv=$tv timeshift=$timeshift circles=$circles", tv, window, listBeside = false, timeshift = timeshift, circles = circles)
-                        val fits = row.room - row.middle - MIN_GAP * (row.count + 1) >= row.start + row.end
+                        val fits = row.room - row.middle - MIN_GAP * (row.count + 1) >=
+                            row.start + row.end + TRANSPORT_SLACK * 2
                         val plan = row.plan
 
                         assertTrue("$row: the weights ${plan.startWeight}/${plan.endWeight}", plan.startWeight > 0f && plan.endWeight > 0f)
                         assertTrue("$row: the gap ${plan.gap} is over the design's ${row.gap}", plan.gap <= row.gap)
                         assertTrue("$row: the gap ${plan.gap} is under the floor", plan.gap >= minOf(MIN_GAP, row.gap))
                         if (fits) {
-                            assertTrue("$row: the start group ${row.startShare} is under its ${row.start}", row.startShare >= row.start - 0.01.dp)
-                            assertTrue("$row: the end group ${row.endShare} is under its ${row.end}", row.endShare >= row.end - 0.01.dp)
+                            assertTrue(
+                                "$row: the start group ${row.startShare} is under its ${row.start} and the slack",
+                                row.startShare >= row.start + TRANSPORT_SLACK - 0.01.dp,
+                            )
+                            assertTrue(
+                                "$row: the end group ${row.endShare} is under its ${row.end} and the slack",
+                                row.endShare >= row.end + TRANSPORT_SLACK - 0.01.dp,
+                            )
                             checked++
                         }
                     }
@@ -178,3 +221,6 @@ class TransportPlanTest {
 
 /** The least gap the controls may be brought to. */
 private val MIN_GAP = 4.dp
+
+/** What a pill's word asks for beyond its target: `PILL_LABEL_ROOM` in `PlayerControls`, which is private. */
+private val LABEL_ROOM = 64.dp
