@@ -6,6 +6,7 @@ import coil.ImageLoader
 import coil.ImageLoaderFactory
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
+import com.castivio.core.design.components.ArtworkPolicy
 import com.castivio.core.platform.DeviceCapabilities
 import com.castivio.core.platform.MemoryClass
 import com.castivio.tv.debug.CrashReport
@@ -14,6 +15,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.HiltAndroidApp
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
+import java.util.concurrent.TimeUnit
 import okhttp3.OkHttpClient
 
 /**
@@ -51,6 +53,14 @@ class CastivioApp : Application(), ImageLoaderFactory {
      * the logo request looks exactly like every other request Castivio makes, over a
      * connection that is usually already warm because the channel list came down it.
      *
+     * It is shared by derivation, which keeps the connections, the name cache, the
+     * `User-Agent`, the HTTP cache and the listener, and changes one thing: a logo
+     * request is given up at [ArtworkPolicy.CALL_TIMEOUT_MS], whole. The client's own
+     * limits -- twelve seconds to connect, twenty between packets -- are right for a
+     * playlist and wrong for some kilobytes asked for by a screen that is being drawn:
+     * a host that did not answer held its request, and one of the five a host is
+     * allowed at once, for that long, with the pictures behind it.
+     *
      * The client is fetched through an entry point rather than injected into a field:
      * field injection happens in `super.onCreate()` and would drag the whole networking
      * graph, and with it device-capability detection, onto the startup path.
@@ -59,7 +69,11 @@ class CastivioApp : Application(), ImageLoaderFactory {
         val graph = EntryPointAccessors.fromApplication(this, ImageGraph::class.java)
         val memoryClass = graph.capabilities().memoryClass
         return ImageLoader.Builder(this)
-            .callFactory { graph.httpClient() }
+            .callFactory {
+                graph.httpClient().newBuilder()
+                    .callTimeout(ArtworkPolicy.CALL_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                    .build()
+            }
             .memoryCache {
                 MemoryCache.Builder(this)
                     .maxSizePercent(

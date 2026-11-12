@@ -178,6 +178,13 @@ reports the split so a slow provider is visibly the provider.
 - Images decode at `DeviceCapabilities.posterWidthPx` (240 px on a low-end box).
   Decoding a 4K JPEG into a 120 dp poster is the classic TV-app frame killer.
 - Disk cache budget comes from `DeviceCapabilities.recommendedCacheBytes`.
+- **A logo is waited for, not waited to fail.** A logo that has not come in 1.5 s
+  is drawn as the no-logo tile while its request goes on, and the picture replaces
+  the tile if it comes; a logo request is given up at 6 s, whole, and not at the
+  client's 12 s to connect and 20 s between packets; and an address that failed is
+  not asked for again for ten minutes (`ArtworkPolicy`, `ArtworkFailures`). The tile
+  used to wait for the request to *fail*, which for a host that does not answer was
+  an empty slot for twelve to twenty seconds, again each time the row came back.
 
 ### The design system pays this tax too
 

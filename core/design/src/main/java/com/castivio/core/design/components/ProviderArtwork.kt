@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,6 +28,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.castivio.core.design.theme.CastivioTheme
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
@@ -59,10 +61,13 @@ import kotlin.math.roundToInt
  * it is a different picture wearing its place, and it was removed from this list for that
  * reason. The glyph is the same on every channel and claims nothing.
  *
- * It is drawn in two cases: the provider shipped no url, and the url failed. While a
- * request is in flight the slot is *empty*, deliberately — a tile that appeared for a
- * moment and was then replaced by the picture would flicker down a list a remote is
- * scrolling, and the slot keeps its exact size either way, so nothing moves.
+ * It is drawn in three cases: the provider shipped no url; the url failed -- or failed in the last ten minutes, which is believed
+ * and not asked about again, see [ArtworkFailures]; and a picture has not come in [ArtworkPolicy.TILE_AFTER_MS]. In the third the
+ * request goes on beside the tile, and a picture that comes later replaces it. For the first moments of a request the slot is *empty*,
+ * deliberately — a tile that appeared for a moment and was then replaced by the picture would flicker down a list a remote is
+ * scrolling, which is what every picture that comes quickly (from the cache, from a host that answers) would make it do — and the slot
+ * keeps its exact size either way, so nothing moves. Waiting for the request to *fail* was the rule once, and for a host that does not
+ * answer that was the client's twelve or twenty seconds: see [ArtworkPolicy].
  *
  * The tile is a *square*, and a logo's slot is usually a wide, short box: so it is drawn
  * larger than the slot's height -- see [tileSized] -- and centred on the slot, which keeps
@@ -114,26 +119,37 @@ fun ProviderArtwork(
     imageScale: Float = 1f,
     seed: String? = null,
 ) {
+    val address = ArtworkSlot.address(url)
+
     // Keyed to the url, because a row in a `LazyColumn` is recycled: without the key a
     // channel whose logo failed would hand its failure to whichever channel scrolled
     // into its slot next.
-    var failed by remember(url) { mutableStateOf(false) }
+    //
+    // An address that failed in the last ten minutes starts out failed: its tile is drawn at once and no request is made.
+    var failed by remember(url) { mutableStateOf(address != null && failures.isRemembered(address)) }
+    var arrived by remember(url) { mutableStateOf(false) }
+    var waitedOut by remember(url) { mutableStateOf(false) }
     var onPlate by remember(url) { mutableStateOf(url?.let { verdicts.get(it) } == true) }
     val scope = rememberCoroutineScope()
     val colors = CastivioTheme.colors
+
+    // How long the slot is left empty for a picture on its way. Not begun for no address or for one that failed: their tile is drawn
+    // at once. The request is not touched by it -- it goes on beside the tile, and its picture replaces the tile if it comes.
+    LaunchedEffect(url) {
+        if (address != null && !failed) {
+            delay(ArtworkPolicy.TILE_AFTER_MS)
+            waitedOut = true
+        }
+    }
 
     Box(
         modifier.then(if (onPlate) Modifier.background(colors.artworkPlate, RoundedCornerShape(PLATE_RADIUS)) else Modifier),
         contentAlignment = Alignment.Center,
     ) {
-        if (url.isNullOrBlank() || failed) {
-            // Decorative: the name beside it is already the row's label, and announcing "no image" on every second row would make
-            // a screen reader unusable on this list.
-            NoLogoTile(seed, Modifier.tileSized())
-        } else {
+        if (address != null && !failed) {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
-                    .data(url)
+                    .data(address)
                     // Cross-fade is off on purpose. Twelve rows animating their logos in
                     // as a list settles is movement nobody asked for, on the screen where
                     // a viewer is trying to read names.
@@ -144,15 +160,22 @@ fun ProviderArtwork(
                     .build(),
                 contentDescription = description,
                 contentScale = ContentScale.Fit,
-                onError = { failed = true },
+                onError = {
+                    // Believed for ten minutes: the row that comes back to the screen draws the tile at once and asks for nothing.
+                    failures.record(address)
+                    failed = true
+                },
                 onSuccess = { state ->
+                    // The tile, if the wait had put it there, is taken away now that the picture has come: it must not stay under a logo
+                    // with a transparent ground.
+                    arrived = true
                     // Judged once per address, off the main thread, and kept: a verdict that is already known was applied when the
                     // slot was composed.
-                    if (verdicts.get(url) == null) {
+                    if (verdicts.get(address) == null) {
                         val drawable = state.result.drawable
                         scope.launch {
                             val dark = withContext(Dispatchers.Default) { needsPlate(drawable) }
-                            verdicts.put(url, dark)
+                            verdicts.put(address, dark)
                             onPlate = dark
                         }
                     }
@@ -168,6 +191,12 @@ fun ProviderArtwork(
                     },
                 ),
             )
+        }
+        // After the picture, so that it is over it -- and gone when the picture has come: see [ArtworkSlot.showsTile].
+        if (ArtworkSlot.showsTile(address, failed, arrived, waitedOut)) {
+            // Decorative: the name beside it is already the row's label, and announcing "no image" on every second row would make
+            // a screen reader unusable on this list.
+            NoLogoTile(seed, Modifier.tileSized())
         }
     }
 }
@@ -196,6 +225,9 @@ private fun Modifier.insideThePlate(): Modifier = layout { measurable, constrain
     val placeable = measurable.measure(constraints.offset(horizontal = -2 * horizontal, vertical = -2 * vertical))
     layout(placeable.width + 2 * horizontal, placeable.height + 2 * vertical) { placeable.place(horizontal, vertical) }
 }
+
+/** The addresses whose pictures did not come in the last ten minutes: not asked for again, and drawn as the tile at once. */
+private val failures = ArtworkFailures()
 
 /** What [ArtworkInk] said of each address already judged: the most recent few hundred, which is more than a list shows. */
 private val verdicts = LruCache<String, Boolean>(VERDICTS)
