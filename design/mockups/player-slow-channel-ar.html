@@ -1,0 +1,196 @@
+<!doctype html>
+<!--
+  What the viewer reads while a channel is slow to start, as it is and as it is meant to be. A DRAWING, AWAITING THE
+  OWNER'S APPROVAL: no code reads any of it, and none is written before it is approved.
+
+  Why it was drawn. On "FR| TF1 4K", a channel whose source is slow, the viewer saw "Nothing arrived -- Retry" over the
+  channel that was on, and a little later, without pressing anything, the channel played. The card was not wrong about
+  the clock and was wrong about the channel: the engine behind it had never been stopped, and its picture drew over the
+  card when it came. Before the card there was a sentence about engines ("the primary player did not open this --
+  switching to the backup") that the viewer cannot act on and does not need.
+
+  What the code does today (feature/player, playback/engine-api `FallbackPolicy`):
+    - The primary engine (Media3) is given three seconds after its last sign of life -- the first bytes, then its tracks.
+      A stream that has reached it and shows no picture is handed to the backup (LibVLC) at once; the line on the
+      loading screen then reads "switching to the backup" (`player_switching`) for every viewer, not only in a debug build.
+    - The backup is given ten seconds from its own start for its first picture. When they run out the card is drawn
+      (TIMEOUT, "Nothing arrived", one button, because the backup has been spent) -- and the backup is left running.
+    - A primary that has been sent no byte at all is waited on for twelve seconds and then gets the same card with a
+      second button, "try the backup player".
+    So the card appears at about thirteen seconds on a slow channel whatever the channel is about to do.
+
+  What is drawn as the new design -- three changes, nothing else:
+    1. The sentence about engines is not shown to the viewer (it stays in a development build and in the opening panel).
+       The line stays "Connecting to the channel..." through the hand-over.
+    2. No failure card while an engine is still alive and has made progress. The waiting screen of the approved drawing
+       (`wait-states.png`) simply goes on, the bar at its top keeps moving, and the sentence that says the provider is slow
+       stays where it is. The picture, when it comes, is the next thing the viewer sees.
+    3. The card is for a channel that really did not come: about thirty seconds after the press, in the same words, with
+       the same button. A failure the engine itself reports (a decoder that refused, a link that is not there, no
+       connection) still draws its card at once, as today.
+
+  What is not drawn and does not change: the card's look and words; the "try the backup player" button where the card
+  carries it today; the loading screen's first two seconds; the radio. The thirty seconds is a figure to decide, not a
+  measurement: it is the ceiling of a wait with something alive behind it.
+
+  Geometry is the owner's handset, 851x393dp in Arabic (the player is laid out left to right in every language). Sizes
+  are the build's: the card is 62% of the width, 24dp round, `overVideo` (#08071A at 86%); the title is 15sp and the
+  detail 12.5sp; the spinner is 44dp and its line 12sp; the logo plate is 2.2 times the spinner. The channel has no guide,
+  so no programme row is drawn. The picture behind is the channel that was on, dimmed -- an example.
+
+    ?frame=<name>      one frame at its device size: now-switching, new-connecting, now-card, new-waiting, new-card, picture
+    ?frame=sheet       the frames stacked with their captions, for review
+
+  Colours are Color.kt tokens; names, logos and figures are examples.
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>Player, a channel slow to start</title>
+<style>
+@font-face{font-family:"Castivio Sans";font-weight:400;src:url("../../core/design/src/main/res/font/inter_regular.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:500;src:url("../../core/design/src/main/res/font/inter_medium.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:600;src:url("../../core/design/src/main/res/font/inter_semibold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:700;src:url("../../core/design/src/main/res/font/inter_bold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:800;src:url("../../core/design/src/main/res/font/inter_bold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:400;src:url("../../core/design/src/main/res/font/plex_arabic_regular.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:500;src:url("../../core/design/src/main/res/font/plex_arabic_medium.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:600;src:url("../../core/design/src/main/res/font/plex_arabic_semibold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:700;src:url("../../core/design/src/main/res/font/plex_arabic_bold.ttf") format("truetype")}
+:root{
+  --void:#08071A; --glass:rgba(255,255,255,.06); --glassStrong:rgba(255,255,255,.12); --glassBorder:rgba(255,255,255,.14);
+  --edgeCard:rgba(255,255,255,.10); --ring:#6FB2FF; --violet:#9B6BFF; --amber:#FFB84D; --success:#3DD68C;
+  --white:#FFFFFF; --silver:#C9C9DA; --ink:#B9B9D4;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;color:var(--white);font-family:"Castivio Sans","Castivio Arabic","DejaVu Sans",sans-serif}
+body.sheet{padding:28px 32px 36px;width:max-content;background:#0c0c14}
+
+/* ---------------------------------------------------------------- the frame: one screen of the player */
+.screen{position:relative;overflow:hidden;direction:ltr;width:851px;height:393px;background:#000;border-radius:14px;border:1px solid rgba(255,255,255,.10)}
+.prev{position:absolute;inset:-14px;filter:blur(10px);
+  background:
+    radial-gradient(58% 46% at 18% 80%,#58a05a 0%,rgba(88,160,90,0) 70%),
+    radial-gradient(60% 50% at 82% 82%,#4a9150 0%,rgba(74,145,80,0) 72%),
+    linear-gradient(180deg,#323a63 0%,#222645 34%,#356f3d 58%,#255230 100%)}
+.dim{position:absolute;inset:0;background:rgba(4,3,14,.48)}
+.obar{position:absolute;left:0;right:0;top:0;height:3px;background:rgba(255,255,255,.12)}
+.obar i{position:absolute;top:0;bottom:0;border-radius:0 2px 2px 0;background:linear-gradient(90deg,var(--ring),var(--violet))}
+.face{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.idrow{display:flex;align-items:center;gap:16px}
+.logo{width:97px;height:97px;border-radius:16px;background:var(--glassStrong);border:1px solid var(--edgeCard);padding:8px;display:flex;align-items:center;justify-content:center}
+.idt{display:flex;flex-direction:column;direction:ltr;text-align:left}
+.idt b{font:500 15px/22px "Castivio Sans","Castivio Arabic",sans-serif;color:var(--white);unicode-bidi:plaintext}
+.idt span{font:500 12px/16px "Castivio Sans","Castivio Arabic",sans-serif;color:var(--silver)}
+.wait{display:flex;flex-direction:column;align-items:center;gap:12px}
+.spin{width:44px;height:44px;border-radius:50%;border:4px solid var(--glassStrong);border-top-color:var(--ring);border-right-color:var(--ring);transform:rotate(28deg)}
+.wait span{font:500 12px/16px "Castivio Arabic","Castivio Sans",sans-serif;color:var(--silver);text-align:center;direction:rtl}
+.slow{padding:8px 16px;border-radius:16px;background:rgba(255,184,77,.12);border:1px solid rgba(255,184,77,.38);
+  font:500 12px/16px "Castivio Arabic","Castivio Sans",sans-serif;color:var(--amber);text-align:center;direction:rtl}
+.card{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:62%;padding:16px 24px;border-radius:24px;
+  background:rgba(8,7,26,.86);border:1px solid var(--glassBorder);display:flex;flex-direction:column;align-items:center;gap:8px;direction:rtl}
+.card h3{font:500 15px/22px "Castivio Arabic","Castivio Sans",sans-serif;color:var(--white);text-align:center}
+.card p{font:500 12.5px/20px "Castivio Arabic","Castivio Sans",sans-serif;color:var(--silver);text-align:center}
+.btn{margin-top:4px;min-height:48px;padding:0 16px;border-radius:999px;background:var(--glassStrong);border:1px solid var(--glassBorder);
+  display:flex;align-items:center;gap:8px;font:500 12px/16px "Castivio Arabic","Castivio Sans",sans-serif;color:var(--white);direction:rtl}
+.pic{position:absolute;inset:0;
+  background:
+    radial-gradient(46% 60% at 66% 40%,rgba(255,190,120,.55) 0%,rgba(255,190,120,0) 70%),
+    radial-gradient(60% 70% at 28% 70%,rgba(70,90,170,.55) 0%,rgba(70,90,170,0) 72%),
+    linear-gradient(180deg,#1a1830 0%,#2a2038 46%,#150f1c 100%)}
+.pic .wm{position:absolute;right:22px;top:18px;width:46px;height:46px}
+
+/* ---------------------------------------------------------------- the sheet */
+.sheet-head{max-width:1760px;margin-bottom:26px}
+.sheet-head h1{font:700 26px/1.4 "Castivio Arabic","Castivio Sans",sans-serif;color:#fff}
+.sheet-head p{font:400 15px/1.8 "Castivio Arabic","Castivio Sans",sans-serif;color:var(--ink);margin-top:4px}
+.sheet-head b{color:#fff}
+.changes{display:flex;gap:14px;margin-top:14px}
+.changes div{flex:1;border:1px solid rgba(255,255,255,.16);border-radius:12px;padding:10px 14px;font:500 14px/1.7 "Castivio Arabic","Castivio Sans",sans-serif;color:#e6e6f4;background:rgba(255,255,255,.04)}
+.changes em{font-style:normal;color:var(--success);font-weight:700;margin-inline-end:6px}
+.grid{display:grid;grid-template-columns:repeat(2,851px);gap:10px 40px;direction:rtl}
+.when{grid-column:1/-1;margin-top:26px;font:700 18px/1.5 "Castivio Arabic","Castivio Sans",sans-serif;color:#fff;display:flex;align-items:center;gap:12px}
+.when .t{direction:rtl;font:600 14px/1 "Castivio Arabic","Castivio Sans",sans-serif;color:#0c0c14;background:#c9a8ff;border-radius:999px;padding:6px 12px}
+.when small{font:400 14px/1.5 "Castivio Arabic","Castivio Sans",sans-serif;color:var(--ink)}
+.cell{display:flex;flex-direction:column;gap:10px}
+.tag{align-self:flex-start;font:700 15px/1 "Castivio Arabic","Castivio Sans",sans-serif;border-radius:999px;padding:7px 16px;border:1.5px solid}
+.tag.now{color:var(--amber);border-color:var(--amber)}
+.tag.new{color:var(--success);border-color:var(--success)}
+.cap{font:400 15px/1.8 "Castivio Arabic","Castivio Sans",sans-serif;color:var(--ink);max-width:851px;direction:rtl}
+.cap b{color:#fff}
+.note{width:851px;min-height:120px;border:1.5px dashed rgba(255,255,255,.22);border-radius:14px;display:flex;align-items:center;justify-content:center;
+  padding:18px 40px;text-align:center;font:500 17px/1.9 "Castivio Arabic","Castivio Sans",sans-serif;color:#e6e6f4;direction:rtl}
+.foot{max-width:1760px;margin-top:34px;padding-top:16px;border-top:1px solid rgba(255,255,255,.14);font:400 14px/1.9 "Castivio Arabic","Castivio Sans",sans-serif;color:var(--ink)}
+.foot b{color:#fff}
+</style>
+</head>
+<body>
+<script>
+const T={
+  connecting:'جارٍ الاتصال بالقناة…',
+  switching:'المشغّل الأساسي لم يفتح هذا — جارٍ التحويل إلى الاحتياطي',
+  slow:'مزوّد الاشتراك يستجيب ببطء لهذه القناة',
+  cardTitle:'لم يصل شيء',
+  cardDetail:'لم يرسل المصدر صورة ولم يُبلغ عن خطأ. تستحق المحاولة مرة أخرى.',
+  retry:'إعادة المحاولة'
+};
+let uid=0;
+const logo=()=>{const id='tf'+(uid++);return `<svg width="81" height="81" viewBox="0 0 81 81"><defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E4002B"/><stop offset="1" stop-color="#27389B"/></linearGradient></defs><circle cx="40.5" cy="40.5" r="37" fill="url(#${id})"/><text x="40.5" y="49.500" text-anchor="middle" font-family="Castivio Sans" font-weight="800" font-size="26" fill="#fff" letter-spacing="-.5">TF1</text></svg>`;};
+const retryIcon='<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>';
+
+const kept='<div class="prev"></div><div class="dim"></div>';
+const waiting=o=>`<div class="screen">${kept}
+  <div class="obar"><i style="left:${o.bar[0]}%;width:${o.bar[1]}%"></i></div>
+  <div class="face">
+    <div class="idrow"><div class="logo">${logo()}</div><div class="idt"><b>FR| TF1 4K</b><span>N° 2 · 4K</span></div></div>
+    <div class="wait"><div class="spin"></div><span>${o.line}</span></div>
+    <div class="slow">${T.slow}</div>
+  </div></div>`;
+const card=()=>`<div class="screen">${kept}
+  <div class="card"><h3>${T.cardTitle}</h3><p>${T.cardDetail}</p><div class="btn">${retryIcon}<span>${T.retry}</span></div></div></div>`;
+const picture=()=>`<div class="screen"><div class="pic"><div class="wm">${logo()}</div></div></div>`;
+
+const FR={
+  'now-switching':{html:()=>waiting({line:T.switching,bar:[34,26]})},
+  'new-connecting':{html:()=>waiting({line:T.connecting,bar:[34,26]})},
+  'now-card':{html:card},
+  'new-waiting':{html:()=>waiting({line:T.connecting,bar:[64,26]})},
+  'new-card':{html:card},
+  'picture':{html:picture}
+};
+
+const p=new URLSearchParams(location.search),f=p.get('frame')||'sheet';
+const cell=(tag,html,cap)=>`<div class="cell"><div class="tag ${tag}">${tag==='now'?'الآن':'المقترح'}</div>${html}<div class="cap">${cap}</div></div>`;
+if(f==='sheet'){
+  document.body.className='sheet';
+  document.body.innerHTML=`
+  <div class="sheet-head">
+    <h1>قناة بطيئة في البدء — ما يقرؤه المشاهد من الضغط حتى تصل الصورة</h1>
+    <p>مثال قناة <bdi dir="ltr">FR| TF1 4K</bdi>: المصدر بطيء، فتعمل القناة أحيانًا بعد أكثر من عشر ثوانٍ. <b>رسم بانتظار اعتمادك — لا كود قبله.</b></p>
+    <div class="changes">
+      <div><em>1</em>لا تُعرض للمشاهد جملة عن المشغّلات ولا عن «التحويل إلى الاحتياطي».</div>
+      <div><em>2</em>لا بطاقة فشل ما دام التطبيق ما زال يحاول وهناك تقدّم: شاشة الانتظار نفسها تستمر.</div>
+      <div><em>3</em>تظهر البطاقة، بكلماتها نفسها، فقط إن لم يصل شيء بعد نحو 30 ثانية.</div>
+    </div>
+  </div>
+  <div class="grid">
+    <div class="when"><span class="t">≈ 4–5 ث</span>عند التحويل إلى المشغّل الاحتياطي <small>— المشغّل الأساسي لم يرسم صورة خلال 3 ثوانٍ من آخر علامة حياة</small></div>
+    ${cell('now',FR['now-switching'].html(),'تظهر جملة عن المشغّلات: <b>«المشغّل الأساسي لم يفتح هذا — جارٍ التحويل إلى الاحتياطي»</b>. المشاهد لا يستطيع فعل شيء بها ولا يحتاج إلى معرفتها.')}
+    ${cell('new',FR['new-connecting'].html(),'<b>الشاشة نفسها والجملة المعتادة</b> «جارٍ الاتصال بالقناة…». يحدث التحويل خلفها دون أن يُقرأ شيء عنه، وعبارة «مزوّد الاشتراك يستجيب ببطء» تبقى.')}
+    <div class="when"><span class="t">≈ 13 ث</span>القناة بطيئة لكنها ستصل <small>— حالة TF1 4K التي رأيتها</small></div>
+    ${cell('now',FR['now-card'].html(),'تظهر بطاقة <b>«لم يصل شيء»</b> مع «إعادة المحاولة»، والتطبيق ما زال يحاول خلفها. بعد ثوانٍ تصل الصورة فتختفي البطاقة وحدها: المشاهد قرأ «فشل» ثم رأى القناة تعمل.')}
+    ${cell('new',FR['new-waiting'].html(),'<b>لا بطاقة.</b> شاشة الانتظار نفسها، والشريط في أعلاها ما زال يتحرك. حين تصل الصورة تظهر مباشرة دون أن يقرأ المشاهد كلمة فشل. بلا أي زر هنا: يستطيع الرجوع أو تبديل القناة في أي لحظة.')}
+    <div class="when"><span class="t">≈ 30 ث</span>القناة ميتة فعلًا — لا يصل شيء أبدًا</div>
+    <div class="cell"><div class="tag now">الآن</div><div class="note">البطاقة نفسها (في الصف السابق) تظهر عند نحو 13 ثانية وتبقى أمام المشاهد.</div></div>
+    ${cell('new',FR['new-card'].html(),'<b>البطاقة نفسها بكلماتها نفسها</b>، لكن بعد نحو 30 ثانية من الضغط بدل 13. وأي فشل يبلّغ عنه المشغّل نفسه (مفكّك رفض، رابط غير موجود، لا اتصال) تظهر بطاقته فورًا كما اليوم.')}
+  </div>
+  <div class="foot">
+    <b>ما لا يتغيّر:</b> شكل البطاقة وكلماتها، وزر «جرّب المشغّل الاحتياطي» حيث تعرضه اليوم، والثانيتان الأوليان من الانتظار، والراديو. وفي المعاينة الصغيرة داخل لوحة القنوات تظهر الحالات نفسها بحجمها.<br>
+    <b>الأرقام تقديرات من منطق الفتح الحالي</b> (3 ثوانٍ للأساسي بعد آخر علامة حياة، و10 للاحتياطي من بدايته) وليست قياسًا على جهازك؛ والسقف 30 ثانية قرارك. الأسماء والشعارات والصورة أمثلة.
+  </div>`;
+}else{
+  document.body.innerHTML=FR[f].html();
+}
+</script>
+</body>
+</html>
