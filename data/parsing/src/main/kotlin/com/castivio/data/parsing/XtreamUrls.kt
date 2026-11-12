@@ -142,6 +142,93 @@ object XtreamUrls {
         }
     }
 
+    /**
+     * The wall-clock time a panel wrote, `2025-11-02 21:30:00` (or with a `T`, or without the seconds), as milliseconds as if that
+     * clock read UTC, or null when the text is not a date and a time.
+     *
+     * **Not an instant.** It is the digits of the panel's clock laid on the UTC calendar, which is what makes the difference
+     * between it and the instant the panel gave for the same programme the panel's offset from UTC: see [clockOffsetMs].
+     */
+    fun wallClockMs(serverTime: String): Long? {
+        val text = serverTime.trim()
+        if (timeshiftStart(text) == null) return null
+        val seconds = if (text.length >= 19 && text[16] == ':' && text[17] in '0'..'9' && text[18] in '0'..'9') {
+            (text[17] - '0') * 10 + (text[18] - '0')
+        } else {
+            0
+        }
+        val year = text.substring(0, 4).toInt()
+        val month = text.substring(5, 7).toInt()
+        val day = text.substring(8, 10).toInt()
+        val hour = text.substring(11, 13).toInt()
+        val minute = text.substring(14, 16).toInt()
+        if (month !in 1..12 || day !in 1..31 || hour !in 0..23 || minute !in 0..59 || seconds !in 0..59) return null
+        return daysFromCivil(year, month, day) * DAY_MS + hour * HOUR_MS + minute * MINUTE_MS + seconds * SECOND_MS
+    }
+
+    /**
+     * How far a panel's wall clock is ahead of UTC, in milliseconds, from one programme it listed: the digits of its clock against the
+     * instant it gave for the same moment. Rounded to a quarter of an hour, which is the finest a time zone is, so that a panel whose
+     * two figures disagree by a few seconds is not taken for one in an odd zone; null when the figures are not a zone at all
+     * (more than fourteen hours either way) or the text is not a time.
+     */
+    fun clockOffsetMs(serverTime: String, instantMs: Long): Long? {
+        val wall = wallClockMs(serverTime) ?: return null
+        val raw = wall - instantMs
+        val rounded = Math.floorDiv(raw + QUARTER_HOUR_MS / 2, QUARTER_HOUR_MS) * QUARTER_HOUR_MS
+        return rounded.takeIf { it in -MAX_OFFSET_MS..MAX_OFFSET_MS }
+    }
+
+    /**
+     * An archive path's start, `2025-11-02:21-30`, for a moment given as the panel's wall clock in milliseconds -- the instant plus
+     * [clockOffsetMs] -- written to the minute it falls in. The inverse of [wallClockMs] to the minute.
+     */
+    fun timeshiftStartAt(wallClockMs: Long): String {
+        val days = Math.floorDiv(wallClockMs, DAY_MS)
+        val inDay = Math.floorMod(wallClockMs, DAY_MS)
+        val (year, month, day) = civilFromDays(days)
+        val hour = (inDay / HOUR_MS).toInt()
+        val minute = ((inDay % HOUR_MS) / MINUTE_MS).toInt()
+        return buildString(16) {
+            append(year.toString().padStart(4, '0')).append('-').append(two(month)).append('-').append(two(day))
+            append(':').append(two(hour)).append('-').append(two(minute))
+        }
+    }
+
+    private fun two(value: Int): String = if (value < 10) "0$value" else value.toString()
+
+    /** Days from 1970-01-01 to the given civil date, in the proleptic Gregorian calendar (Hinnant's algorithm). */
+    private fun daysFromCivil(year: Int, month: Int, day: Int): Long {
+        val y = (if (month <= 2) year - 1 else year).toLong()
+        val era = Math.floorDiv(y, 400L)
+        val yearOfEra = y - era * 400
+        val monthFromMarch = (month + 9) % 12
+        val dayOfYear = (153 * monthFromMarch + 2) / 5 + day - 1
+        val dayOfEra = yearOfEra * 365 + yearOfEra / 4 - yearOfEra / 100 + dayOfYear
+        return era * 146_097 + dayOfEra - 719_468
+    }
+
+    /** The civil date [days] after 1970-01-01, as year, month, day (Hinnant's algorithm). */
+    private fun civilFromDays(days: Long): Triple<Int, Int, Int> {
+        val z = days + 719_468
+        val era = Math.floorDiv(z, 146_097L)
+        val dayOfEra = z - era * 146_097
+        val yearOfEra = (dayOfEra - dayOfEra / 1_460 + dayOfEra / 36_524 - dayOfEra / 146_096) / 365
+        val y = yearOfEra + era * 400
+        val dayOfYear = dayOfEra - (365 * yearOfEra + yearOfEra / 4 - yearOfEra / 100)
+        val monthFromMarch = (5 * dayOfYear + 2) / 153
+        val day = (dayOfYear - (153 * monthFromMarch + 2) / 5 + 1).toInt()
+        val month = (if (monthFromMarch < 10) monthFromMarch + 3 else monthFromMarch - 9).toInt()
+        return Triple((if (month <= 2) y + 1 else y).toInt(), month, day)
+    }
+
+    private const val SECOND_MS = 1_000L
+    private const val MINUTE_MS = 60 * SECOND_MS
+    private const val HOUR_MS = 60 * MINUTE_MS
+    private const val DAY_MS = 24 * HOUR_MS
+    private const val QUARTER_HOUR_MS = 15 * MINUTE_MS
+    private const val MAX_OFFSET_MS = 14 * HOUR_MS
+
     /** The alternate container for a stream, used by playback fallback. */
     fun alternateLiveFormat(url: String): String? = when {
         url.endsWith(".ts", ignoreCase = true) -> url.dropLast(3) + ".m3u8"

@@ -1,0 +1,294 @@
+<!doctype html>
+<!--
+  The controls of the player when it plays a LIVE CHANNEL, as the owner decided them. **Approved by the owner on 2026-11-12 and
+  built** (LOCAL_CHANGES section 107); this file is the record of what was approved. Films, series and the radio keep the controls
+  they have; this file is about a channel only.
+
+  What the owner decided (2026-11-12):
+    keep      the playlist, the previous channel, play and pause, the next channel, fill the screen, lock the screen.
+    delete    the "..." (More) button: the statistics behind it are for development only, and "share" shared nothing but a name.
+    lock      on a handset and a tablet only; a television has no screen to lock against a thumb, so it is not drawn there.
+    no        brightness, by gesture or by button. No subtitles in the channels player (it already has none: no top button
+              and no row in the gear).
+    time shift  only on the channels that support it, i.e. the ones whose provider keeps an archive (`catchUpHours > 0`,
+              `PlayerRequest.supportsTimeshift`, which nothing draws yet).
+    the rest  left to the designer: no sleep timer, no picture-in-picture.
+
+  Where every control lives -- the owner's rule for this drawing: nothing in the middle of the picture. The top band holds the
+  way back, the title with its chips and the four-or-fewer round buttons; the bottom band holds the bar and the transport.
+  The middle is empty in every frame, and the sheet says so with a ruler beside each frame (top band / middle / bottom band).
+  That is why the options of the time shift are not a panel opened over the picture: they take the place of the bar.
+
+  What is new, and how it works:
+    "إرجاع" (time shift) is a pill at the end of the transport, drawn only where the channel has an archive. It is placed
+    before "fill", so that when the "back to live" pill appears at the start of that group nothing else moves. Pressed, it
+    lights as the gear does while its panel is open, and the bar -- which on a live channel is only a full line -- gives its
+    row to four options: from the start of the programme, 15 minutes before, 30 minutes before, an hour before. They are
+    measured from the live edge, so choosing again while behind live moves to the new place, and an option that goes past the
+    channel's archive is not drawn. Pressing the pill again, or Back on a remote, closes it; so does opening the playlist.
+    Chosen, the picture plays the archive from that place, the bar comes back with how far behind the viewer is
+    ("متأخّر 15:00 عن المباشر", the string the bar already carries) and "back to live" appears -- both exist today for a stream
+    that has a window behind its edge; this reuses them. The LIVE chip turns grey while behind: a green LIVE beside a figure
+    that says "15:00 behind" is the one contradiction on that screen (a small proposal, drawn so it can be refused).
+    The word is "إرجاع" and not "رجوع", which is what the Back button says; the strip does not need a title.
+
+  What the build adds to the drawing, which the owner asked for when approving it:
+    the pill is drawn only once the archive has been READ and proved to reach back (not on the provider's claim of hours), and the
+    four places are drawn only for what that reading shows the archive really holds -- `TimeShiftPolicy`; moving between the live edge
+    and the archive is a new address on the SAME engine, the primary or the backup, never a new engine; opening the strip changes
+    neither the size nor the place of the picture; and the middle of the picture holds no control in any state. The one frame added
+    is `phone-failed`: a rewind that could not be made goes back to the live edge on the same engine and the bar says so for five
+    seconds, in the place its figure is, instead of drawing a card over a channel that is well.
+
+  What goes:
+    "..." in the top bar, on every device a viewer holds. It opens the statistics and "share"; the statistics are the owner's
+    and the developer's, not the viewer's. In a debug build the button stays, as the door to that panel -- gated by
+    `BuildConfig.DEBUG`, which the compiler folds, so a release build does not carry it, as it does not carry the opening
+    panel (`DiagnosisBlock`). The drawing is the viewer's build.
+    the audio button, where the channel has one audio track: it is drawn only when there is more than one (a control that
+    cannot act is not drawn). The gear keeps its rows for a channel -- quality where there is more than one, and the shape of
+    the picture -- without a row for the sound, which the button already reaches.
+    the lock on a television.
+
+  What does not change: the way back, the title and the chips, the favourite, the gear, the playlist pill, the steps and the
+  play control, the bar's live look, the plan that shares the transport row (`TransportPlan`) and the rule that labels go
+  and icons stay when the room runs out -- which is why "fill" and "lock" lose their words on a handset once a third pill
+  joins them, exactly as they do today when "back to live" appears. The ten-second jumps appear only where the stream can
+  be sought, as today, and are not drawn. The stream-quality mark at the head of the top buttons keeps its slot (not drawn).
+
+    ?frame=<name>      one frame at its device size
+    ?frame=phone       the handset's frames stacked with their captions and rulers
+    ?frame=tv          the television's
+    ?frame=sheet       both
+
+  Colours are Color.kt tokens (the dashed outlines are the Danger and Violet60 tokens, and only mark the drawing: red is
+  what goes, violet is what is new); names, logos and figures are examples.
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>Player channel controls</title>
+<style>
+@font-face{font-family:"Castivio Sans";font-weight:400;src:url("../../core/design/src/main/res/font/inter_regular.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:500;src:url("../../core/design/src/main/res/font/inter_medium.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:600;src:url("../../core/design/src/main/res/font/inter_semibold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:700;src:url("../../core/design/src/main/res/font/inter_bold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:400;src:url("../../core/design/src/main/res/font/plex_arabic_regular.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:500;src:url("../../core/design/src/main/res/font/plex_arabic_medium.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:700;src:url("../../core/design/src/main/res/font/plex_arabic_bold.ttf") format("truetype")}
+:root{
+  --glass:rgba(255,255,255,.06); --glassStrong:rgba(255,255,255,.12); --glassBorder:rgba(255,255,255,.14);
+  --violet:#9B6BFF; --violetEdge:#B694FF; --azure:#4C9BFF; --ring:#6FB2FF; --success:#3DD68C; --danger:#FF5A5A;
+  --ink:#D6D3E8; --strong:#FFFFFF; --muted:#A6A6BF; --live:#2FBF9B;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;color:var(--strong);font-family:"Castivio Sans","Castivio Arabic","DejaVu Sans",sans-serif}
+body.sheet{padding:20px;width:max-content;background:#0c0c14}
+svg{display:block;flex:none}
+.legend{font:14px/1.6 "Castivio Arabic","Castivio Sans","DejaVu Sans",sans-serif;color:#b9b9d4;max-width:900px;direction:rtl;margin-bottom:6px}
+.legend b{color:#fff}
+.legend .keys{display:flex;flex-wrap:wrap;align-items:center;gap:8px 22px;margin-top:6px}
+.legend .key{display:flex;align-items:center;gap:8px}
+.legend .k{width:30px;height:16px;border-radius:5px;flex:none}
+.legend .k.del{border:2px dashed var(--danger)}
+.legend .k.new{border:2px dashed var(--violetEdge)}
+.foot{font:13px/1.7 "Castivio Arabic","Castivio Sans","DejaVu Sans",sans-serif;color:#9d9dbb;max-width:900px;direction:rtl;margin-top:26px;padding-top:12px;border-top:1px solid rgba(255,255,255,.12)}
+.foot b{color:#d6d3e8}
+.cap{font:14px/1.6 "Castivio Arabic","Castivio Sans","DejaVu Sans",sans-serif;color:#b9b9d4;margin:26px 0 8px;max-width:900px;direction:rtl}
+.cap b{color:#fff}
+.fr{display:flex;gap:10px;align-items:flex-start;direction:ltr}
+.vr{width:84px;display:flex;flex-direction:column;flex:none}
+.vr span{display:flex;align-items:center;justify-content:center;text-align:center;font:600 12px/1.4 "Castivio Arabic","Castivio Sans","DejaVu Sans",sans-serif;direction:rtl;padding:0 6px}
+.vr .a{background:#7fb4ff;color:#0c0c14}
+.vr .e{border:2px dashed #8a8aa8;color:#e1e1f0;background:repeating-linear-gradient(135deg,rgba(255,255,255,.06) 0 8px,transparent 8px 16px)}
+
+.screen{position:relative;overflow:hidden;direction:ltr;background:#000;flex:none}
+.pic{position:absolute;overflow:hidden;
+  background:radial-gradient(90% 80% at 30% 40%,#3a3320 0%,#171410 55%,#07060a 100%)}
+.pic i{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.45),transparent 28%,transparent 62%,rgba(0,0,0,.55))}
+.abs{position:absolute}
+.round{border-radius:50%;background:var(--glassStrong);border:1px solid var(--glassBorder);display:flex;align-items:center;justify-content:center}
+.pill2{border-radius:999px;background:var(--glassStrong);border:1px solid var(--glassBorder);display:flex;align-items:center;justify-content:center;gap:6px;color:var(--strong);white-space:nowrap;flex:none}
+.pill2 .lb{unicode-bidi:plaintext;text-align:left}
+.lit{border:2px solid var(--ring);box-shadow:0 0 0 2px rgba(111,178,255,.35)}
+.mk-del{outline:2px dashed var(--danger);outline-offset:5px}
+.mk-new{outline:2px dashed var(--violetEdge);outline-offset:5px}
+.ttl{font-weight:700;unicode-bidi:plaintext;white-space:nowrap}
+.chip{height:24px;border-radius:999px;padding:0 12px;display:flex;align-items:center;font-size:13px;background:rgba(255,255,255,.10);border:1px solid var(--glassBorder);color:var(--ink);white-space:nowrap}
+.chip.live{background:var(--live);border-color:var(--live);color:#04130e;font-weight:700}
+.chip.off{background:rgba(255,255,255,.10);border-color:var(--glassBorder);color:var(--ink);font-weight:500}
+.chip.hd{border-color:var(--ring);color:#fff}
+.track{height:6px;border-radius:3px;background:rgba(255,255,255,.16)}
+.track i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,var(--azure),var(--violet))}
+.fig{flex:none;font-weight:600;font-variant-numeric:tabular-nums;color:#fff;white-space:nowrap;unicode-bidi:plaintext}
+.opt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;unicode-bidi:plaintext;font-weight:500}
+.play{border-radius:50%;background:rgba(255,255,255,.10);display:flex;align-items:center;justify-content:center;border:4px solid var(--violet);box-shadow:0 0 0 2px rgba(111,178,255,.35)}
+</style>
+</head>
+<body>
+<script>
+const I=(d,s,extra='')=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ${extra}>${d}</svg>`;
+// the icons are CastivioIcons' own paths, on its 24 grid; `history` is `Retry` with the hands of `Engine` inside it
+const ICON={
+  back:'<path d="M19 12H5M11 6l-6 6 6 6"/>',
+  heart:'<path d="M12 21s-7-4.6-9.3-9.2C1.2 8.6 3 5 6.4 5c2 0 3.4 1.1 4.2 2.4h2.8C14.2 6.1 15.600 5 17.600 5 21 5 22.800 8.600 21.300 11.800 19 16.400 12 21 12 21z"/>',
+  vol:'<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.500 8.500a5 5 0 0 1 0 7M19 6a8.500 8.500 0 0 1 0 12"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M19.400 15a1.700 1.700 0 0 0 .3 1.800l.1.1a2 2 0 1 1-2.800 2.800l-.1-.1a1.700 1.700 0 0 0-1.800-.3 1.700 1.700 0 0 0-1 1.500V21a2 2 0 1 1-4 0v-.1a1.700 1.700 0 0 0-1.100-1.500 1.700 1.700 0 0 0-1.800.3l-.1.1a2 2 0 1 1-2.800-2.800l.1-.1a1.700 1.700 0 0 0 .3-1.800 1.700 1.700 0 0 0-1.500-1H3a2 2 0 1 1 0-4h.1a1.700 1.700 0 0 0 1.500-1.100 1.700 1.700 0 0 0-.3-1.800l-.1-.1a2 2 0 1 1 2.800-2.800l.1.1a1.700 1.700 0 0 0 1.800.3H9a1.700 1.700 0 0 0 1-1.500V3a2 2 0 1 1 4 0v.1a1.700 1.700 0 0 0 1 1.500 1.700 1.700 0 0 0 1.800-.3l.1-.1a2 2 0 1 1 2.800 2.800l-.1.1a1.700 1.700 0 0 0-.3 1.800V9a1.700 1.700 0 0 0 1.500 1H21a2 2 0 1 1 0 4h-.1a1.700 1.700 0 0 0-1.500 1z"/>',
+  dots:'<circle cx="12" cy="5" r="1.600" fill="#fff"/><circle cx="12" cy="12" r="1.600" fill="#fff"/><circle cx="12" cy="19" r="1.600" fill="#fff"/>',
+  list:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h10M7 17h6"/>',
+  aspect:'<path d="M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15"/>',
+  prev:'<path d="M6 5v14" /><path d="M19 5L9 12l10 7z" fill="#fff"/>',
+  next:'<path d="M18 5v14"/><path d="M5 5l10 7-10 7z" fill="#fff"/>',
+  pause:'<path d="M9 5v14M15 5v14" stroke-width="3.200"/>',
+  lock:'<rect x="5" y="10.500" width="14" height="9.500"/><path d="M8.500 10.500V8a3.500 3.500 0 0 1 7 0v2.500"/>',
+  live:'<path d="M12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6"/><path d="M7.800 7.800a6 6 0 0 0 0 8.400"/><path d="M16.200 16.200a6 6 0 0 0 0-8.400"/><path d="M5 5a10 10 0 0 0 0 14"/><path d="M19 19a10 10 0 0 0 0-14"/>',
+  history:'<path d="M4 12a8 8 0 1 1 2.400 5.700"/><path d="M4 7.500V12h4.500"/><path d="M12 8v4.500l3 2"/>'
+};
+const T={
+  playlist:'قائمة التشغيل',fill:'ملء الشاشة',lock:'قفل الشاشة',live:'مباشر',toLive:'العودة إلى المباشر',
+  shift:'إرجاع',behind:t=>`متأخّر ${t} عن المباشر`,failed:'تعذّر الإرجاع — أنت على المباشر'
+};
+const OPTIONS=['من بداية البرنامج','قبل 15 دقيقة','قبل 30 دقيقة','قبل ساعة'];
+
+// the player's own sizes: the target for the device, the play control, the circles round it, the gap between the groups
+// of the transport (gap) and between controls inside one (bg), and the stream-quality slot (qual)
+function metrics(W,H,tv){
+  return tv
+    ? {t:56,inset:Math.round(W*0.048),ring:80,step:58,gap:24,bg:16,qual:26,nm:16,ttl:22}
+    : {t:48,inset:40,ring:64,step:48,gap:21,bg:14,qual:20,nm:13,ttl:16};
+}
+// TransportPlan (feature/player): how the three groups of the transport share their row.
+const SLACK=3;                          // TRANSPORT_SLACK: what each end is planned for beyond what it asks, for whole pixels
+function planRow(room,middle,count,start,end,gap,minGap){
+  const gaps=count+1,ws=start>0?start+SLACK:start,we=end>0?end+SLACK:end,shared=room-middle-gap*gaps,half=shared/2;
+  if(half>=ws&&half>=we)return {s:1,e:1,gap};                                       // as drawn
+  if(shared>=ws+we){const atEnd=we>half?we:shared-ws;return {s:shared-atEnd,e:atEnd,gap};}            // unequal
+  const fit=(room-middle-ws-we)/gaps;return {s:ws,e:we,gap:Math.min(gap,Math.max(fit,minGap))};         // closer
+}
+// the two edges the sheet's ruler draws: where the top band ends and where the bottom band begins
+function bands(W,H,m){
+  const t=m.t,i=m.inset,cy=H-i-m.ring/2,barY=cy-m.ring/2-39;
+  return {top:Math.round(Math.max(i+t,i-2+t*0.5+6+24)),bar:Math.round(barY-t/2)};
+}
+
+function chrome(W,H,m,s){
+  const t=m.t,i=m.inset,ring=m.ring,bg=m.bg,step=m.step;
+  const cy=H-i-ring/2;                  // the transport's centre line
+  const barY=cy-ring/2-39;              // the bar's, 39dp above the play ring's top
+
+  // ---- the end of the transport, in the order the row holds it: "back to live" only while behind the edge (as today),
+  // then the new "إرجاع" where the channel has an archive, then the screen's own controls
+  const end=[];
+  if(s.shifted)end.push({icon:ICON.live,label:T.toLive});
+  if(s.archive)end.push({icon:ICON.history,label:T.shift,lit:s.strip,mark:s.markNew?'new':''});
+  end.push({icon:ICON.aspect,label:T.fill});
+  if(s.lock)end.push({icon:ICON.lock,label:T.lock,mark:s.markLock?'del':''});
+  const n=end.length;
+
+  // ---- the transport: the playlist's pill, the steps and the play control, the screen's controls
+  const room=W-2*i,middle=step*2+ring,pl=planRow(room,middle,3,t,n*t+(n-1)*bg,m.gap,4);
+  const spare=room-middle-pl.gap*4,startShare=spare*pl.s/(pl.s+pl.e),endShare=spare*pl.e/(pl.s+pl.e);
+  const prevL=i+startShare+pl.gap,ringL=prevL+step+pl.gap,nextL=ringL+ring+pl.gap;
+  const startLabelled=startShare>=t+64;                                             // PILL_LABEL_ROOM
+  const endLabelled=endShare>=(t+64)*n+bg*(n-1);                                    // pillGroupWidth(pills = n)
+  const pill=(icon,label,labelled,o={})=>{
+    const is=labelled?m.nm+7:Math.round(t*0.46);
+    return `<span class="pill2${o.lit?' lit':''}${o.mark?' mk-'+o.mark:''}" style="height:${t}px;min-width:${t}px;padding:0 ${labelled?12:0}px">${I(icon,is)}${labelled?`<span class="lb" style="font-size:${m.nm}px">${label}</span>`:''}</span>`;
+  };
+  const startPill=`<div class="abs" style="left:${i}px;top:${cy-t/2}px;display:flex">${pill(ICON.list,T.playlist,startLabelled)}</div>`;
+  const endGroup=`<div class="abs" style="right:${i}px;top:${cy-t/2}px;display:flex;gap:${bg}px">${end.map(p=>pill(p.icon,p.label,endLabelled,p)).join('')}</div>`;
+
+  // ---- the top bar: the way back, the title with what is under it, the round buttons at the end of the row
+  const N=s.top.length,cluster=m.qual+N*t+N*bg,titleW=Math.max(0,W-2*i-t-2*bg-cluster-8);
+  const tops=s.top.map((k,j)=>`<span class="abs round${s.markTop===k?' mk-del':''}" style="width:${t}px;height:${t}px;right:${i+(N-1-j)*(t+bg)}px;top:${i}px">${I(ICON[k],t*0.46)}</span>`).join('');
+  const chipW=c=>c==='live'||c==='off'?64:c==='FHD'?54:c.length*8+24;
+  let used=0;const shown=[];
+  for(const c of s.chips){const w=chipW(c),next=shown.length?used+8+w:w;if(next>titleW)break;used=next;shown.push(c);}
+  const chips=shown.map(c=>c==='live'?`<span class="chip live">${T.live}</span>`
+    :c==='off'?`<span class="chip off${s.markChip?' mk-new':''}">${T.live}</span>`
+    :c==='FHD'?`<span class="chip hd">FHD</span>`:`<span class="chip">${c}</span>`).join('');
+
+  // ---- the bar's row: a full line at the live edge; the figure and the line while behind it; the options while "إرجاع" is open
+  const rowTop=barY-t/2;
+  let bar;
+  if(s.strip){
+    const w=(room-bg*3)/4;
+    bar=`<div class="abs${s.markStrip?' mk-new':''}" style="left:${i}px;right:${i}px;top:${rowTop}px;height:${t}px;display:flex;gap:${bg}px">`
+      +OPTIONS.map((o,k)=>`<span class="pill2 opt${k===0?' lit':''}" style="width:${w}px;height:${t}px;padding:0 12px;font-size:${m.nm}px">${o}</span>`).join('')+`</div>`;
+  }else if(s.shifted||s.failed){
+    // the figure of a rewind, or -- for five seconds after one that could not be made -- the words that say so, in the same place
+    bar=`<div class="abs" style="left:${i}px;right:${i}px;top:${rowTop}px;height:${t}px;display:flex;align-items:center;gap:${m.gap}px">`
+      +`<span class="fig${s.failed?' mk-new':''}" style="font-size:${m.nm+1}px">${s.failed?T.failed:T.behind('15:00')}</span><div class="track" style="flex:1"><i style="width:100%"></i></div></div>`;
+  }else{
+    bar=`<div class="abs track" style="left:${i}px;right:${i}px;top:${barY-3}px"><i style="width:100%"></i></div>`;
+  }
+
+  return `
+   <span class="abs round" style="width:${t}px;height:${t}px;left:${i}px;top:${i}px">${I(ICON.back,t*0.5)}</span>
+   <div class="abs" style="left:${i+t+bg+4}px;top:${i-2}px;width:${titleW}px">
+     <div class="ttl" style="font-size:${m.ttl}px;line-height:${t*0.5}px;overflow:hidden;text-overflow:ellipsis">FR| RTL 9 4K</div>
+     <div style="display:flex;gap:8px;margin-top:6px">${chips}</div>
+   </div>
+   ${tops}
+   ${bar}
+   ${startPill}
+   <span class="abs round" style="width:${step}px;height:${step}px;left:${prevL}px;top:${cy-step/2}px">${I(ICON.prev,step*0.42)}</span>
+   <span class="abs play" style="width:${ring}px;height:${ring}px;left:${ringL}px;top:${cy-ring/2}px">${I(ICON.pause,ring*0.42)}</span>
+   <span class="abs round" style="width:${step}px;height:${step}px;left:${nextL}px;top:${cy-step/2}px">${I(ICON.next,step*0.42)}</span>
+   ${endGroup}`;
+}
+function frame(s){
+  const {W,H,tv}=s,m=metrics(W,H,tv);
+  const fw=Math.min(W,H*16/9),fh=fw*9/16,px=(W-fw)/2,py=(H-fh)/2;     // the picture, whole, in its own proportions
+  return `<div class="screen" style="width:${W}px;height:${H}px">
+    <div class="pic" style="left:${px}px;top:${py}px;width:${fw}px;height:${fh}px"><i></i></div>
+    ${chrome(W,H,m,s)}
+  </div>`;
+}
+
+const PH={W:851,H:393,tv:false},TV={W:960,H:540,tv:true};
+const CHIPS=['live','FHD','H.264','16:9'],CHIPS_BEHIND=['off','FHD','H.264','16:9'];
+const FR={
+  'phone-now':{...PH,top:['heart','vol','gear','dots'],chips:CHIPS,lock:true,markTop:'dots',
+    cap:'<b>الآن</b> — هاتف <bdi dir="ltr">851×393dp</bdi>، قناة مباشرة: في الأعلى القلب والصوت والترس و«⋯»، وفي الأسفل الشريط ثم القائمة والسابق والتشغيل والتالي وملء الشاشة وقفل الشاشة. الوسط فارغ أصلًا. <b>المنقّط بالأحمر ما يُحذف.</b>'},
+  'phone-new':{...PH,top:['heart','gear'],chips:CHIPS,lock:true,
+    cap:'<b>الجديد</b> — قناة بلا أرشيف ولها مسار صوت واحد: «⋯» محذوف، وزر الصوت غير مرسوم (لا يظهر إلا إن وُجد أكثر من مسار)، ولا زر «إرجاع». الباقي كما كان، والوسط فارغ.'},
+  'phone-shift':{...PH,top:['heart','vol','gear'],chips:CHIPS,lock:true,archive:true,markNew:true,
+    cap:'<b>الجديد</b> — قناة لها أرشيف ومسارا صوت: يظهر زر <b>«إرجاع»</b> (المنقّط بالبنفسجي) في آخر الصف السفلي قبل «ملء الشاشة». مع ثلاثة أزرار تسقط الكلمات وتبقى الأيقونات، كما يحدث اليوم حين يظهر زر «العودة إلى المباشر».'},
+  'phone-strip':{...PH,top:['heart','vol','gear'],chips:CHIPS,lock:true,archive:true,strip:true,markStrip:true,
+    cap:'<b>بعد الضغط على «إرجاع»</b> — الزر يضيء، والشريط يترك صفّه لأربعة خيارات (لا شيء يُفتح في الوسط). الضغط على الزر ثانية يغلقها. الخيارات تُحسب من المباشر، وما يتجاوز أرشيف القناة لا يُرسم.'},
+  'phone-shifted':{...PH,top:['heart','vol','gear'],chips:CHIPS_BEHIND,lock:true,archive:true,shifted:true,markChip:true,
+    cap:'<b>بعد اختيار «قبل 15 دقيقة»</b> — يظهر «متأخّر 15:00 عن المباشر» في أول الشريط، ويظهر «العودة إلى المباشر» قبل «إرجاع» فلا يتحرّك غيرهما. شارة «مباشر» تصير رمادية (مقترح صغير، منقّط بالبنفسجي، يمكن رفضه).'},
+  'phone-failed':{...PH,top:['heart','vol','gear'],chips:CHIPS,lock:true,archive:true,failed:true,
+    cap:'<b>إن تعذّر الإرجاع</b> — لا بطاقة فشل فوق قناة سليمة: تعود الصورة إلى المباشر على المحرّك نفسه، ويقول الشريط ذلك خمس ثوانٍ في مكان رقم «المتأخّر» (منقّط بالبنفسجي: أُضيف عند البناء).'},
+  'tv-now':{...TV,top:['heart','vol','gear','dots'],chips:CHIPS,lock:true,markTop:'dots',markLock:true,
+    cap:'<b>الآن</b> — تلفاز <bdi dir="ltr">960×540dp</bdi>، قناة مباشرة: كالهاتف، وفيه قفل الشاشة. <b>المنقّط بالأحمر ما يُحذف.</b>'},
+  'tv-new':{...TV,top:['heart','vol','gear'],chips:CHIPS,lock:false,archive:true,markNew:true,
+    cap:'<b>الجديد</b> — بلا «⋯» وبلا قفل الشاشة (للهاتف واللوح فقط). القناة لها أرشيف فيظهر «إرجاع»، وتبقى الكلمات لأن الصف يتّسع لزرّين. القناة بلا أرشيف: «ملء الشاشة» وحده.'},
+  'tv-strip':{...TV,top:['heart','vol','gear'],chips:CHIPS,lock:false,archive:true,strip:true,markStrip:true,
+    cap:'<b>بعد الضغط على «إرجاع»</b> — يمين/يسار في الريموت بين الخيارات، موافق للاختيار، رجوع للإغلاق. الإطار الأزرق مكان الريموت، وأول خيار يأخذه.'},
+  'tv-shifted':{...TV,top:['heart','vol','gear'],chips:CHIPS_BEHIND,lock:false,archive:true,shifted:true,markChip:true,
+    cap:'<b>بعد الاختيار</b> — كالهاتف: الأزرار الثلاثة بأيقوناتها، لأن الكلمات لا تتّسع لثلاثة.'}
+};
+const GROUPS={phone:['phone-now','phone-new','phone-shift','phone-strip','phone-shifted','phone-failed'],tv:['tv-now','tv-new','tv-strip','tv-shifted']};
+
+function block(k,withCap){
+  const s=FR[k],m=metrics(s.W,s.H,s.tv),b=bands(s.W,s.H,m);
+  const ruler=`<div class="vr" style="height:${s.H}px">
+    <span class="a" style="height:${b.top}px"><div>الشريط العلوي</div></span>
+    <span class="e" style="height:${b.bar-b.top}px"><div>الوسط فارغ<br><bdi dir="ltr">${b.bar-b.top}dp</bdi></div></span>
+    <span class="a" style="height:${s.H-b.bar}px"><div>الشريط السفلي</div></span></div>`;
+  return (withCap?`<div class="cap">${k} — ${s.cap}</div>`:'')+`<div class="fr">${frame(s)}${withCap?ruler:''}</div>`;
+}
+const LEGEND='<div class="legend"><b>مشغّل القنوات — أزرار الأعلى والأسفل، والوسط فارغ.</b><div class="keys"><span class="key"><i class="k del"></i>ما يُحذف</span><span class="key"><i class="k new"></i>الجديد</span><span>الأسماء والأرقام أمثلة</span></div></div>';
+const FOOT='<div class="foot"><b>غير مرسوم:</b> «⋯» يبقى في نسخة التجربة (debug) وحدها، لأنه باب لوحة الإحصاءات التي نقرأ منها؛ ولا تحمله نسخة المستخدمين. ومكان مؤشّر جودة البث (محجوز كما هو). وقفزتا العشر ثوانٍ، وتبقيان كما اليوم: لا تظهران إلا حيث يمكن التقديم. والترس يبقى كما هو في موضعه، وفي القناة صفّاه: جودة الفيديو (إن وُجد أكثر من خيار) ونسبة العرض، ويخرج منه صفّ الصوت لأن زره ظاهر في الأعلى.</div>';
+const f=new URLSearchParams(location.search).get('frame')||'sheet';
+if(FR[f]){document.body.innerHTML=block(f,false);}
+else{
+  const keys=f==='phone'?GROUPS.phone:f==='tv'?GROUPS.tv:[...GROUPS.phone,...GROUPS.tv];
+  document.body.className='sheet';
+  document.body.innerHTML=LEGEND+keys.map(k=>block(k,true)).join('')+FOOT;
+}
+</script>
+</body>
+</html>

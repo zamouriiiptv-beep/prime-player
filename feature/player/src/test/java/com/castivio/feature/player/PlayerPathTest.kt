@@ -3,11 +3,16 @@ package com.castivio.feature.player
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
+import com.castivio.core.common.AppError
 import com.castivio.core.common.FrameSize
+import com.castivio.core.common.Outcome
 import com.castivio.core.common.PlayOutcome
 import com.castivio.core.common.StreamQuality
 import com.castivio.domain.PlayerPulse
 import com.castivio.domain.PulsePhase
+import com.castivio.domain.TimeShiftAddress
+import com.castivio.domain.TimeShiftChoice
+import com.castivio.domain.TimeShiftSource
 import com.castivio.playback.api.AspectMode
 import com.castivio.playback.api.EngineFactory
 import com.castivio.playback.api.EngineId
@@ -34,6 +39,7 @@ import com.castivio.data.subtitles.SubtitleQuery
 import com.castivio.data.subtitles.SubtitleResult
 import com.castivio.data.subtitles.SubtitleTrack
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -4674,6 +4680,533 @@ class PlayerPathTest {
         assertEquals("one engine alive at a time", 1, engines.mostAlive)
     }
 
+
+    /* -------------------------------------------------------------------- rewinding a channel */
+
+    /** A channel whose provider keeps an archive, with the shell's means of rewinding it. */
+    private fun rewindable(source: FakeRewind, hours: Int? = 72) =
+        liveRequest().copy(catchUpHours = hours, timeShift = TimeShiftHandle(source))
+
+    /** The channel up with its picture, and the archive's answer in: what a viewer has a moment after pressing it. */
+    private suspend fun TestScope.rewindReady(model: PlayerViewModel, source: FakeRewind): FakeEngine {
+        model.open(rewindable(source))
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        advanceTimeBy(PlayerViewModel.TIMESHIFT_SETTLE_MS)
+        runCurrent()
+        return engines.last
+    }
+
+    private val liveUrl get() = liveRequest().url
+
+    private fun PlayerViewModel.rewind(): TimeShiftState = state.value!!.timeShift
+
+    /**
+     * **Support is confirmed, and after the picture.** The archive is asked about a moment after the first frame, and what it
+     * says is what the pill is drawn from: a channel is not offered a rewind on its provider's claim.
+     */
+    @Test
+    fun `a channel with an archive is offered the rewind a moment after its picture and not before`() = playerTest {
+        val source = FakeRewind()
+        val model = model()
+        model.open(rewindable(source))
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        assertEquals("the archive is not asked on the way to the picture", 0, source.asked)
+        assertFalse(model.rewind().offered)
+
+        advanceTimeBy(PlayerViewModel.TIMESHIFT_SETTLE_MS)
+        runCurrent()
+
+        assertEquals(1, source.asked)
+        assertEquals(source.offered, model.rewind().choices)
+        assertTrue(model.rewind().offered)
+        assertFalse("offered is not opened", model.rewind().open)
+    }
+
+    @Test
+    fun `a viewer zapping through channels asks the archive nothing`() = playerTest {
+        val source = FakeRewind()
+        val model = model()
+        model.open(rewindable(source))
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        advanceTimeBy(PlayerViewModel.TIMESHIFT_SETTLE_MS / 2)
+        runCurrent()
+
+        model.open(secondChannel())
+        runCurrent()
+        advanceTimeBy(PlayerViewModel.TIMESHIFT_SETTLE_MS * 3)
+        runCurrent()
+
+        assertEquals("the channel that was left asked nothing", 0, source.asked)
+        assertFalse(model.rewind().offered)
+    }
+
+    @Test
+    fun `no source, no claim of an archive, or not a channel is no rewind`() = playerTest {
+        val source = FakeRewind()
+        val model = model()
+
+        // A channel that was given no means of rewinding.
+        model.open(liveRequest().copy(catchUpHours = 72))
+        runCurrent(); engines.last.renderFirstFrame(); runCurrent()
+        advanceTimeBy(PlayerViewModel.TIMESHIFT_SETTLE_MS); runCurrent()
+        assertFalse(model.rewind().offered)
+
+        // A channel whose provider says it keeps no archive.
+        model.open(rewindable(source, hours = null).copy(url = "http://provider.tv/live/2.ts"))
+        runCurrent(); engines.last.renderFirstFrame(); runCurrent()
+        advanceTimeBy(PlayerViewModel.TIMESHIFT_SETTLE_MS); runCurrent()
+        assertFalse(model.rewind().offered)
+
+        // A film.
+        model.open(vodRequest().copy(catchUpHours = 72, timeShift = TimeShiftHandle(source)))
+        runCurrent(); engines.last.renderFirstFrame(); runCurrent()
+        advanceTimeBy(PlayerViewModel.TIMESHIFT_SETTLE_MS); runCurrent()
+        assertFalse(model.rewind().offered)
+
+        assertEquals("nothing was asked of any of them", 0, source.asked)
+    }
+
+    @Test
+    fun `an archive that offers nothing, or cannot be read, leaves no pill`() = playerTest {
+        val none = FakeRewind(offered = emptyList())
+        val model = model()
+        rewindReady(model, none)
+        assertFalse(model.rewind().offered)
+
+        val broken = FakeRewind(throwsOnChoices = true)
+        model.open(rewindable(broken).copy(url = "http://provider.tv/live/3.ts"))
+        runCurrent(); engines.last.renderFirstFrame(); runCurrent()
+        advanceTimeBy(PlayerViewModel.TIMESHIFT_SETTLE_MS); runCurrent()
+
+        assertFalse("a rewind that cannot be proved is not drawn", model.rewind().offered)
+        assertTrue("and nothing else was harmed", model.state.value?.picture is Picture.Playing)
+    }
+
+    @Test
+    fun `the strip opens where something is offered, reads the archive again, and shows only what still holds`() = playerTest {
+        val source = FakeRewind()
+        val model = model()
+        rewindReady(model, source)
+
+        model.openTimeShift(true)
+        runCurrent()
+
+        assertTrue(model.rewind().open)
+        assertEquals("read again as it opened", 2, source.asked)
+
+        model.openTimeShift(false)
+        assertFalse(model.rewind().open)
+
+        // What was offered has lapsed by the time it is asked for: nothing to show, so nothing opens, and the pill goes.
+        source.offered = emptyList()
+        model.openTimeShift(true)
+        runCurrent()
+        assertFalse(model.rewind().open)
+        assertFalse(model.rewind().offered)
+    }
+
+    /**
+     * **Opening the places does not touch the picture or the engine.** The strip is the bar's row, in the bar: the surface is
+     * not detached or handed over again, the engine is not asked to open, stop or release, and the picture goes on playing.
+     */
+    @Test
+    fun `opening the strip changes nothing about the picture`() = playerTest {
+        val surface = VideoOutput.Platform("surface")
+        val model = model()
+        model.setOutput(surface)
+        val engine = rewindReady(model, FakeRewind())
+        val opened = engine.opened.size
+        val outputs = engine.outputs.toList()
+
+        model.openTimeShift(true)
+        runCurrent()
+        model.openTimeShift(false)
+        model.openTimeShift(true)
+        runCurrent()
+
+        assertEquals("the engine was asked to open nothing", opened, engine.opened.size)
+        assertEquals("the surface was neither detached nor attached again", outputs, engine.outputs)
+        assertEquals(0, engine.stops)
+        assertFalse(engine.released)
+        assertTrue(model.state.value?.picture is Picture.Playing)
+        assertEquals("one engine, ever", listOf(EngineId.PRIMARY), engines.built)
+    }
+
+    @Test
+    fun `the strip goes when the bars go, when the screen is locked, and when back is pressed`() = playerTest {
+        val model = model()
+        rewindReady(model, FakeRewind())
+
+        model.openTimeShift(true); runCurrent()
+        model.showControls(false)
+        assertFalse(model.rewind().open)
+        assertTrue("the offer stays: the pill is there when the bars are back", model.rewind().offered)
+
+        model.showControls(true)
+        model.openTimeShift(true); runCurrent()
+        model.setLocked(true)
+        assertFalse(model.rewind().open)
+    }
+
+    /**
+     * **Between the live edge and the archive there is one engine.** The choice is played on the engine that holds the channel,
+     * with the surface and the listeners it already has: nothing is built, nothing released, nothing handed to the other engine.
+     */
+    @Test
+    fun `a choice is played from the archive on the engine in hand`() = playerTest {
+        val source = FakeRewind()
+        val surface = VideoOutput.Platform("surface")
+        val model = model()
+        model.setOutput(surface)
+        val engine = rewindReady(model, source)
+
+        model.openTimeShift(true); runCurrent()
+        model.shiftTo(TimeShiftChoice.MINUTES_15)
+        runCurrent()
+
+        assertEquals(listOf(TimeShiftChoice.MINUTES_15), source.chosen)
+        assertEquals("no engine was built for it", listOf(EngineId.PRIMARY), engines.built)
+        assertFalse(engine.released)
+        assertEquals(0, engine.stops)
+        assertEquals("it was handed the archive's address", source.archiveUrl, engine.opened.last().url)
+        assertEquals("a channel plays as a channel, whatever it is played from", MediaKind.LIVE, engine.opened.last().kind)
+        assertEquals("and the surface stayed where it was", listOf<VideoOutput?>(surface), engine.outputs)
+
+        val now = model.state.value!!
+        assertTrue("waiting for the archive's picture", now.picture is Picture.Opening)
+        assertEquals("still the channel the viewer pressed", liveRequest().title, now.request.title)
+        assertEquals(liveUrl, now.request.url)
+        assertTrue(now.timeShift.shifted)
+        assertFalse("the strip closed on the choice", now.timeShift.open)
+        assertEquals(source.behind, now.behindLiveMs)
+        assertTrue("and the LIVE chip and the pill back to live are drawn from this", now.isTimeshifted)
+
+        val askedBefore = source.asked
+        engine.renderFirstFrame()
+        runCurrent()
+
+        assertTrue(model.state.value?.picture is Picture.Playing)
+        assertEquals("the archive's own first frame asks nothing again", askedBefore, source.asked)
+    }
+
+    /** The backup is an engine like the other: the same swap, on the one that has the channel. */
+    @Test
+    fun `on the backup too a choice is played on the engine in hand`() = playerTest {
+        val source = FakeRewind()
+        memory.remember(FallbackPolicy.sourceKey(liveUrl), EngineId.BACKUP)
+        val model = model()
+        val engine = rewindReady(model, source)
+        assertEquals(listOf(EngineId.BACKUP), engines.built)
+
+        model.shiftTo(TimeShiftChoice.PROGRAMME_START)
+        runCurrent()
+
+        assertEquals("still one engine, and it is the backup", listOf(EngineId.BACKUP), engines.built)
+        assertFalse(engine.released)
+        assertEquals(source.archiveUrl, engine.opened.last().url)
+        assertEquals(EngineId.BACKUP, model.state.value?.engine)
+
+        model.returnToLive()
+        runCurrent()
+
+        assertEquals("and back to the edge on the same one", listOf(EngineId.BACKUP), engines.built)
+        assertEquals(liveUrl, engine.opened.last().url)
+        assertFalse(engine.released)
+    }
+
+    @Test
+    fun `how far behind it is follows the clock and the stream`() = playerTest {
+        val source = FakeRewind(behind = 15 * 60_000L)
+        val model = timedModel()
+        val engine = rewindReady(model, source)
+
+        model.shiftTo(TimeShiftChoice.MINUTES_15)
+        runCurrent()
+        engine.renderFirstFrame()
+        runCurrent()
+        assertEquals(15 * 60_000L, model.state.value?.behindLiveMs)
+
+        // A minute passes and the stream has played a minute: the same distance from the edge.
+        engine.positionMs = 60_000
+        advanceTimeBy(60_000)
+        runCurrent()
+        assertEquals("playing on stays where it was", 15 * 60_000L, model.state.value?.behindLiveMs)
+
+        // A minute passes with the stream paused where it was: the edge has moved on a minute.
+        advanceTimeBy(60_000)
+        runCurrent()
+        assertEquals("a pause falls behind", 16 * 60_000L, model.state.value?.behindLiveMs)
+    }
+
+    @Test
+    fun `back to the edge is the live address on the same engine, and nothing is sought`() = playerTest {
+        val source = FakeRewind()
+        val model = model()
+        val engine = rewindReady(model, source)
+        model.shiftTo(TimeShiftChoice.MINUTES_30)
+        runCurrent()
+        engine.renderFirstFrame()
+        runCurrent()
+        val seeks = engine.seeks.size
+
+        model.returnToLive()
+        runCurrent()
+
+        assertEquals(liveUrl, engine.opened.last().url)
+        assertEquals(listOf(EngineId.PRIMARY), engines.built)
+        assertFalse(engine.released)
+        assertEquals("the archive has no live edge to seek to", seeks, engine.seeks.size)
+        val now = model.state.value!!
+        assertFalse(now.timeShift.shifted)
+        assertFalse(now.timeShift.failed)
+        assertEquals(0L, now.behindLiveMs)
+        assertFalse(now.isTimeshifted)
+
+        engine.renderFirstFrame()
+        runCurrent()
+        assertTrue(model.state.value?.picture is Picture.Playing)
+    }
+
+    @Test
+    fun `an archive that runs out is the live edge again, without a word`() = playerTest {
+        val model = model()
+        val engine = rewindReady(model, FakeRewind())
+        model.shiftTo(TimeShiftChoice.MINUTES_15)
+        runCurrent()
+        engine.renderFirstFrame()
+        runCurrent()
+
+        engine.finish()
+        runCurrent()
+
+        assertEquals(liveUrl, engine.opened.last().url)
+        val now = model.state.value!!
+        assertFalse(now.timeShift.shifted)
+        assertFalse("caught up is not a failure", now.timeShift.failed)
+        assertFalse("and not a card", now.picture is Picture.Failed || now.picture is Picture.Ended)
+        assertEquals(listOf(EngineId.PRIMARY), engines.built)
+    }
+
+    /**
+     * **A rewind that fails is not a failure of the channel.** The network error that would hand any other source to the other
+     * engine takes the picture back to the live edge on the same one, and the bar says so for a few seconds.
+     */
+    @Test
+    fun `an archive that fails takes the picture back, says so, and does not change engines`() = playerTest {
+        val model = model()
+        val engine = rewindReady(model, FakeRewind())
+        model.shiftTo(TimeShiftChoice.MINUTES_15)
+        runCurrent()
+
+        engine.fail(PlaybackError.NETWORK)
+        runCurrent()
+
+        assertEquals("the other engine was not built", listOf(EngineId.PRIMARY), engines.built)
+        assertEquals("the channel's own address, on the same engine", liveUrl, engine.opened.last().url)
+        val now = model.state.value!!
+        assertFalse(now.picture is Picture.Failed)
+        assertFalse(now.timeShift.shifted)
+        assertTrue("the viewer is told", now.timeShift.failed)
+        assertEquals(0L, now.behindLiveMs)
+
+        advanceTimeBy(PlayerViewModel.TIMESHIFT_NOTICE_MS)
+        runCurrent()
+        assertFalse("and told for a few seconds only", model.rewind().failed)
+    }
+
+    @Test
+    fun `an archive that draws nothing is given up at the ceiling and the picture goes back`() = playerTest {
+        val model = model()
+        val engine = rewindReady(model, FakeRewind())
+        model.shiftTo(TimeShiftChoice.MINUTES_15)
+        runCurrent()
+
+        advanceTimeBy(FallbackPolicy.OPENING_CEILING_MS - 1)
+        runCurrent()
+        assertTrue("still waited on a moment before the ceiling", model.rewind().shifted)
+
+        advanceTimeBy(2)
+        runCurrent()
+
+        assertEquals(liveUrl, engine.opened.last().url)
+        assertFalse(model.rewind().shifted)
+        assertTrue(model.rewind().failed)
+        assertEquals(listOf(EngineId.PRIMARY), engines.built)
+    }
+
+    @Test
+    fun `a rewind whose address cannot be made tells the viewer and leaves the picture alone`() = playerTest {
+        val source = FakeRewind(address = Outcome.Failure(AppError.NOT_FOUND))
+        val model = model()
+        val engine = rewindReady(model, source)
+        val opened = engine.opened.size
+
+        model.shiftTo(TimeShiftChoice.MINUTES_15)
+        runCurrent()
+
+        assertEquals("nothing was opened", opened, engine.opened.size)
+        assertTrue(model.state.value?.picture is Picture.Playing)
+        assertTrue(model.rewind().failed)
+        assertFalse(model.rewind().shifted)
+        assertFalse(model.rewind().open)
+    }
+
+    @Test
+    fun `an address that was being made for a channel that has gone is not played`() = playerTest {
+        val gate = CompletableDeferred<Unit>()
+        val source = FakeRewind(gate = gate)
+        val model = model()
+        val engine = rewindReady(model, source)
+
+        model.shiftTo(TimeShiftChoice.MINUTES_15)
+        runCurrent()
+        model.open(secondChannel())
+        runCurrent()
+        val opened = engines.last.opened.map { it.url }
+        gate.complete(Unit)
+        runCurrent()
+
+        assertEquals("the new channel was not given the old one's archive", opened, engines.last.opened.map { it.url })
+        assertTrue(engines.last.opened.none { it.url == source.archiveUrl })
+        assertFalse(model.rewind().shifted)
+        assertFalse(engine.opened.any { it.url == source.archiveUrl })
+    }
+
+    @Test
+    fun `a channel change ends the rewind and starts over, with the next channel's own archive`() = playerTest {
+        engines.primaryReusable = true
+        val source = FakeRewind()
+        val next = FakeRewind(offered = listOf(TimeShiftChoice.MINUTES_15))
+        val model = timedModel()
+        val engine = rewindReady(model, source)
+        model.shiftTo(TimeShiftChoice.MINUTES_15)
+        runCurrent()
+        engine.renderFirstFrame()
+        runCurrent()
+
+        model.open(secondChannel().copy(catchUpHours = 72, timeShift = TimeShiftHandle(next)))
+        runCurrent()
+
+        val now = model.state.value!!
+        assertFalse(now.timeShift.shifted)
+        assertFalse(now.timeShift.offered)
+        assertEquals(0L, now.behindLiveMs)
+        assertEquals("the kept engine is handed the next channel", "http://provider.tv/live/2.ts", engine.opened.last().url)
+
+        engine.renderFirstFrame()
+        runCurrent()
+        advanceTimeBy(PlayerViewModel.TIMESHIFT_SETTLE_MS)
+        runCurrent()
+
+        assertEquals("the next channel is asked about its own archive", 1, next.asked)
+        assertEquals(listOf(TimeShiftChoice.MINUTES_15), model.rewind().choices)
+        assertEquals("and is not behind the edge by what the last one was", 0L, model.state.value?.behindLiveMs)
+        assertEquals("the channel that was left was asked nothing more", 1, source.asked)
+    }
+
+    /** What was asked about a channel is not asked again when its picture comes back from the archive. */
+    @Test
+    fun `returning to the edge does not ask the archive again`() = playerTest {
+        val source = FakeRewind()
+        val model = model()
+        val engine = rewindReady(model, source)
+        model.shiftTo(TimeShiftChoice.MINUTES_15)
+        runCurrent()
+        engine.renderFirstFrame()
+        runCurrent()
+        val askedBefore = source.asked
+
+        model.returnToLive()
+        runCurrent()
+        engine.renderFirstFrame()
+        runCurrent()
+        advanceTimeBy(PlayerViewModel.TIMESHIFT_SETTLE_MS * 3)
+        runCurrent()
+
+        assertEquals(askedBefore, source.asked)
+        assertTrue("and the pill is still there", model.rewind().offered)
+    }
+
+    /** The pill is drawn only for what has been proved, so a press that arrives before the archive has been read opens nothing. */
+    @Test
+    fun `a press before the archive has been read opens nothing and asks nothing`() = playerTest {
+        val source = FakeRewind()
+        val model = model()
+        model.open(rewindable(source))
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        model.openTimeShift(true)
+        runCurrent()
+
+        assertFalse(model.rewind().open)
+        assertEquals(0, source.asked)
+    }
+
+    /** The strip closes on the press, and does not wait for the archive to make an address. */
+    @Test
+    fun `the strip closes on the choice while the address is being made`() = playerTest {
+        val gate = CompletableDeferred<Unit>()
+        val source = FakeRewind(gate = gate)
+        val model = model()
+        rewindReady(model, source)
+        model.openTimeShift(true)
+        runCurrent()
+        assertTrue(model.rewind().open)
+
+        model.shiftTo(TimeShiftChoice.MINUTES_15)
+        runCurrent()
+
+        assertFalse("still waiting for the address, and the strip is already gone", model.rewind().open)
+        assertFalse(model.rewind().shifted)
+        gate.complete(Unit)
+        runCurrent()
+        assertTrue(model.rewind().shifted)
+    }
+
+    @Test
+    fun `the background ends a rewind and the channel comes back on its edge`() = playerTest {
+        val model = model()
+        val engine = rewindReady(model, FakeRewind())
+        model.shiftTo(TimeShiftChoice.MINUTES_15)
+        runCurrent()
+        engine.renderFirstFrame()
+        runCurrent()
+
+        model.pauseForBackground()
+        runCurrent()
+
+        val now = model.state.value!!
+        assertFalse(now.timeShift.shifted)
+        assertEquals(0L, now.behindLiveMs)
+
+        model.returnFromBackground()
+        runCurrent()
+        assertEquals("the channel is opened again, not the archive", liveUrl, engines.last.opened.last().url)
+    }
+
+    @Test
+    fun `a press on the live pill from the live edge is the old seek and nothing else`() = playerTest {
+        val model = model()
+        val engine = rewindReady(model, FakeRewind())
+        engine.durationMs = 60_000
+        val opened = engine.opened.size
+
+        model.returnToLive()
+        runCurrent()
+
+        assertEquals("a stream with its own window is sought, as before", Long.MAX_VALUE, engine.seeks.last())
+        assertEquals("and not reopened", opened, engine.opened.size)
+    }
+
     /* ------------------------------------------------------------------------ fakes */
 
     /**
@@ -4706,6 +5239,38 @@ class PlayerPathTest {
         subtitle = "S01 E04",
         kind = MediaKind.SERIES_EPISODE,
     )
+
+
+    /** A channel's means of rewinding, with what it offers and where it plays from set by hand, and every ask counted. */
+    private class FakeRewind(
+        var offered: List<TimeShiftChoice> = listOf(
+            TimeShiftChoice.PROGRAMME_START,
+            TimeShiftChoice.MINUTES_15,
+            TimeShiftChoice.MINUTES_30,
+            TimeShiftChoice.MINUTES_60,
+        ),
+        val behind: Long = 15 * 60_000L,
+        var address: Outcome<TimeShiftAddress>? = null,
+        val throwsOnChoices: Boolean = false,
+        /** Held until the test lets it go, so "the channel changed while the address was made" is expressible. */
+        val gate: CompletableDeferred<Unit>? = null,
+    ) : TimeShiftSource {
+        val archiveUrl = "http://provider.tv/timeshift/u/p/195/2026-07-24:21-15/1.ts"
+        var asked = 0
+        val chosen = mutableListOf<TimeShiftChoice>()
+
+        override suspend fun choices(): List<TimeShiftChoice> {
+            asked++
+            if (throwsOnChoices) error("the panel did not answer")
+            return offered
+        }
+
+        override suspend fun address(choice: TimeShiftChoice): Outcome<TimeShiftAddress> {
+            chosen += choice
+            gate?.await()
+            return address ?: Outcome.Success(TimeShiftAddress(archiveUrl, behind))
+        }
+    }
 
     /** Records which engines were built, so "the backup was warmed" is expressible. */
     private class FakeFactory : EngineFactory {

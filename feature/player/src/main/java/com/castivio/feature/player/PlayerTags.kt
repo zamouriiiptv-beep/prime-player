@@ -108,6 +108,17 @@ internal object PlayerTags {
      * row's size, and a test says so.
      */
     const val TO_LIVE = "player.toLive"
+
+    /**
+     * The rewind: the pill at the end of the transport that opens the strip of places, the strip itself -- which takes the bar's row --
+     * and the words the bar says when a rewind could not be made. Each drawn only where it can act.
+     */
+    const val TIME_SHIFT = "player.timeShift"
+    const val TIME_SHIFT_STRIP = "player.timeShift.strip"
+    const val TIME_SHIFT_NOTICE = "player.timeShift.notice"
+
+    /** One place in the strip, by the choice it names. */
+    fun timeShiftChoice(name: String) = "player.timeShift.$name"
     const val SUBTITLES = "player.subtitles"
     const val AUDIO = "player.audio"
     const val SPEED = "player.speed"

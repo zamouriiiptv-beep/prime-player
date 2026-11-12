@@ -121,6 +121,7 @@ import com.castivio.feature.player.PlayerRequest
 import com.castivio.feature.player.PlayerRoute
 import com.castivio.feature.player.PlayerViewModel
 import com.castivio.feature.player.RadioAudioRoute
+import com.castivio.feature.player.TimeShiftHandle
 import com.castivio.playback.api.MediaKind
 import com.castivio.tv.R
 import com.castivio.tv.licence.LicenceWithLanguage
@@ -367,6 +368,9 @@ fun ShellScreen(
     var asking by remember { mutableStateOf<ShellPin?>(null) }
     val scope = rememberCoroutineScope()
     val zapModel: ChannelZapViewModel = hiltViewModel()
+    // What puts a channel's picture behind the live edge, from its provider's archive: given to each live request, so the player
+    // can offer a rewind for the channels that really have one.
+    val timeShifts = hiltViewModel<TimeShiftViewModel>().sources
     // The board's own holder, which is the activity's: the same one `ChannelsScreen` binds.
     val board: ChannelsViewModel = hiltViewModel()
     var zapping by remember { mutableStateOf<Zapping?>(null) }
@@ -379,7 +383,7 @@ fun ShellScreen(
     val qualities by board.quality.collectAsState()
     val play: (CatalogSelection) -> Unit = { selection ->
         val start = {
-            val request = selection.asPlayerRequest()
+            val request = selection.asPlayerRequest(timeShifts)
             // A live channel is one the channel keys step from. Remembered with the request it was
             // started by, so the keys only ever step from the channel that is actually on screen.
             zapping = selection.mediaId?.takeIf { selection.live }?.let { Zapping(request, it, selection.listed) }
@@ -404,7 +408,7 @@ fun ShellScreen(
     // and a full-screen player per press means a press to open and a press to come back
     // for every channel they reject. Expanding is then one further press, on the picture.
     val playInPreview: (CatalogSelection) -> Unit = { selection ->
-        val request = selection.asPlayerRequest()
+        val request = selection.asPlayerRequest(timeShifts)
         // Asked of the plate's player now, from the press, when there is one: the screen composed again with the
         // request is what used to be waited for. The first channel, with no player yet, opens as it always did.
         playerOpener.open(request)
@@ -514,7 +518,7 @@ fun ShellScreen(
             // Only if the viewer is still where the key was pressed: a question that was
             // answered after they had left must not play behind whatever they went to.
             if (zapping?.request == from.request) {
-                val request = selection.asPlayerRequest()
+                val request = selection.asPlayerRequest(timeShifts)
                 // The plate follows the large player, so that collapsing lands on the channel
                 // that is playing and not on the one the viewer opened it from.
                 if (livePreview == from.request) livePreview = request
@@ -791,7 +795,7 @@ fun ShellScreen(
                     // The film starts from its page, so the films' Recently watched list has it from here.
                     recentModel.watched(o.movie.id)
                     zapping = null
-                    overlay = Overlay.Play(selection.asPlayerRequest(), back = o)
+                    overlay = Overlay.Play(selection.asPlayerRequest(timeShifts), back = o)
                 },
                 onBack = { overlay = null },
             )
@@ -949,7 +953,7 @@ private class Zapping(
  * what "next" means, and a season that behaves like a single film is the bug this
  * distinction prevents.
  */
-private fun CatalogSelection.asPlayerRequest() = PlayerRequest(
+private fun CatalogSelection.asPlayerRequest(timeShifts: TimeShiftSources? = null) = PlayerRequest(
     url = url,
     title = title,
     kind = when {
@@ -962,6 +966,13 @@ private fun CatalogSelection.asPlayerRequest() = PlayerRequest(
     catchUpHours = catchUpHours,
     archiveOf = archiveOf,
     face = if (live && (artworkUrl != null || programme != null)) OpeningFace(artworkUrl, programme, programmeHours) else null,
+    // A channel whose provider says it keeps an archive is given the means of rewinding it. What it is *confirmed* to offer is for the
+    // player to ask, a moment after the picture: see `PlayerViewModel.offerTimeShift`. A programme played from Catch-up is not rewound.
+    timeShift = if (live && archiveOf == null && (catchUpHours ?: 0) > 0 && mediaId != null && timeShifts != null) {
+        TimeShiftHandle(timeShifts.forChannel(mediaId, title, catchUpHours ?: 0))
+    } else {
+        null
+    },
 )
 
 /** Which rail entry a section belongs to, so Home's "see all" lands somewhere real. */

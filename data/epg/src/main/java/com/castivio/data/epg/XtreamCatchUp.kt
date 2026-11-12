@@ -8,6 +8,9 @@ import com.castivio.core.platform.DevDiagnostics
 import com.castivio.data.networking.XtreamHttpApi
 import com.castivio.data.parsing.XtreamArchiveEntry
 import com.castivio.data.parsing.XtreamUrls
+import com.castivio.domain.ArchiveCover
+import com.castivio.domain.ArchiveCoverage
+import com.castivio.domain.ArchiveSpan
 import com.castivio.domain.CatchUpChannel
 import com.castivio.domain.CatchUpDepth
 import com.castivio.domain.CatchUpGateway
@@ -56,7 +59,11 @@ import okhttp3.OkHttpClient
  *
  * The instant a programme began is the panel's own `start_timestamp`, shown in the viewer's zone. The address it is
  * played from is made from the panel's own `start` string -- the wall-clock time in the *panel's* zone, which is what an
- * archive is asked by -- carried over unchanged. Nothing here guesses the panel's zone or converts between the two.
+ * archive is asked by -- carried over unchanged. Nothing here guesses the panel's zone.
+ *
+ * An instant that is not a programme's own -- a quarter of an hour before now, for a rewind -- has no such string, and is written
+ * on the panel's clock from the offset the listing itself shows: the digits of a programme's `start` against the instant the panel
+ * gave for it ([XtreamUrls.clockOffsetMs]). A panel whose listing gives no such pair offers no rewind, and is not guessed at.
  */
 class XtreamCatchUp(
     private val client: OkHttpClient,
@@ -69,16 +76,42 @@ class XtreamCatchUp(
     private val lock = Any()
     private val scope = CoroutineScope(SupervisorJob() + dispatchers.io)
 
-    override suspend fun listing(channel: CatchUpChannel, nowMs: Long): CatchUpListing {
-        val reference = channel.providerRef?.takeIf { it.isNotBlank() }
-            ?: return CatchUpListing.NotSupported(CatchUpUnsupported.NO_PROVIDER_REFERENCE)
+    override suspend fun listing(channel: CatchUpChannel, nowMs: Long): CatchUpListing = when (val read = load(channel, nowMs)) {
+        is Read.Unsupported -> CatchUpListing.NotSupported(read.reason)
+        is Read.Failed -> CatchUpListing.Failed(read.error)
+        is Read.Done -> CatchUpListing.Programmes(read.usable)
+    }
 
-        val kept = synchronized(lock) { memory.listing(channel.mediaId, nowMs) }
-        if (kept != null) return CatchUpListing.Programmes(kept)
+    /**
+     * What the channel's archive holds, for rewinding its live picture. **The same read as [listing], from the same memory:** a
+     * channel whose catch-up was opened a few minutes ago, or whose rewind was asked about, is not asked of the provider again.
+     * Nothing recorded in what the panel listed is [ArchiveCoverage.None], and a panel that did not answer is [ArchiveCoverage.Failed]
+     * and not remembered as nothing.
+     */
+    override suspend fun coverage(channel: CatchUpChannel, nowMs: Long): ArchiveCoverage = when (val read = load(channel, nowMs)) {
+        is Read.Unsupported -> ArchiveCoverage.None
+        is Read.Failed -> ArchiveCoverage.Failed(read.error)
+        is Read.Done -> read.cover?.takeIf { cover -> cover.spans.any { it.archived } }?.let(ArchiveCoverage::Known)
+            ?: ArchiveCoverage.None
+    }
+
+    /** What one look at a channel's archive came to: the memory's answer, or the panel's. */
+    private sealed interface Read {
+        class Done(val usable: List<CatchUpProgramme>, val cover: ArchiveCover?) : Read
+        class Unsupported(val reason: CatchUpUnsupported) : Read
+        class Failed(val error: AppError) : Read
+    }
+
+    private suspend fun load(channel: CatchUpChannel, nowMs: Long): Read {
+        val reference = channel.providerRef?.takeIf { it.isNotBlank() }
+            ?: return Read.Unsupported(CatchUpUnsupported.NO_PROVIDER_REFERENCE)
+
+        val (kept, keptCover) = synchronized(lock) { memory.listing(channel.mediaId, nowMs) to memory.cover(channel.mediaId, nowMs) }
+        if (kept != null) return Read.Done(kept, keptCover)
 
         val source = when (val provider = sources.activeProvider()) {
-            ActiveProvider.None -> return CatchUpListing.NotSupported(CatchUpUnsupported.NO_ACTIVE_PROVIDER)
-            ActiveProvider.Other -> return CatchUpListing.NotSupported(CatchUpUnsupported.PROTOCOL)
+            ActiveProvider.None -> return Read.Unsupported(CatchUpUnsupported.NO_ACTIVE_PROVIDER)
+            ActiveProvider.Other -> return Read.Unsupported(CatchUpUnsupported.PROTOCOL)
             is ActiveProvider.Xtream -> provider.source
         }
 
@@ -88,14 +121,14 @@ class XtreamCatchUp(
             withTimeout(LISTING_TIMEOUT_MS) { request.await() }
         } catch (timeout: TimeoutCancellationException) {
             request.cancel()
-            return CatchUpListing.Failed(AppError.TIMEOUT)
+            return Read.Failed(AppError.TIMEOUT)
         } catch (cancelled: CancellationException) {
             request.cancel()
             throw cancelled
         }
 
         val entries = when (outcome) {
-            is Outcome.Failure -> return CatchUpListing.Failed(outcome.error)
+            is Outcome.Failure -> return Read.Failed(outcome.error)
             is Outcome.Success -> outcome.value
         }
         val archived = entries.filter { it.archived }
@@ -115,8 +148,24 @@ class XtreamCatchUp(
                 ).format(),
             )
         }
-        synchronized(lock) { memory.remember(channel.mediaId, usable, nowMs) }
-        return CatchUpListing.Programmes(usable)
+        val cover = coverOf(entries, channel.archiveHours, nowMs)
+        synchronized(lock) { memory.remember(channel.mediaId, usable, nowMs, cover) }
+        return Read.Done(usable, cover)
+    }
+
+    /**
+     * What the listing says about the archive as a whole: every programme that is inside the window and has begun -- or will
+     * within the time this is kept -- and the panel's clock, read from the programme nearest to now that gives one.
+     */
+    private fun coverOf(entries: List<XtreamArchiveEntry>, windowHours: Int, nowMs: Long): ArchiveCover {
+        val earliest = nowMs - windowHours.toLong() * CatchUpPolicy.HOUR_MS
+        val spans = entries
+            .filter { it.stopMs >= earliest && it.startMs <= nowMs + CatchUpMemory.LISTING_TTL_MS }
+            .map { ArchiveSpan(startMs = it.startMs, stopMs = it.stopMs, archived = it.archived) }
+        val offset = entries
+            .sortedBy { kotlin.math.abs(it.startMs - nowMs) }
+            .firstNotNullOfOrNull { XtreamUrls.clockOffsetMs(it.serverStart, it.startMs) }
+        return ArchiveCover(spans = spans, clockOffsetMs = offset)
     }
 
     override suspend fun playbackUrl(channel: CatchUpChannel, programme: CatchUpProgramme): Outcome<String> {
@@ -125,6 +174,24 @@ class XtreamCatchUp(
             ?: return Outcome.Failure(AppError.NOT_FOUND)
         val url = apiFactory(client, source).archiveUrl(reference, CatchUpPolicy.durationMinutes(programme), programme.locator)
         return Outcome.Success(url)
+    }
+
+    /**
+     * An archive address for an instant that is not a programme's own start: the panel is asked for a minute on *its* clock, which is
+     * the instant and the offset [cover] read from the programmes it listed. Made, not asked: no request.
+     */
+    override suspend fun playbackUrlAt(
+        channel: CatchUpChannel,
+        cover: ArchiveCover,
+        atMs: Long,
+        durationMinutes: Int,
+    ): Outcome<String> {
+        val reference = channel.providerRef?.takeIf { it.isNotBlank() } ?: return Outcome.Failure(AppError.NOT_FOUND)
+        val source = (sources.activeProvider() as? ActiveProvider.Xtream)?.source
+            ?: return Outcome.Failure(AppError.NOT_FOUND)
+        val offset = cover.clockOffsetMs ?: return Outcome.Failure(AppError.NOT_FOUND)
+        val start = XtreamUrls.timeshiftStartAt(atMs + offset)
+        return Outcome.Success(apiFactory(client, source).archiveUrl(reference, durationMinutes.coerceAtLeast(1), start))
     }
 
     override fun knownEmpty(mediaId: String, nowMs: Long): Boolean = synchronized(lock) { memory.knownEmpty(mediaId, nowMs) }

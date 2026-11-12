@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.viewinterop.AndroidView
+import com.castivio.domain.TimeShiftChoice
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.playback.api.AspectMode
 import com.castivio.playback.api.VideoOutput
@@ -535,6 +536,10 @@ data class PlayerActions(
     val onSpeed: (Float) -> Unit = {},
     val onSelectTrack: (com.castivio.playback.api.Track) -> Unit = {},
     val onReturnToLive: () -> Unit = {},
+    /** Open or close the strip of places a channel can be rewound to. Pressed on the pill that is drawn only where one is offered. */
+    val onTimeShift: (Boolean) -> Unit = {},
+    /** Put the picture at one of those places, from the provider's archive. */
+    val onShiftTo: (TimeShiftChoice) -> Unit = {},
     val onRetry: () -> Unit = {},
     val onTryBackup: () -> Unit = {},
     val onShare: () -> Unit = {},

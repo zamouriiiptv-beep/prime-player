@@ -5,6 +5,7 @@ import com.castivio.core.common.PlayOutcome
 import com.castivio.core.common.StreamQuality
 import com.castivio.domain.PlayerPulse
 import com.castivio.domain.PulsePhase
+import com.castivio.domain.TimeShiftChoice
 import com.castivio.playback.api.AspectMode
 import com.castivio.playback.api.EngineId
 import com.castivio.playback.api.PlaybackError
@@ -216,6 +217,8 @@ data class PlayerState(
      * never by the engine, and never in the view model: the favourites are not the player's.
      */
     val favorite: Boolean? = null,
+    /** What rewinding this channel is doing: see [TimeShiftState]. */
+    val timeShift: TimeShiftState = TimeShiftState(),
 ) {
     val isTimeshifted: Boolean get() = behindLiveMs > TIMESHIFT_THRESHOLD_MS
 
@@ -253,6 +256,32 @@ data class PlayerState(
          */
         const val TIMESHIFT_THRESHOLD_MS = 30_000L
     }
+}
+
+/**
+ * Rewinding a channel from its provider's archive: what is offered, whether the strip of places is open, and where the picture is.
+ *
+ * Its own type, and not four fields of [PlayerState], because it changes as one thing and is read by three places in the chrome: the
+ * pill that opens it, the strip that takes the bar's row, and the grey of the LIVE chip.
+ */
+data class TimeShiftState(
+    /**
+     * The places the channel's archive is *known* to offer now, in the strip's order. Empty until the archive has been read and
+     * proved to reach back -- a moment after the first picture -- and empty for a channel that has none: the pill is then not drawn.
+     */
+    val choices: List<TimeShiftChoice> = emptyList(),
+    /** The strip of places is showing, in the row the bar is in. Its pill is lit for as long as it is. */
+    val open: Boolean = false,
+    /**
+     * The picture is playing from the archive, or has been asked to. How far behind the edge it is lives in
+     * [PlayerState.behindLiveMs], which is what the bar says.
+     */
+    val shifted: Boolean = false,
+    /** The last rewind could not be made and the picture is back on the live edge: the bar says so for a few seconds. */
+    val failed: Boolean = false,
+) {
+    /** Whether the pill that opens the strip is drawn: there is somewhere to go back to. */
+    val offered: Boolean get() = choices.isNotEmpty()
 }
 
 /**

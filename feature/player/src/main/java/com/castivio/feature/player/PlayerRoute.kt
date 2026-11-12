@@ -355,6 +355,8 @@ fun PlayerRoute(
             current.locked -> Unit
             current.statistics -> model.setStatistics(false)
             current.sheet != null -> model.openSheet(null)
+            // The strip of places is the bar's own row: it goes before the bars do.
+            current.timeShift.open -> model.openTimeShift(false)
             current.controls -> model.showControls(false)
             // The last rung, and the only one this pair changes: collapse where there is
             // somewhere to collapse to, and otherwise leave as before. Collapsing does
@@ -392,6 +394,8 @@ fun PlayerRoute(
                 onSpeed = model::setSpeed,
                 onSelectTrack = model::selectTrack,
                 onReturnToLive = model::returnToLive,
+                onTimeShift = model::openTimeShift,
+                onShiftTo = model::shiftTo,
                 onRetry = model::retry,
                 onTryBackup = model::tryBackup,
                 onShare = { context.share(shareOffer(current.request), chooser) },

@@ -33,6 +33,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -61,6 +63,7 @@ import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.Spacing
+import com.castivio.domain.TimeShiftChoice
 import com.castivio.playback.api.AspectMode
 import com.castivio.playback.api.EngineId
 import com.castivio.playback.api.MediaKind
@@ -156,10 +159,13 @@ private fun ChipRow(state: PlayerState) {
     val chips = techChips(state)
     ChipLine(Modifier.testTag(PlayerTags.CHIPS), gap = Spacing.sm) {
         if (state.request.isLive) {
+            // Grey while the picture is behind the edge: a green LIVE beside a figure that says "15:00 behind" is the one
+            // contradiction this screen can show, and it is the viewer's own rewind that puts it there.
+            val behind = state.isTimeshifted
             Chip(
                 text = stringResource(R.string.player_live),
-                fill = colors.live,
-                ink = colors.onBackground,
+                fill = if (behind) null else colors.live,
+                ink = if (behind) colors.onBackgroundVariant else colors.onBackground,
                 ringed = false,
             )
         }
@@ -268,12 +274,16 @@ private fun ActionCluster(state: PlayerState, actions: PlayerActions) {
                 tint = if (favorite) CastivioTheme.colors.secondary else null,
             )
         }
-        PlayerButton(
-            icon = CastivioIcons.Volume,
-            label = stringResource(R.string.player_sheet_audio),
-            tag = PlayerTags.AUDIO,
-            onClick = { actions.onSheet(Sheet.Audio) },
-        )
+        // **The sound, where there is something to choose.** A channel with one track has nothing for the button to open, and a
+        // control that cannot act is not drawn; a film's sheet has always listed what there is, and keeps its button.
+        if (!live || state.audioTracks.size > 1) {
+            PlayerButton(
+                icon = CastivioIcons.Volume,
+                label = stringResource(R.string.player_sheet_audio),
+                tag = PlayerTags.AUDIO,
+                onClick = { actions.onSheet(Sheet.Audio) },
+            )
+        }
         if (!live) {
             PlayerButton(
                 icon = CastivioIcons.Subtitles,
@@ -291,12 +301,17 @@ private fun ActionCluster(state: PlayerState, actions: PlayerActions) {
             onClick = { actions.onSheet(if (state.sheet == Sheet.Settings) null else Sheet.Settings) },
             active = state.sheet == Sheet.Settings,
         )
-        PlayerButton(
-            icon = CastivioIcons.More,
-            label = stringResource(R.string.player_more),
-            tag = PlayerTags.MORE,
-            onClick = { actions.onSheet(Sheet.More) },
-        )
+        // **Not on a channel in the hands of a viewer.** What it opens is the statistics, which are for whoever is measuring, and a
+        // share that shared a name. A development build keeps it, as the door to that panel; the constant is folded by the compiler,
+        // so a release build does not carry the button for a channel at all. A film keeps it as it was.
+        if (!live || BuildConfig.DEBUG) {
+            PlayerButton(
+                icon = CastivioIcons.More,
+                label = stringResource(R.string.player_more),
+                tag = PlayerTags.MORE,
+                onClick = { actions.onSheet(Sheet.More) },
+            )
+        }
     }
 }
 
@@ -312,7 +327,13 @@ internal fun BottomBar(state: PlayerState, actions: PlayerActions) {
             .testTag(PlayerTags.BOTTOM),
         verticalArrangement = Arrangement.spacedBy(barGap()),
     ) {
-        Timeline(state, actions)
+        // The bar's row, whatever is in it: the bar, or -- while the rewind is open -- the places it can go to. The same row at the same
+        // height, so the picture and the transport under it do not move.
+        if (state.request.isLive && state.timeShift.open) {
+            TimeShiftStrip(state, actions)
+        } else {
+            Timeline(state, actions)
+        }
         Transport(state, actions)
     }
 }
@@ -356,7 +377,11 @@ private fun TransportRow(state: PlayerState, actions: PlayerActions, room: Dp) {
     val arc = if (circle >= BIG_CIRCLE) BIG_ARC else Sizing.iconXl
     // What each group holds, from the sizes the controls are declared at, and the row's plan from that.
     val circles = (if (step != null) 2 else 0) + (if (jumps) 2 else 0)
-    val endPills = 2 + if (live && state.isTimeshifted) 1 else 0
+    // The end of the row: back to the edge while behind it, the rewind where the archive offers one, the fill, and the lock -- which a
+    // television has no use for, there being no screen under a thumb to lock, and so does not draw on a channel.
+    val lockShown = !(live && tv)
+    val rewindShown = live && state.timeShift.offered
+    val endPills = 1 + (if (lockShown) 1 else 0) + (if (rewindShown) 1 else 0) + (if (live && state.isTimeshifted) 1 else 0)
     val plan = transportPlan(
         room = room,
         middle = maxOf(circle, target) * circles + playSize(),
@@ -469,6 +494,20 @@ private fun TransportRow(state: PlayerState, actions: PlayerActions, room: Dp) {
                         shrinkable = true,
                     )
                 }
+                // Beside it, never instead of it: the rewind goes back from the edge and this comes back to it. Drawn only where the archive
+                // has been proved to reach back, and lit while its strip is open, as the gear is while its panel is.
+                if (rewindShown) {
+                    PlayerButton(
+                        icon = CastivioIcons.TimeShift,
+                        label = stringResource(R.string.player_timeshift),
+                        tag = PlayerTags.TIME_SHIFT,
+                        onClick = { actions.onTimeShift(!state.timeShift.open) },
+                        text = if (labelled) stringResource(R.string.player_timeshift) else null,
+                        shape = ControlShape.Pill,
+                        shrinkable = true,
+                        active = state.timeShift.open,
+                    )
+                }
                 // One press, one change, and the pill says which it is: on the fill the picture takes
                 // the whole screen, and pressed again it is fitted to it. The other shapes are in the
                 // settings, where the aspect row cycles them.
@@ -484,15 +523,17 @@ private fun TransportRow(state: PlayerState, actions: PlayerActions, room: Dp) {
                     shrinkable = true,
                     active = state.aspect == AspectMode.FILL,
                 )
-                PlayerButton(
-                    icon = if (state.locked) CastivioIcons.Unlock else CastivioIcons.Lock,
-                    label = stringResource(if (state.locked) R.string.player_unlock else R.string.player_lock),
-                    tag = PlayerTags.LOCK,
-                    onClick = { actions.onLock(!state.locked) },
-                    text = if (labelled) stringResource(if (state.locked) R.string.player_unlock else R.string.player_lock) else null,
-                    shape = ControlShape.Pill,
-                    shrinkable = true,
-                )
+                if (lockShown) {
+                    PlayerButton(
+                        icon = if (state.locked) CastivioIcons.Unlock else CastivioIcons.Lock,
+                        label = stringResource(if (state.locked) R.string.player_unlock else R.string.player_lock),
+                        tag = PlayerTags.LOCK,
+                        onClick = { actions.onLock(!state.locked) },
+                        text = if (labelled) stringResource(if (state.locked) R.string.player_unlock else R.string.player_lock) else null,
+                        shape = ControlShape.Pill,
+                        shrinkable = true,
+                    )
+                }
             }
         }
     }
@@ -617,17 +658,20 @@ private fun Timeline(state: PlayerState, actions: PlayerActions) {
         // A channel at its live edge says nothing here: the bar is full and the pill under the title says
         // LIVE, so a third word beside them was only something else on the screen. It speaks when there is
         // something to tell -- how far behind the edge the viewer is.
-        if (!live || state.isTimeshifted) {
+        // And the words when a rewind could not be made, for a few seconds, in the same place: a viewer who chose a place and is
+        // on the live edge would otherwise take the press for one that did nothing.
+        val noticed = live && state.timeShift.failed
+        if (!live || state.isTimeshifted || noticed) {
             Text(
-                text = if (live) {
-                    stringResource(R.string.player_behind_live, clock(state.behindLiveMs))
-                } else {
-                    clock(position)
+                text = when {
+                    noticed -> stringResource(R.string.player_timeshift_failed)
+                    live -> stringResource(R.string.player_behind_live, clock(state.behindLiveMs))
+                    else -> clock(position)
                 },
                 style = clockStyle(),
                 color = colors.onBackground,
                 maxLines = 1,
-                modifier = Modifier.testTag(PlayerTags.POSITION),
+                modifier = Modifier.testTag(if (noticed) PlayerTags.TIME_SHIFT_NOTICE else PlayerTags.POSITION),
             )
         }
 
@@ -753,6 +797,86 @@ private fun fractionAt(x: Float, width: Float, direction: LayoutDirection): Floa
     if (width <= 0f) return 0f
     val fromStart = (x / width).coerceIn(0f, 1f)
     return if (direction == LayoutDirection.Rtl) 1f - fromStart else fromStart
+}
+
+/* ------------------------------------------------------------------- the rewind's strip */
+
+/**
+ * The places a channel can be rewound to, in the row the bar is in.
+ *
+ * **Not a panel, and nothing over the picture.** The drawing this is built from keeps the middle of the picture empty of buttons in
+ * every state, so the places take the bar's own row -- which on a channel is only a full line -- at the bar's own height, between the
+ * title above and the transport below. Opening it asks nothing of the picture: not its size, not its place, not the engine.
+ *
+ * Equal in width and read left to right in every language, as the rest of the player is; the first takes the remote when the strip
+ * opens, as the first row of the gear's panel does. Each is a place the archive was proved to reach, and the strip is never drawn
+ * empty: see [TimeShiftState.offered].
+ */
+@Composable
+private fun TimeShiftStrip(state: PlayerState, actions: PlayerActions) {
+    val first = remember { FocusRequester() }
+    // `requestFocus` throws when the node is not attached yet, which a first frame can be; the next press of the remote then
+    // finds the strip by position, as it would have anyway.
+    LaunchedEffect(Unit) { runCatching { first.requestFocus() } }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .testTag(PlayerTags.TIME_SHIFT_STRIP),
+        horizontalArrangement = Arrangement.spacedBy(barGap()),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        state.timeShift.choices.forEachIndexed { index, choice ->
+            ChoicePill(
+                text = stringResource(choice.label()),
+                tag = PlayerTags.timeShiftChoice(choice.name.lowercase()),
+                onClick = { actions.onShiftTo(choice) },
+                modifier = Modifier
+                    .weight(1f)
+                    .then(if (index == 0) Modifier.focusRequester(first) else Modifier),
+            )
+        }
+    }
+}
+
+/** One place in the strip: a pill the height of every other control, its words centred and cut with an ellipsis where they do not fit. */
+@Composable
+private fun ChoicePill(text: String, tag: String, onClick: () -> Unit, modifier: Modifier) {
+    val colors = CastivioTheme.colors
+    val tv = CastivioTheme.device.isTv
+    val shape = RoundedCornerShape(Radius.pill)
+    val (focused, focusModifier) = rememberIsFocused()
+    Box(
+        modifier
+            .height(Sizing.minTarget(tv))
+            .clip(shape)
+            .background(colors.glassFillStrong)
+            .border(
+                if (focused.value) FOCUS_RING else HAIRLINE,
+                if (focused.value) colors.focusRing else colors.glassBorder,
+                shape,
+            )
+            .then(focusModifier)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = Spacing.md)
+            .testTag(tag),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            style = (if (tv) CastivioType.bodyMedium else CastivioType.labelMedium).ltr(),
+            color = colors.onBackground,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/** The words of a place, as the strip writes it. */
+private fun TimeShiftChoice.label(): Int = when (this) {
+    TimeShiftChoice.PROGRAMME_START -> R.string.player_timeshift_start
+    TimeShiftChoice.MINUTES_15 -> R.string.player_timeshift_15
+    TimeShiftChoice.MINUTES_30 -> R.string.player_timeshift_30
+    TimeShiftChoice.MINUTES_60 -> R.string.player_timeshift_60
 }
 
 /* ------------------------------------------------------------------- the control */

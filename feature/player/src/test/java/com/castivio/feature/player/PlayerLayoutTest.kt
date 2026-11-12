@@ -40,6 +40,8 @@ import com.castivio.core.common.FrameSize
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.DeviceClass
 import com.castivio.core.design.theme.LocalDeviceClass
+import com.castivio.domain.TimeShiftChoice
+import com.castivio.domain.TimeShiftSource
 import com.castivio.playback.api.AspectMode
 import com.castivio.playback.api.MediaKind
 import com.castivio.playback.api.PlaybackError
@@ -411,6 +413,268 @@ class PlayerLayoutTest {
         compose.onNodeWithTag(PlayerTags.SUBTITLES).assertIsDisplayed()
     }
 
+    /* ----------------------------------------------- what a channel's top and bottom hold */
+
+    private fun audio(id: String, language: String) =
+        Track(id, TrackType.AUDIO, language, language = language, channels = 2, selected = id == "a1")
+
+    /** A channel with one track has nothing for the sound button to open, and a control that cannot act is not drawn. */
+    @Test
+    fun `a channel with one audio track has no sound button`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingLive().copy(audioTracks = listOf(audio("a1", "fr"))))
+
+        compose.onAllNodesWithTag(PlayerTags.AUDIO).assertCountEquals(0)
+    }
+
+    @Test
+    fun `a channel with two audio tracks has a sound button`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingLive().copy(audioTracks = listOf(audio("a1", "fr"), audio("a2", "ar"))))
+
+        compose.onNodeWithTag(PlayerTags.AUDIO).assertIsDisplayed()
+    }
+
+    /** A film's sound sheet has always listed what there is, one track or many, and keeps its button. */
+    @Test
+    fun `a film keeps its sound button`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingFilm().copy(audioTracks = listOf(audio("a1", "fr"))))
+
+        compose.onNodeWithTag(PlayerTags.AUDIO).assertIsDisplayed()
+    }
+
+    /**
+     * The three dots open the statistics, which are for whoever is measuring: a development build keeps the button as the door to
+     * them and a release build does not carry it for a channel. The unit tests run the development build, so this is the half that
+     * can be asserted here -- that a channel has it and a film has it -- and the compiler folds the other.
+     */
+    @Test
+    fun `a development build keeps the three dots on a channel and on a film`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingLive())
+        compose.onNodeWithTag(PlayerTags.MORE).assertIsDisplayed()
+    }
+
+    /** A handset and a tablet have a screen to lock against a thumb; a television has none, so a channel there does not draw the lock. */
+    @Test
+    fun `a channel on a handset has the lock`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingLive())
+
+        compose.onNodeWithTag(PlayerTags.LOCK).assertIsDisplayed()
+    }
+
+    @Test
+    fun `a channel on a television has no lock`() {
+        compose.show(TELEVISION, DeviceClass.Television, playingLive())
+
+        compose.onAllNodesWithTag(PlayerTags.LOCK).assertCountEquals(0)
+        compose.onNodeWithTag(PlayerTags.FILL).assertIsDisplayed()
+    }
+
+    @Test
+    fun `a film on a television keeps its lock`() {
+        compose.show(TELEVISION, DeviceClass.Television, playingFilm())
+
+        compose.onNodeWithTag(PlayerTags.LOCK).assertIsDisplayed()
+    }
+
+    /* ------------------------------------------------------------------- the rewind */
+
+    /** Nothing here is asked of: the state carries what the controls draw, and the source is only what a request holds. */
+    private val rewindSource = object : TimeShiftSource {
+        override suspend fun choices(): List<TimeShiftChoice> = emptyList()
+        override suspend fun address(choice: TimeShiftChoice) =
+            com.castivio.core.common.Outcome.Failure(com.castivio.core.common.AppError.NOT_FOUND)
+    }
+
+    private val offeredChoices = listOf(
+        TimeShiftChoice.PROGRAMME_START,
+        TimeShiftChoice.MINUTES_15,
+        TimeShiftChoice.MINUTES_30,
+        TimeShiftChoice.MINUTES_60,
+    )
+
+    /** A channel whose archive was proved to reach back: the pill is drawn. */
+    private fun rewindable(state: TimeShiftState = TimeShiftState(choices = offeredChoices)) = playingLive().let {
+        it.copy(request = it.request.copy(timeShift = TimeShiftHandle(rewindSource)), timeShift = state)
+    }
+
+    @Test
+    fun `a channel with a proved archive has the rewind pill`() {
+        compose.show(HANDSET, DeviceClass.Expanded, rewindable())
+
+        compose.onNodeWithTag(PlayerTags.TIME_SHIFT).assertIsDisplayed()
+        compose.onAllNodesWithTag(PlayerTags.TIME_SHIFT_STRIP).assertCountEquals(0)
+    }
+
+    /** Support is confirmed and not claimed: a provider's claim of hours, with nothing proved, draws no pill. */
+    @Test
+    fun `a channel whose archive is not proved has no rewind pill however many hours it claims`() {
+        compose.show(HANDSET, DeviceClass.Expanded, rewindable(TimeShiftState()))
+
+        compose.onAllNodesWithTag(PlayerTags.TIME_SHIFT).assertCountEquals(0)
+    }
+
+    @Test
+    fun `a film has no rewind pill`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingFilm().copy(timeShift = TimeShiftState(choices = offeredChoices)))
+
+        compose.onAllNodesWithTag(PlayerTags.TIME_SHIFT).assertCountEquals(0)
+    }
+
+    @Test
+    fun `pressing the pill asks to open the strip, and pressing it again to close it`() {
+        val asked = mutableListOf<Boolean>()
+        compose.show(HANDSET, DeviceClass.Expanded, rewindable(), actions = PlayerActions(onTimeShift = { asked += it }))
+        compose.onNodeWithTag(PlayerTags.TIME_SHIFT).performClick()
+        assertEquals(listOf(true), asked)
+    }
+
+    @Test
+    fun `the open pill asks to close`() {
+        val asked = mutableListOf<Boolean>()
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            rewindable(TimeShiftState(choices = offeredChoices, open = true)),
+            actions = PlayerActions(onTimeShift = { asked += it }),
+        )
+        compose.onNodeWithTag(PlayerTags.TIME_SHIFT).performClick()
+        assertEquals(listOf(false), asked)
+    }
+
+    /**
+     * **The places take the bar's row.** Opened, the strip is where the bar was and the bar is not drawn beside it; one pill for each
+     * place, and a press on a place reaches its callback with the place.
+     */
+    @Test
+    fun `the open strip takes the bar's row and offers each place`() {
+        val chosen = mutableListOf<TimeShiftChoice>()
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            rewindable(TimeShiftState(choices = offeredChoices, open = true)),
+            actions = PlayerActions(onShiftTo = { chosen += it }),
+        )
+
+        compose.onNodeWithTag(PlayerTags.TIME_SHIFT_STRIP).assertIsDisplayed()
+        compose.onAllNodesWithTag(PlayerTags.TIMELINE).assertCountEquals(0)
+        for (choice in offeredChoices) {
+            compose.onNodeWithTag(PlayerTags.timeShiftChoice(choice.name.lowercase())).assertIsDisplayed()
+        }
+
+        compose.onNodeWithTag(PlayerTags.timeShiftChoice("minutes_30")).performClick()
+        assertEquals(listOf(TimeShiftChoice.MINUTES_30), chosen)
+    }
+
+    /** A strip that offers only what the archive reaches: three places are three pills. */
+    @Test
+    fun `the strip has a pill for what is offered and for nothing else`() {
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            rewindable(TimeShiftState(choices = listOf(TimeShiftChoice.MINUTES_15, TimeShiftChoice.MINUTES_30), open = true)),
+        )
+
+        compose.onNodeWithTag(PlayerTags.timeShiftChoice("minutes_15")).assertIsDisplayed()
+        compose.onNodeWithTag(PlayerTags.timeShiftChoice("minutes_30")).assertIsDisplayed()
+        compose.onAllNodesWithTag(PlayerTags.timeShiftChoice("minutes_60")).assertCountEquals(0)
+        compose.onAllNodesWithTag(PlayerTags.timeShiftChoice("programme_start")).assertCountEquals(0)
+    }
+
+    /** The strip is in the bar's row: its pills are the floor tall and inside the safe area, on a handset and a television. */
+    @Test
+    fun `the open strip keeps to the floors and the safe area on a handset`() {
+        compose.show(HANDSET, DeviceClass.Expanded, rewindable(TimeShiftState(choices = offeredChoices, open = true)), LayoutDirection.Rtl)
+
+        compose.assertSafe(HANDSET, tv = false)
+        compose.assertTargets(PHONE_FLOOR)
+    }
+
+    @Test
+    fun `the open strip keeps to the floors and the safe area on a television`() {
+        compose.show(TELEVISION, DeviceClass.Television, rewindable(TimeShiftState(choices = offeredChoices, open = true)), LayoutDirection.Rtl)
+
+        compose.assertSafe(TELEVISION, tv = true)
+        compose.assertTargets(TV_FLOOR)
+    }
+
+    /**
+     * **Nothing in the middle of the picture.** With the strip open, with the picture behind the edge, with a rewind that could not be
+     * made, every control is in the top band or the bottom one, and the middle is the picture's alone.
+     */
+    @Test
+    fun `with the strip open the middle of the picture has no control`() {
+        compose.show(HANDSET, DeviceClass.Expanded, rewindable(TimeShiftState(choices = offeredChoices, open = true)))
+
+        compose.assertMiddleEmpty()
+    }
+
+    @Test
+    fun `behind the edge the middle of the picture has no control`() {
+        compose.show(
+            TELEVISION,
+            DeviceClass.Television,
+            rewindable(TimeShiftState(choices = offeredChoices, shifted = true)).copy(behindLiveMs = FOUR_MINUTES),
+        )
+
+        compose.assertMiddleEmpty()
+    }
+
+    @Test
+    fun `after a rewind that could not be made the middle of the picture has no control`() {
+        compose.show(HANDSET, DeviceClass.Expanded, rewindable(TimeShiftState(choices = offeredChoices, failed = true)))
+
+        compose.assertMiddleEmpty()
+    }
+
+    /** The picture is not touched by the strip: it fills the frame whether the strip is open or not. */
+    @Test
+    fun `the picture fills the frame with the strip open`() {
+        compose.show(HANDSET, DeviceClass.Expanded, rewindable(TimeShiftState(choices = offeredChoices, open = true)))
+
+        val root = compose.bounds(PlayerTags.ROOT)
+        val video = compose.bounds(PlayerTags.VIDEO)
+        assertEquals("the strip changed the picture's width", root.width.value, video.width.value, 0.5f)
+        assertEquals("the strip changed the picture's height", root.height.value, video.height.value, 0.5f)
+        assertEquals("the strip moved the picture", root.left.value, video.left.value, 0.5f)
+        assertEquals("the strip moved the picture", root.top.value, video.top.value, 0.5f)
+    }
+
+    /** The words the bar says when a rewind could not be made are in the bar's row, where the figure of a rewind is. */
+    @Test
+    fun `a rewind that could not be made is told in the bar`() {
+        compose.show(HANDSET, DeviceClass.Expanded, rewindable(TimeShiftState(choices = offeredChoices, failed = true)))
+
+        compose.onNodeWithTag(PlayerTags.TIME_SHIFT_NOTICE).assertIsDisplayed()
+    }
+
+    @Test
+    fun `behind the edge both the live pill and the rewind pill are drawn, and the figure is`() {
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            rewindable(TimeShiftState(choices = offeredChoices, shifted = true)).copy(behindLiveMs = FOUR_MINUTES),
+        )
+
+        compose.onNodeWithTag(PlayerTags.TO_LIVE).assertIsDisplayed()
+        compose.onNodeWithTag(PlayerTags.TIME_SHIFT).assertIsDisplayed()
+        compose.onNodeWithTag(PlayerTags.POSITION).assertIsDisplayed()
+        compose.onAllNodesWithTag(PlayerTags.TIME_SHIFT_NOTICE).assertCountEquals(0)
+    }
+
+    /** The rewind joins the transport's end, and nothing in it is laid over another, with every pill there can be. */
+    @Test
+    fun `the transport with the rewind pill is clear on a handset and on a television`() {
+        compose.showCrowded(HANDSET, DeviceClass.Expanded, rewindable(TimeShiftState(choices = offeredChoices, shifted = true)).copy(behindLiveMs = FOUR_MINUTES))
+        compose.assertSafe(HANDSET, tv = false)
+        compose.assertTransportClear("handset")
+    }
+
+    @Test
+    fun `the television transport with the rewind pill is clear`() {
+        compose.showCrowded(TELEVISION, DeviceClass.Television, rewindable(TimeShiftState(choices = offeredChoices, shifted = true)).copy(behindLiveMs = FOUR_MINUTES))
+        compose.assertSafe(TELEVISION, tv = true)
+        compose.assertTransportClear("television")
+    }
+
     /* ------------------------------------------------------------------- the settings */
 
     /** A broadcast played faster runs out of what was sent; slower, it leaves the window. */
@@ -434,9 +698,36 @@ class PlayerLayoutTest {
     fun `a channel's settings offer no subtitles and a film's do`() {
         compose.show(HANDSET, DeviceClass.Expanded, playingLive().copy(sheet = Sheet.Settings))
         compose.onAllNodesWithTag(PlayerTags.popoverRow("subtitles")).assertCountEquals(0)
-        compose.onNodeWithTag(PlayerTags.popoverRow("quality")).assertIsDisplayed()
-        compose.onNodeWithTag(PlayerTags.popoverRow("audio")).assertIsDisplayed()
         compose.onNodeWithTag(PlayerTags.popoverRow("aspect")).assertIsDisplayed()
+    }
+
+    /**
+     * A channel's settings are the rows it can act on: the shape of the picture always, the quality where the stream declared more than
+     * one to choose from, and not the sound, whose button is in the top bar when there is more than one track.
+     */
+    @Test
+    fun `a channel's settings are its shape, and its quality where there is a choice`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingLive().copy(sheet = Sheet.Settings))
+
+        compose.onNodeWithTag(PlayerTags.popoverRow("aspect")).assertIsDisplayed()
+        compose.onAllNodesWithTag(PlayerTags.popoverRow("quality")).assertCountEquals(0)
+        compose.onAllNodesWithTag(PlayerTags.popoverRow("audio")).assertCountEquals(0)
+    }
+
+    @Test
+    fun `a channel with a ladder of pictures has the quality row`() {
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingLive().copy(
+                sheet = Sheet.Settings,
+                videoTracks = listOf(Track("v1", TrackType.VIDEO, "1080p"), Track("v2", TrackType.VIDEO, "720p")),
+            ),
+        )
+
+        compose.onNodeWithTag(PlayerTags.popoverRow("quality")).assertIsDisplayed()
+        compose.onNodeWithTag(PlayerTags.popoverRow("aspect")).assertIsDisplayed()
+        compose.onAllNodesWithTag(PlayerTags.popoverRow("audio")).assertCountEquals(0)
     }
 
     @Test
@@ -2047,6 +2338,28 @@ class PlayerLayoutTest {
     }
 
     /**
+     * The middle of the picture holds no control.
+     *
+     * Every clickable but the picture's own is in the top band or the bottom one: it ends above where the bottom band begins, or begins
+     * below where the top band ends. The picture's own tap target is the clickable that fills the frame, and is the one left out.
+     */
+    private fun ComposeContentTestRule.assertMiddleEmpty() {
+        val root = bounds(PlayerTags.ROOT)
+        val topEnd = bounds(PlayerTags.TOP).bottom
+        val bottomStart = bounds(PlayerTags.BOTTOM).top
+        val inside = mutableListOf<String>()
+        val nodes = onAllNodes(hasClickAction())
+        for (i in nodes.fetchSemanticsNodes().indices) {
+            val box = nodes[i].getUnclippedBoundsInRoot()
+            if (box.width >= root.width * 0.9f && box.height >= root.height * 0.9f) continue
+            if (box.top < bottomStart - TOLERANCE && box.bottom > topEnd + TOLERANCE) {
+                inside += "${box.left}..${box.right} x ${box.top}..${box.bottom}"
+            }
+        }
+        assertTrue("controls in the middle of the picture, between $topEnd and $bottomStart: $inside", inside.isEmpty())
+    }
+
+    /**
      * Every clickable node is at least [floor] in both dimensions.
      *
      * Found by the click action rather than by a list of tags, deliberately: a control
@@ -2076,7 +2389,7 @@ class PlayerLayoutTest {
     private fun ComposeContentTestRule.assertTransportClear(label: String) {
         val controls = listOf(
             PlayerTags.PLAYLIST, PlayerTags.PREVIOUS, PlayerTags.PLAY, PlayerTags.NEXT,
-            PlayerTags.TO_LIVE, PlayerTags.FILL, PlayerTags.LOCK,
+            PlayerTags.TO_LIVE, PlayerTags.TIME_SHIFT, PlayerTags.FILL, PlayerTags.LOCK,
         )
             .filter { onAllNodesWithTag(it).fetchSemanticsNodes().isNotEmpty() }
             .map { it to bounds(it) }
@@ -2189,8 +2502,8 @@ class PlayerLayoutTest {
         PlayerTags.BACK, PlayerTags.FAVORITE, PlayerTags.AUDIO, PlayerTags.SUBTITLES,
         PlayerTags.SETTINGS, PlayerTags.MORE,
         PlayerTags.PLAYLIST, PlayerTags.PREVIOUS, PlayerTags.REPLAY, PlayerTags.PLAY, PlayerTags.FORWARD,
-        PlayerTags.NEXT, PlayerTags.TO_LIVE, PlayerTags.FILL, PlayerTags.LOCK,
-        PlayerTags.TIMELINE, PlayerTags.CHIPS,
+        PlayerTags.NEXT, PlayerTags.TO_LIVE, PlayerTags.TIME_SHIFT, PlayerTags.FILL, PlayerTags.LOCK,
+        PlayerTags.TIMELINE, PlayerTags.TIME_SHIFT_STRIP, PlayerTags.CHIPS,
     )
 
     /**

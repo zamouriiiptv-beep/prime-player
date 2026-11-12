@@ -101,6 +101,29 @@ interface CatchUpGateway {
      * the provider. Defaulted so a fake that does not ask need not answer.
      */
     suspend fun supported(): Boolean = true
+
+    /**
+     * What [channel]'s archive is known to hold, for rewinding the channel's live picture: see [TimeShiftPolicy].
+     *
+     * Answered from the memory the listing keeps when the archive was read lately, and otherwise by the one request the listing
+     * makes, so the two share it: opening a channel's catch-up and rewinding the channel are one read between them. **Asked by the
+     * player a moment after a channel has a picture, and never from a list scrolling past.** Defaulted to "nothing" so a fake that
+     * has no archive need not say so.
+     */
+    suspend fun coverage(channel: CatchUpChannel, nowMs: Long): ArchiveCoverage = ArchiveCoverage.None
+
+    /**
+     * The address to play [channel]'s archive from the instant [atMs] on, for [durationMinutes]. **Made, not asked: no request.**
+     *
+     * [cover] is what [coverage] answered, and carries the provider's clock, which is what an archive is addressed by. Failing is
+     * an answer: the viewer is told and nothing else on the screen moves.
+     */
+    suspend fun playbackUrlAt(
+        channel: CatchUpChannel,
+        cover: ArchiveCover,
+        atMs: Long,
+        durationMinutes: Int,
+    ): Outcome<String> = Outcome.Failure(AppError.NOT_FOUND)
 }
 
 /** One day of an archive, as the viewer's own calendar draws it. */
@@ -188,7 +211,7 @@ class CatchUpMemory(
     private val emptyTtlMs: Long = EMPTY_TTL_MS,
     private val capacity: Int = CAPACITY,
 ) {
-    private class Kept(val atMs: Long, val items: List<CatchUpProgramme>)
+    private class Kept(val atMs: Long, val items: List<CatchUpProgramme>, val cover: ArchiveCover?)
 
     private val listings = LinkedHashMap<String, Kept>()
     private val empties = LinkedHashMap<String, Long>()
@@ -203,10 +226,13 @@ class CatchUpMemory(
         return kept.items
     }
 
-    /** Keeps [items] as the answer for [mediaId]; an empty one also marks the channel as having nothing archived. */
-    fun remember(mediaId: String, items: List<CatchUpProgramme>, nowMs: Long) {
+    /**
+     * Keeps [items] as the answer for [mediaId]; an empty one also marks the channel as having nothing archived. [cover] is what the
+     * same read found about the archive as a whole -- see [ArchiveCover] -- kept beside it for as long as it is.
+     */
+    fun remember(mediaId: String, items: List<CatchUpProgramme>, nowMs: Long, cover: ArchiveCover? = null) {
         listings.remove(mediaId)
-        listings[mediaId] = Kept(nowMs, items)
+        listings[mediaId] = Kept(nowMs, items, cover)
         while (listings.size > capacity) listings.remove(listings.keys.first())
         if (items.isEmpty()) {
             empties.remove(mediaId)
@@ -215,6 +241,16 @@ class CatchUpMemory(
         } else {
             empties.remove(mediaId)
         }
+    }
+
+    /** What the archive of [mediaId] was found to hold within the last [listingTtlMs], or null. */
+    fun cover(mediaId: String, nowMs: Long): ArchiveCover? {
+        val kept = listings[mediaId] ?: return null
+        if (nowMs - kept.atMs !in 0..listingTtlMs) {
+            listings.remove(mediaId)
+            return null
+        }
+        return kept.cover
     }
 
     fun knownEmpty(mediaId: String, nowMs: Long): Boolean {

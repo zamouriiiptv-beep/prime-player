@@ -192,24 +192,31 @@ private fun settingRows(state: PlayerState, actions: PlayerActions): List<Settin
     val speedValue = speedLabel(state.speed)
 
     return buildList {
-        add(
-            SettingRow(
-                key = "quality",
-                icon = CastivioIcons.Quality,
-                name = stringResource(R.string.player_sheet_quality),
-                value = quality,
-                onPick = { actions.onSheet(Sheet.Quality) },
-            ),
-        )
-        add(
-            SettingRow(
-                key = "audio",
-                icon = CastivioIcons.AudioTrack,
-                name = stringResource(R.string.player_sheet_audio),
-                value = soundValue,
-                onPick = { actions.onSheet(Sheet.Audio) },
-            ),
-        )
+        // **A channel's rows are the ones it can act on.** The picture's quality where the stream declared more than one to choose
+        // from, and its shape; the sound is a button of its own in the top bar when there is more than one track, so it is not asked
+        // twice. A film keeps all five.
+        if (!live || state.videoTracks.size > 1) {
+            add(
+                SettingRow(
+                    key = "quality",
+                    icon = CastivioIcons.Quality,
+                    name = stringResource(R.string.player_sheet_quality),
+                    value = quality,
+                    onPick = { actions.onSheet(Sheet.Quality) },
+                ),
+            )
+        }
+        if (!live) {
+            add(
+                SettingRow(
+                    key = "audio",
+                    icon = CastivioIcons.AudioTrack,
+                    name = stringResource(R.string.player_sheet_audio),
+                    value = soundValue,
+                    onPick = { actions.onSheet(Sheet.Audio) },
+                ),
+            )
+        }
         if (!live) {
             add(
                 SettingRow(

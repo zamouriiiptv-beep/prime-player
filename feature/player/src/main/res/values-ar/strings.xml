@@ -35,6 +35,15 @@
     <string name="player_behind_live">متأخّر %1$s عن المباشر</string>
     <string name="player_catchup">إعادة</string>
 
+    <!-- إرجاع القناة من أرشيف المزوّد: الزر، والأماكن الأربعة، وما يُقال حين لا يتمّ. -->
+    <string name="player_timeshift">إرجاع</string>
+    <string name="player_timeshift_choices">إلى أين تريد الرجوع؟</string>
+    <string name="player_timeshift_start">من بداية البرنامج</string>
+    <string name="player_timeshift_15">قبل 15 دقيقة</string>
+    <string name="player_timeshift_30">قبل 30 دقيقة</string>
+    <string name="player_timeshift_60">قبل ساعة</string>
+    <string name="player_timeshift_failed">تعذّر الإرجاع — أنت على المباشر</string>
+
     <string name="player_opening">جارٍ الفتح…</string>
     <string name="player_buffering">جارٍ التحميل…</string>
     <string name="player_opening_now">الآن</string>

@@ -3,8 +3,13 @@ package com.castivio.feature.player
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.castivio.core.common.AppError
+import com.castivio.core.common.Outcome
 import com.castivio.core.common.StreamQuality
 import com.castivio.domain.PlayerPulse
+import com.castivio.domain.TimeShiftAddress
+import com.castivio.domain.TimeShiftChoice
+import com.castivio.domain.TimeShiftSource
 import com.castivio.playback.api.AspectMode
 import com.castivio.playback.api.EngineId
 import com.castivio.playback.api.EngineMemory
@@ -30,6 +35,7 @@ import com.castivio.data.subtitles.SubtitleResult
 import com.castivio.data.subtitles.SubtitleTrack
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -281,6 +287,23 @@ class PlayerViewModel @Inject constructor(
 
     /** How many more ticks that aim is believed for. A seek that never lands must expire. */
     private var seekTicks = 0
+
+    /**
+     * The picture is playing from the provider's archive, a rewind of the channel: how far behind the edge it began and when, on
+     * [nowMs]'s clock -- so how far behind it is at any later moment is those and where the stream's own clock has got to. Null while
+     * the picture is on the live edge. See [shiftTo] and [backToLive].
+     */
+    private var shift: ActiveShift? = null
+
+    private class ActiveShift(val behindAtOpenMs: Long, val openedAtMs: Long)
+
+    /** Whether this source has been asked what its archive offers, so that a first frame after a rewind does not ask again. */
+    private var offered = false
+
+    /** What a rewind has in hand: the archive being read for what to offer, the address being made for a choice, and the notice. */
+    private var offerJob: Job? = null
+    private var shiftJob: Job? = null
+    private var noticeJob: Job? = null
 
     /**
      * Open a source. The whole of the critical path.
@@ -649,6 +672,26 @@ class PlayerViewModel @Inject constructor(
         }
         val current = _state.value ?: return
 
+        // **A rewind that cannot go on is not a failure of the channel.** The archive refused the address, or ran out where it was
+        // recorded, or caught up with what was: the picture goes back to the live edge on the engine in hand and the viewer is told
+        // in a few words. Decided before the generic paths below, which would hand the source to the other engine or draw a card over
+        // a channel that is perfectly well.
+        if (shift != null) {
+            when (playback) {
+                is PlaybackState.Failed -> {
+                    Log.w(TAG, "the archive failed (${playback.reason}): back to the live edge")
+                    backToLive(failed = true)
+                    return
+                }
+                is PlaybackState.Ended -> {
+                    Log.i(TAG, "the archive ran out: back to the live edge")
+                    backToLive(failed = false)
+                    return
+                }
+                else -> Unit
+            }
+        }
+
         if (hasFrame && deadline != null) onFirstFrame(current)
 
         // Re-read, because `onFirstFrame` writes to `_state` and the tail of this function
@@ -767,6 +810,9 @@ class PlayerViewModel @Inject constructor(
         waitJob?.cancel(); waitJob = null
         _state.value = current.copy(engine = engineId)
         startTicker()
+        // The archive is asked about after the picture and not before it, and once per source: not by a first frame that is the
+        // archive's own.
+        if (shift == null) offerTimeShift(current.request)
     }
 
     /**
@@ -1039,7 +1085,18 @@ class PlayerViewModel @Inject constructor(
             ticker?.cancel(); ticker = null
             // Nothing is opening while the application is away; the return begins a new wait.
             waitJob?.cancel(); waitJob = null
-            _state.value = current.copy(picture = Picture.Opening, longWait = false, providerSlow = false)
+            // A rewind is not carried through the background: the channel comes back on its live edge.
+            offerJob?.cancel(); offerJob = null
+            shiftJob?.cancel(); shiftJob = null
+            noticeJob?.cancel(); noticeJob = null
+            shift = null
+            _state.value = current.copy(
+                picture = Picture.Opening,
+                longWait = false,
+                providerSlow = false,
+                behindLiveMs = 0,
+                timeShift = current.timeShift.copy(open = false, shifted = false, failed = false),
+            )
             return
         }
 
@@ -1497,11 +1554,21 @@ class PlayerViewModel @Inject constructor(
 
     fun showControls(visible: Boolean) {
         val current = _state.value ?: return
-        _state.value = current.copy(controls = visible, interactions = current.interactions + 1)
+        // The strip of places is part of the bar and goes when the bar does: it would otherwise be there, lit, when the bar came back.
+        _state.value = current.copy(
+            controls = visible,
+            interactions = current.interactions + 1,
+            timeShift = if (visible) current.timeShift else current.timeShift.copy(open = false),
+        )
     }
 
     fun setLocked(locked: Boolean) {
-        _state.value = _state.value?.copy(locked = locked, controls = !locked)
+        val current = _state.value ?: return
+        _state.value = current.copy(
+            locked = locked,
+            controls = !locked,
+            timeShift = if (locked) current.timeShift.copy(open = false) else current.timeShift,
+        )
     }
 
     /**
@@ -1533,12 +1600,232 @@ class PlayerViewModel @Inject constructor(
     fun returnToLive() {
         val current = _state.value ?: return
         if (!current.request.isLive) return
+        // From the archive the live edge is the live address, on the engine that holds the archive: see [backToLive].
+        if (shift != null) {
+            backToLive(failed = false)
+            return
+        }
         // Past any aim a jump left outstanding: the live edge is wherever the stream has
         // got to, so an old target must not go on being displayed over it.
         clearAim()
         qualityMonitor.moved(nowMs())
         engine?.seekTo(Long.MAX_VALUE)
         _state.value = current.copy(behindLiveMs = 0)
+    }
+
+    /* ------------------------------------------------------------------------- rewinding */
+
+    /**
+     * Asks the channel's archive what it offers, a moment after a picture, and says the answer once.
+     *
+     * **Support is confirmed and not claimed.** The pill is drawn only for a channel whose archive has been read and proved to reach back
+     * -- see `TimeShiftPolicy` -- so nothing here draws on the provider's word alone, and a channel with no archive that can be
+     * addressed, or one that did not answer, simply has no pill. The moment is [TIMESHIFT_SETTLE_MS] after the picture, so a viewer
+     * zapping through channels asks the provider nothing: the job is cancelled with the source it was begun for.
+     */
+    private fun offerTimeShift(request: PlayerRequest) {
+        val source = request.timeShift?.source ?: return
+        if (!request.supportsTimeshift || offered) return
+        offered = true
+        offerJob?.cancel()
+        offerJob = viewModelScope.launch {
+            delay(TIMESHIFT_SETTLE_MS)
+            val choices = choicesOf(source)
+            val now = _state.value ?: return@launch
+            if (now.request != request) return@launch
+            _state.value = now.copy(timeShift = now.timeShift.copy(choices = choices))
+        }
+    }
+
+    /** What [source] offers, or nothing when it could not say: a rewind that cannot be proved is a rewind that is not drawn. */
+    private suspend fun choicesOf(source: TimeShiftSource): List<TimeShiftChoice> = try {
+        source.choices()
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (error: Exception) {
+        Log.w(TAG, "the archive could not be read for a rewind: ${error.javaClass.simpleName}")
+        emptyList()
+    }
+
+    /**
+     * Opens or closes the strip of places.
+     *
+     * Opened, it is read again first -- from the archive's memory, so not a request -- and shown only if something is still offered: a
+     * choice that has lapsed since the pill was drawn is not put in front of the viewer. **Nothing here touches the picture**: the strip
+     * is the bar's row, in the bar, and neither the surface nor the engine is asked anything by opening it.
+     */
+    fun openTimeShift(open: Boolean) {
+        noteInteraction()
+        val current = _state.value ?: return
+        if (!open) {
+            if (current.timeShift.open) _state.value = current.copy(timeShift = current.timeShift.copy(open = false))
+            return
+        }
+        val source = current.request.timeShift?.source ?: return
+        if (!current.timeShift.offered) return
+        val request = current.request
+        viewModelScope.launch {
+            val choices = choicesOf(source)
+            val now = _state.value ?: return@launch
+            if (now.request != request) return@launch
+            _state.value = now.copy(timeShift = now.timeShift.copy(choices = choices, open = choices.isNotEmpty()))
+        }
+    }
+
+    /**
+     * Puts the picture where [choice] says, from the archive, **on the engine that is playing**.
+     *
+     * Moving between the live edge and the archive is a new source on the same engine and never a new engine: the one in hand --
+     * the primary or the backup, whichever the channel is on -- is handed the address with the surface, the listeners and the decoders
+     * it already has. If the address cannot be made, or the archive does not play, the picture goes back to the live edge on the same
+     * engine and the viewer is told so: see [backToLive].
+     */
+    fun shiftTo(choice: TimeShiftChoice) {
+        noteInteraction()
+        val current = _state.value ?: return
+        val source = current.request.timeShift?.source ?: return
+        val request = current.request
+        _state.value = current.copy(timeShift = current.timeShift.copy(open = false))
+        shiftJob?.cancel()
+        shiftJob = viewModelScope.launch {
+            val outcome = try {
+                source.address(choice)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                Outcome.Failure(AppError.UNKNOWN, error)
+            }
+            // The channel was changed while the address was being made: it is not this one's.
+            if (_state.value?.request != request) return@launch
+            when (outcome) {
+                is Outcome.Success -> rewindTo(outcome.value)
+                is Outcome.Failure -> {
+                    Log.w(TAG, "a rewind could not be made: ${outcome.error}")
+                    tellRewindFailed()
+                }
+            }
+        }
+    }
+
+    /** The archive's address, played on the engine in hand. */
+    private fun rewindTo(address: TimeShiftAddress) {
+        val current = _state.value ?: return
+        val running = engine ?: return
+        Log.i(TAG, "rewinding ${address.behindMs / MS_PER_SECOND}s behind the live edge, on $engineId, on the engine in hand")
+        shift = ActiveShift(behindAtOpenMs = address.behindMs, openedAtMs = nowMs())
+        noticeJob?.cancel(); noticeJob = null
+        swapSource(
+            running,
+            MediaRequest(
+                url = address.url,
+                kind = MediaKind.LIVE,
+                headers = current.request.headers,
+                userAgent = current.request.userAgent,
+            ),
+        )
+        _state.value = _state.value?.let {
+            it.copy(behindLiveMs = address.behindMs, timeShift = it.timeShift.copy(open = false, shifted = true, failed = false))
+        }
+    }
+
+    /**
+     * The live edge again: the channel's own address, on the engine that holds the archive.
+     *
+     * Called by the viewer's press, by an archive that ran out or caught up ([failed] false), and by one that refused or never drew
+     * ([failed] true), which is told to the viewer in a few words and not drawn as a card over a channel that is well.
+     */
+    private fun backToLive(failed: Boolean) {
+        val current = _state.value ?: return
+        val running = engine ?: return
+        shift = null
+        shiftJob?.cancel(); shiftJob = null
+        swapSource(running, current.request.media())
+        _state.value = _state.value?.let {
+            it.copy(behindLiveMs = 0, timeShift = it.timeShift.copy(open = false, shifted = false, failed = failed))
+        }
+        if (failed) startNotice()
+    }
+
+    /** A rewind that could not be made, with nothing to go back from: the viewer is told and the picture is not touched. */
+    private fun tellRewindFailed() {
+        _state.value = _state.value?.let { it.copy(timeShift = it.timeShift.copy(open = false, failed = true)) }
+        startNotice()
+    }
+
+    private fun startNotice() {
+        noticeJob?.cancel()
+        noticeJob = viewModelScope.launch {
+            delay(TIMESHIFT_NOTICE_MS)
+            _state.value = _state.value?.let { if (it.timeShift.failed) it.copy(timeShift = it.timeShift.copy(failed = false)) else it }
+        }
+    }
+
+    /**
+     * A new source on the engine in hand, for a rewind and for the way back.
+     *
+     * What [reopen] does for a channel change, less what a channel change is: the request stays the channel's, the surface and the
+     * listeners stay where they are and nothing is released or built. Waited on for [FallbackPolicy.OPENING_CEILING_MS] by [awaitSwap]
+     * and by nothing that hands the source to the other engine: moving between two addresses of one channel is not a reason to change
+     * engines, and an engine that cannot play the archive says so and the picture returns to the edge.
+     */
+    private fun swapSource(running: PlaybackEngine, media: MediaRequest) {
+        val current = _state.value ?: return
+        clearAim()
+        stopQuality()
+        deadline?.cancel(); deadline = null
+        val asked = System.nanoTime()
+        timeFrom(asked, asked, releasedAt = asked)
+        frameAtNanos = null
+        failureNoted = false
+        timedOut = false
+        // A seek that is the swap is not a stall: the monitor is told, as for every other move of the picture.
+        qualityMonitor.moved(nowMs())
+        _state.value = current.copy(
+            picture = Picture.Opening,
+            attempt = beginWait(since = asked),
+            longWait = false,
+            providerSlow = false,
+            positionMs = 0,
+        )
+        running.open(media)
+        deadline = viewModelScope.launch { awaitSwap(running) }
+        if (!isDeviceFile(media.url)) watchQuality(running)
+    }
+
+    /**
+     * The swap's one wait: [FallbackPolicy.OPENING_CEILING_MS] from the press, as every opening has. An archive that has drawn nothing
+     * by then is given up and the picture goes back to the edge; the edge that has drawn nothing is the usual card, which offers the
+     * other engine to the viewer and does not take it for them.
+     */
+    private suspend fun awaitSwap(running: PlaybackEngine) {
+        delay(FallbackPolicy.OPENING_CEILING_MS)
+        if (running.firstFrameAtMs.value != null || _state.value?.picture is Picture.Failed) return
+        if (shift != null) {
+            Log.w(TAG, "the archive drew nothing in ${FallbackPolicy.OPENING_CEILING_MS}ms: back to the live edge")
+            backToLive(failed = true)
+        } else {
+            Log.w(TAG, "the live edge drew nothing in ${FallbackPolicy.OPENING_CEILING_MS}ms after a rewind")
+            giveUp(after = FallbackPolicy.OPENING_CEILING_MS)
+        }
+    }
+
+    /**
+     * How far behind the live edge the picture is: from the rewind when there is one, from the stream's own window where it has one,
+     * and nowhere otherwise.
+     *
+     * A rewind is how far behind it began, and then the time that has passed on the monitor's clock less how far the stream has played:
+     * a picture left paused falls further behind, and one that plays on stays where it was.
+     */
+    private fun behindNow(current: PlayerState, duration: Long?, position: Long): Long {
+        val rewind = shift
+        return when {
+            rewind != null -> {
+                val played = if (current.picture is Picture.Opening) 0L else position
+                (rewind.behindAtOpenMs + (nowMs() - rewind.openedAtMs) - played).coerceAtLeast(0)
+            }
+            current.request.isLive && duration != null -> (duration - position).coerceAtLeast(0)
+            else -> 0
+        }
     }
 
     /* ---------------------------------------------------------------- stream quality */
@@ -1859,11 +2146,7 @@ class PlayerViewModel @Inject constructor(
                         durationMs = duration,
                         seekable = e.isSeekable,
                         playRequested = e.isPlayRequested,
-                        behindLiveMs = if (current.request.isLive && duration != null) {
-                            (duration - position).coerceAtLeast(0)
-                        } else {
-                            0
-                        },
+                        behindLiveMs = behindNow(current, duration, position),
                     )
                 }
                 delay(TICK_MS)
@@ -1909,6 +2192,12 @@ class PlayerViewModel @Inject constructor(
         sampler?.cancel(); sampler = null
         huntJob?.cancel(); huntJob = null
         captionJob?.cancel(); captionJob = null
+        // A rewind belongs to the source it was made for: nothing of it goes on to the next.
+        offerJob?.cancel(); offerJob = null
+        shiftJob?.cancel(); shiftJob = null
+        noticeJob?.cancel(); noticeJob = null
+        shift = null
+        offered = false
     }
 
     private fun release() {
@@ -2075,6 +2364,14 @@ class PlayerViewModel @Inject constructor(
 
         /** How often the stream's quality is read while it plays: once a second. */
         const val QUALITY_TICK_MS = 1_000L
+
+        /** How long after a picture the archive is asked what it offers: long enough that channels zapped through ask nothing. */
+        const val TIMESHIFT_SETTLE_MS = 2_000L
+
+        /** How long the bar says that a rewind could not be made. */
+        const val TIMESHIFT_NOTICE_MS = 5_000L
+
+        private const val MS_PER_SECOND = 1_000L
         const val STATS_INTERVAL_MS = 1_000L
 
         /**

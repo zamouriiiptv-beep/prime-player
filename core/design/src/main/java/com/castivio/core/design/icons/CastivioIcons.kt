@@ -313,6 +313,11 @@ object CastivioIcons {
         "Retry", "M4 12a8 8 0 1 1 2.4 5.7", "M4 7.5V12h4.5", size = Sizing.iconMd,
     )
 
+    /** Back in time: the arrow of [Retry] that turns the other way, with the hands of [Engine]'s clock inside it. The rewind's pill. */
+    val TimeShift: ImageVector = strokeIcon(
+        "TimeShift", "M4 12a8 8 0 1 1 2.4 5.7", "M4 7.5V12h4.5", "M12 8v4.5l3 2", size = Sizing.iconMd,
+    )
+
     val Tick: ImageVector = strokeIcon(
         "Tick", "M5 12.5l4.5 4.5L19 7.5", size = Sizing.iconSm,
     )

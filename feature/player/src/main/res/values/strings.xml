@@ -43,6 +43,15 @@
     <string name="player_behind_live">%1$s behind live</string>
     <string name="player_catchup">Catch-up</string>
 
+    <!-- Rewinding a channel from its provider's archive: the pill, the four places, and what is said when it could not be done. -->
+    <string name="player_timeshift">Rewind</string>
+    <string name="player_timeshift_choices">Where to rewind to</string>
+    <string name="player_timeshift_start">From the start of the programme</string>
+    <string name="player_timeshift_15">15 minutes before</string>
+    <string name="player_timeshift_30">30 minutes before</string>
+    <string name="player_timeshift_60">An hour before</string>
+    <string name="player_timeshift_failed">Could not rewind — you are on the live edge</string>
+
     <!-- Opening, and what happens while it is late -->
     <string name="player_opening">Opening…</string>
     <string name="player_buffering">Buffering…</string>

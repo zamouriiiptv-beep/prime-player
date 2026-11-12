@@ -1,5 +1,6 @@
 package com.castivio.feature.player
 
+import com.castivio.domain.TimeShiftSource
 import com.castivio.playback.api.MediaKind
 
 /**
@@ -71,6 +72,12 @@ data class PlayerRequest(
     val audioOnly: Boolean = false,
     /** What the loading screen of a channel shows beside its name, or null where the opener had none. See [OpeningFace]. */
     val face: OpeningFace? = null,
+    /**
+     * What puts this channel's picture behind the live edge, from its provider's archive, or null where nothing can: a film, a station,
+     * a channel whose provider keeps no archive that Castivio can address. Handed in by the shell, which knows the catalogue and the
+     * provider; the player knows nothing of either and only asks. See [TimeShiftHandle] and `PlayerViewModel.openTimeShift`.
+     */
+    val timeShift: TimeShiftHandle? = null,
 ) {
 
     /**
@@ -93,8 +100,25 @@ data class PlayerRequest(
     /** A programme of a channel's archive, played from Catch-up. */
     val isCatchUp: Boolean get() = archiveOf != null
 
-    /** Whether the timeshift controls exist on this source at all. */
-    val supportsTimeshift: Boolean get() = isLive && (catchUpHours ?: 0) > 0
+    /**
+     * Whether the timeshift controls can exist on this source at all: a channel, whose provider says it keeps an archive, and which the
+     * shell gave a way to ask it. Not yet whether they are drawn: that waits for the archive to be proved to reach back -- see
+     * [PlayerState.timeShift].
+     */
+    val supportsTimeshift: Boolean get() = isLive && (catchUpHours ?: 0) > 0 && timeShift != null
+}
+
+/**
+ * A [TimeShiftSource] as a request carries it, **equal to every other**, as [OpeningFace] is.
+ *
+ * A request is compared to decide whether a press is for what is already playing, and a source is a means of rewinding what plays and
+ * not a part of what it is: with the source part of the comparison, pressing the channel that is playing would be a different request
+ * the moment the shell made a new source for it, and would open the channel again.
+ */
+class TimeShiftHandle(val source: TimeShiftSource) {
+    override fun equals(other: Any?): Boolean = other is TimeShiftHandle
+
+    override fun hashCode(): Int = 0
 }
 
 /**
