@@ -6,6 +6,7 @@ import com.castivio.core.design.theme.CastivioReference
 import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.castivioMetrics
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -187,14 +188,66 @@ class PlayerMetricsTest {
         }
     }
 
-    /** The list of channels is as wide as the design says between its bounds, and never swallows the film. */
+    /**
+     * The list of channels is a share of the width -- 35% of a handset, 40% of a television -- and the share is what
+     * the design draws, not a number that happens to land near it.
+     *
+     * Both read off the drawing (`design/mockups/player-channels-split-ar.html`): the viewer asked for the list
+     * narrower on a handset, where 35% keeps `FR| CANAL+ CINEMA 4K` whole in its 152dp, and chose 40% on a television,
+     * where the rows are larger and 35% of 960dp is 336dp, under a row's floor.
+     */
+    @Test
+    fun `a handset gives the list 35 percent and a television 40`() {
+        val handset = playerMetricsFor(tv = false, width = 873.dp, height = 393.dp)
+        assertEquals("a handset's list", 873f * 0.35f, handset.playlist.value, 0.5f)
+
+        val television = playerMetricsFor(tv = true, width = 960.dp, height = 540.dp)
+        assertEquals("a television's list", 960f * 0.40f, television.playlist.value, 0.5f)
+    }
+
+    /** Never under a number, a logo and a name, and never wider than the film can spare. */
     @Test
     fun `the list of channels is bounded at both ends`() {
         for (surface in surfaces) {
             val list = surface.metrics.playlist
-            assertTrue("$surface: the list is $list", list >= 340.dp && list <= 400.dp)
-            assertTrue("$surface: the list takes ${list / surface.width} of the width", list <= surface.width * 0.5f)
+            val floor = if (surface.tv) 340.dp else 280.dp
+            assertTrue("$surface: the list is $list, under its floor of $floor", list >= floor)
+            assertTrue("$surface: the list is $list, over its ceiling", list <= 400.dp)
         }
+
+        // The floors and the ceiling at the widths where they, and not the share, decide.
+        assertEquals("a narrow handset", 280f, playerMetricsFor(false, 700.dp, 360.dp).playlist.value, 0.01f)
+        assertEquals("a narrow television", 340f, playerMetricsFor(true, 800.dp, 450.dp).playlist.value, 0.01f)
+        assertEquals("a wide handset", 400f, playerMetricsFor(false, 1920.dp, 1080.dp).playlist.value, 0.01f)
+        assertEquals("a wide television", 400f, playerMetricsFor(true, 3840.dp, 2160.dp).playlist.value, 0.01f)
+    }
+
+    /**
+     * **What the list takes, the film keeps: at least 60% of the width on every surface the list is drawn beside it
+     * on.** The claim the whole change exists for -- the film is given the rest, at its own shape, and is never
+     * covered.
+     */
+    @Test
+    fun `the film keeps the rest of the width`() {
+        for (surface in surfaces) {
+            val m = surface.metrics
+            assertTrue("$surface: the list does not fit beside the film", m.playlistBeside)
+            val film = (surface.width - m.playlist).value / surface.width.value
+            assertTrue("$surface: the film is ${(film * 100).toInt()}% of the width", film >= 0.599f)
+        }
+    }
+
+    /**
+     * Where the floors would leave the film less than half of the width, the list goes back to being a panel over the
+     * picture: a window that narrow is not one where the film should be the smaller part of its own screen.
+     */
+    @Test
+    fun `a window too narrow for the list keeps it over the picture`() {
+        assertFalse("500dp less a 280dp floor", playerMetricsFor(false, 500.dp, 360.dp).playlistBeside)
+        assertFalse("559dp is the last that cannot", playerMetricsFor(false, 559.dp, 360.dp).playlistBeside)
+        assertTrue("560dp is the first that can", playerMetricsFor(false, 560.dp, 360.dp).playlistBeside)
+        assertFalse("679dp on a television, whose floor is 340dp", playerMetricsFor(true, 679.dp, 360.dp).playlistBeside)
+        assertTrue("680dp on a television", playerMetricsFor(true, 680.dp, 360.dp).playlistBeside)
     }
 
     /** Sizes only ever move in one direction as the surface grows, and then they stop. */

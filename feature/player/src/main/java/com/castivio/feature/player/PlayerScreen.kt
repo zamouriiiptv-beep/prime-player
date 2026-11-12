@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -129,111 +130,140 @@ private fun PlayerStage(
         val m = playerMetricsFor(tv = tv, width = maxWidth, height = maxHeight)
         val inset = m.inset
 
+        // **The list of channels is a column of its own, and the film is given the rest.**
+        //
+        // It was a panel over the end of the picture, and what it covered was what a viewer came to see: the end of
+        // the film, the controls under it, the "next" button at its edge. Beside the film it covers nothing -- the
+        // picture keeps its own shape in what the list leaves, and is neither stretched to fill it nor hidden under it.
+        //
+        // Only the list, and only where the film keeps at least half of the width -- `playlistBeside`. Every other
+        // sheet is still a panel over the picture, which is what a sheet is, and a window too narrow for the column's
+        // floor keeps the list over the picture, as it was.
+        val beside = expanded && state.sheet == Sheet.Playlist && channelList != null && m.playlistBeside
+        val area = if (beside) maxWidth - m.playlist else maxWidth
+
         // Where the film actually is. Computed once, here, and used twice: the surface is
         // drawn at this size and the chrome is laid out inside it.
-        val picture = surfaceSize(maxWidth, maxHeight, state)
+        val picture = surfaceSize(area, maxHeight, state)
+
+        // What the controls are laid out in: the picture's own box or, with the list beside, the film's whole region.
+        // Not the picture there, which is the shorter of the two: a 16:9 picture in a region that is nearly square has
+        // bars above and below it, and a bar, a timeline and a transport squeezed into the picture's height would be a
+        // screen of controls with the film between them.
+        val chromeBox = if (beside) DpSize(area, maxHeight) else picture
+
+        // The film's region: the whole window, or what the list leaves of it, at the start edge. Everything that
+        // belongs to the film is laid out in it -- the surface, the cover, the opening, the captions, the chrome, the
+        // spinner -- so each finds its own centre and its own edges in the region it is drawn in, and none of them has
+        // to know there is a list.
+        val region = Modifier.align(Alignment.CenterStart).width(area).fillMaxHeight()
 
         CompositionLocalProvider(LocalPlayerMetrics provides m) {
+            Box(region, contentAlignment = Alignment.Center) {
+                VideoSurface(state, actions, picture, mode)
 
-        VideoSurface(state, actions, picture, mode)
+                // Before every branch, the lock's included: whatever else is drawn over an opening, the
+                // frame the surface still holds is not. See `OpeningCover`.
+                if (state.picture is Picture.Opening) OpeningCover(dimmed = state.request.face != null && state.request.isLive)
 
-        // Before every branch, the lock's included: whatever else is drawn over an opening, the
-        // frame the surface still holds is not. See `OpeningCover`.
-        if (state.picture is Picture.Opening) OpeningCover(dimmed = state.request.face != null && state.request.isLive)
+                // Locked hides everything but the way out of it, and it does so before the
+                // opening branch: a screen that is locked while a channel opens must not draw a
+                // spinner the user cannot dismiss.
+                when {
+                    state.locked -> LockPill(state, actions, inset)
 
-        // Locked hides everything but the way out of it, and it does so before the
-        // opening branch: a screen that is locked while a channel opens must not draw a
-        // spinner the user cannot dismiss.
-        when {
-            state.locked -> LockPill(state, actions, inset)
+                    state.picture is Picture.Opening -> OpeningOverlay(state, inset)
 
-            state.picture is Picture.Opening -> OpeningOverlay(state, inset)
+                    else -> {
+                        // Inside the picture's box like the chrome, and outside the `controls`
+                        // branch unlike it: captions are part of the film, and a film does not
+                        // stop having words in it because the controls hid four seconds ago.
+                        //
+                        // Not in the compact shape. A caption line set for a 1080p screen is
+                        // unreadable in a 300dp well, and shrinking it to fit would be a second
+                        // caption design — the mode draws less of the same player, never a
+                        // different one.
+                        if (expanded) Box(Modifier.size(picture)) { SubtitleLayer(state) }
 
-            else -> {
-                // Inside the picture's box like the chrome, and outside the `controls`
-                // branch unlike it: captions are part of the film, and a film does not
-                // stop having words in it because the controls hid four seconds ago.
-                //
-                // Not in the compact shape. A caption line set for a 1080p screen is
-                // unreadable in a 300dp well, and shrinking it to fit would be a second
-                // caption design — the mode draws less of the same player, never a
-                // different one.
-                if (expanded) Box(Modifier.size(picture)) { SubtitleLayer(state) }
+                        // **The compact shape draws no chrome of its own.**
+                        //
+                        // It drew a band along the foot of the picture: the title, a LIVE pill, the
+                        // channel number. That band is only ever seen in one place — the well on the
+                        // Channels board — and the well draws what belongs there already: its own
+                        // live badge over the picture, the name and the quality tag in the panel
+                        // underneath, and the number in the row of the list. So the picture carried each of them twice, one
+                        // set overlapping the other, and the channel's name was printed across
+                        // moving video a few millimetres above the same name set properly on a
+                        // ground of its own.
+                        //
+                        // Removed rather than reconciled, because the board's copies are the ones
+                        // that belong: they are laid out with the column, they follow its metrics,
+                        // and they are what the approved reference draws. A preview of a channel
+                        // does not need to caption itself when its caption is directly below it.
+                        //
+                        // Nothing else changes about this shape — same surface, same press, same
+                        // engine. The expanded player keeps its own chrome in full.
 
-                // **The compact shape draws no chrome of its own.**
-                //
-                // It drew a band along the foot of the picture: the title, a LIVE pill, the
-                // channel number. That band is only ever seen in one place — the well on the
-                // Channels board — and the well draws what belongs there already: its own
-                // live badge over the picture, the name and the quality tag in the panel
-                // underneath, and the number in the row of the list. So the picture carried each of them twice, one
-                // set overlapping the other, and the channel's name was printed across
-                // moving video a few millimetres above the same name set properly on a
-                // ground of its own.
-                //
-                // Removed rather than reconciled, because the board's copies are the ones
-                // that belong: they are laid out with the column, they follow its metrics,
-                // and they are what the approved reference draws. A preview of a channel
-                // does not need to caption itself when its caption is directly below it.
-                //
-                // Nothing else changes about this shape — same surface, same press, same
-                // engine. The expanded player keeps its own chrome in full.
-
-                if (expanded && state.controls) {
-                    // The chrome belongs to the film, not to the window.
-                    //
-                    // It filled the whole screen, so on a 21:9 phone showing a 16:9 film
-                    // the clock at each end of the timeline sat in the black pillar beside
-                    // the picture — text floating in the letterbox, pointing at nothing.
-                    // The scrim was worse: a gradient over black, shading a bar that has
-                    // no image in it.
-                    //
-                    // Sized to the picture and centred with it, everything reads as part
-                    // of the film. When there are no bars — fill, or a source whose shape
-                    // matches the screen — this is the whole frame and nothing moves.
-                    Box(Modifier.size(picture)) {
-                        Scrims()
-                        Column(
-                            Modifier
-                                .fillMaxSize()
-                                .padding(inset)
-                                .testTag(PlayerTags.SAFE),
-                            verticalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            TopBar(state, actions)
-                            BottomBar(state, actions)
+                        if (expanded && state.controls) {
+                            // The chrome belongs to the film, not to the window.
+                            //
+                            // It filled the whole screen, so on a 21:9 phone showing a 16:9 film
+                            // the clock at each end of the timeline sat in the black pillar beside
+                            // the picture — text floating in the letterbox, pointing at nothing.
+                            // The scrim was worse: a gradient over black, shading a bar that has
+                            // no image in it.
+                            //
+                            // Sized to the picture and centred with it, everything reads as part
+                            // of the film. When there are no bars — fill, or a source whose shape
+                            // matches the screen — this is the whole frame and nothing moves.
+                            // With the list beside it is the film's region instead: see `chromeBox`.
+                            Box(Modifier.size(chromeBox)) {
+                                Scrims()
+                                Column(
+                                    Modifier
+                                        .fillMaxSize()
+                                        .padding(inset)
+                                        .testTag(PlayerTags.SAFE),
+                                    verticalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    TopBar(state, actions)
+                                    BottomBar(state, actions)
+                                }
+                            }
                         }
+
+                        // Over the chrome, because they are about the picture rather than part of
+                        // the frame: a buffering spinner belongs in the middle of what is stalling.
+                        Transients(state, actions, inset)
+                    }
+                }
+            }
+
+            // The sheet reaches the screen edge by design — it is a surface, not a control —
+            // so it sits outside the safe-area column rather than inside it, and outside the film's
+            // region: the list's column is the window's end, and the others are over the picture.
+            //
+            // Expanded only, and not because a sheet could not be drawn small: the state that
+            // opens one is shared with the expanded shape through a single view model, so a
+            // sheet opened in the large player and left open would otherwise be composed over
+            // a 300dp well the moment it collapsed.
+            if (expanded) {
+                state.sheet?.let { sheet ->
+                    // The settings hang from their gear, so they are laid out in the picture's own box -- the one
+                    // the top bar is in -- rather than the window's; everything else is a panel at the end edge.
+                    when (sheet) {
+                        Sheet.Settings -> Box(Modifier.size(picture)) { SettingsPopover(state, actions) }
+                        // The shell's rows in the player's column. Nothing without them: a list nobody gave rows to
+                        // is not a sheet to draw empty.
+                        Sheet.Playlist -> channelList?.let { PlaylistPanel(it, actions) }
+                        else -> PlayerSheet(sheet, state, actions)
                     }
                 }
 
-                // Over the chrome, because they are about the picture rather than part of
-                // the frame: a buffering spinner belongs in the middle of what is stalling.
-                Transients(state, actions, inset)
+                // In the film's region, like everything of the film's, so that with the list beside it the statistics
+                // keep to the film's end edge and are not drawn over the list.
+                if (state.statistics) Box(region) { StatisticsPanel(state, actions, inset) }
             }
-        }
-
-        // The sheet reaches the screen edge by design — it is a surface, not a control —
-        // so it sits outside the safe-area column rather than inside it.
-        //
-        // Expanded only, and not because a sheet could not be drawn small: the state that
-        // opens one is shared with the expanded shape through a single view model, so a
-        // sheet opened in the large player and left open would otherwise be composed over
-        // a 300dp well the moment it collapsed.
-        if (expanded) {
-            state.sheet?.let { sheet ->
-                // The settings hang from their gear, so they are laid out in the picture's own box -- the one
-                // the top bar is in -- rather than the window's; everything else is a panel at the end edge.
-                when (sheet) {
-                    Sheet.Settings -> Box(Modifier.size(picture)) { SettingsPopover(state, actions) }
-                    // The shell's rows in the player's panel. Nothing without them: a list nobody gave rows to
-                    // is not a sheet to draw empty.
-                    Sheet.Playlist -> channelList?.let { PlaylistPanel(it, actions) }
-                    else -> PlayerSheet(sheet, state, actions)
-                }
-            }
-
-            if (state.statistics) StatisticsPanel(state, actions, inset)
-        }
         }
     }
 }

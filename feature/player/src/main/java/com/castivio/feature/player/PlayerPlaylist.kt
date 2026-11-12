@@ -25,12 +25,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import com.castivio.core.design.icons.CastivioIcons
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
@@ -58,11 +62,18 @@ typealias ChannelListContent = @Composable (
 ) -> Unit
 
 /**
- * The list of channels, over the end edge of the picture -- `design/mockups/player-channels.html`.
+ * The list of channels, in a column at the end edge of the screen, beside the picture --
+ * `design/mockups/player-channels-split-ar.html`.
  *
- * A panel and not a sheet: the film goes on playing behind it, the bars stay, and it is as narrow as a
- * number, a logo and a name allow. The title says what it is, the line under it how many there are, and the
- * mark at its end is one of the three ways out (the other two are Back and the pill that opened it).
+ * A column and not a sheet: the film goes on playing in what the column leaves, at its own shape, with its bars and
+ * its transport laid out in that region (`PlayerStage` gives it that), and the column is as narrow as a number, a logo
+ * and a name allow. It covers nothing of the film. The title says what it is, the line under it how many there are,
+ * and the mark at its end is one of the three ways out (the other two are Back and the pill that opened it).
+ *
+ * It was a panel over the end of the picture with the film's controls under it. On its own ground, with a line at the
+ * edge it shares with the film, there is nothing of the film behind it to read as a control. Where the window is too
+ * narrow for the film to keep half of the width, the same column is drawn over the picture, as it was --
+ * `PlayerMetrics.playlistBeside`.
  *
  * A list of one -- or of none, when the channel has left the catalogue -- says so in a line instead of
  * showing its single row: the viewer asked a question and the answer is that there is nowhere else to go.
@@ -77,15 +88,25 @@ internal fun BoxScope.PlaylistPanel(content: ChannelListContent, actions: Player
     // Said by the rows once the first window is read. Null while it is arriving, and the line stays out
     // until it is true -- a count that went from nothing to a figure is a count that moved.
     var total by remember { mutableStateOf<Int?>(null) }
+    val edge = colors.glassBorder
 
     Column(
         Modifier
             .align(Alignment.CenterEnd)
             .fillMaxHeight()
             .width(m.playlist)
-            // Over a ground of its own, nearly solid: the bars behind the panel are the controls of a screen it
-            // has covered, and a ghost of the gear under a row is a thing nobody can press.
+            // On a ground of its own: beside the film there is nothing behind it but the player's own ground, and
+            // where it is drawn over the picture all the same -- a window too narrow to give it a column -- the
+            // controls behind it are those of a screen it has covered, and a ghost of the gear under a row is a thing
+            // nobody can press.
             .background(colors.background.copy(alpha = PANEL_ALPHA))
+            // The line it shares with the film, at its start edge, so the column reads as a part of the screen and
+            // not as a panel that has been laid on it.
+            .drawBehind {
+                val line = HAIRLINE.toPx()
+                val x = if (layoutDirection == LayoutDirection.Ltr) 0f else size.width - line
+                drawRect(color = edge, topLeft = Offset(x, 0f), size = Size(line, size.height))
+            }
             .testTag(PlayerTags.PLAYLIST_PANEL),
     ) {
         Row(
@@ -158,5 +179,9 @@ internal fun BoxScope.PlaylistPanel(content: ChannelListContent, actions: Player
     }
 }
 
-/** How much of the film shows through the panel: almost none, so what is under it never reads as a control. */
+/**
+ * How much of the film shows through the column where it has to be drawn over the picture -- a window too narrow for a
+ * column of its own: almost none, so what is under it never reads as a control. Beside the film nothing shows through
+ * it but the player's own ground, which is the colour it is drawn in.
+ */
 private const val PANEL_ALPHA = 0.96f

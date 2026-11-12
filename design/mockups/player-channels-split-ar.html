@@ -1,17 +1,19 @@
 <!doctype html>
 <!--
-  The channel list inside the full-screen player, as a split and not an overlay. Drawn before code.
+  The channel list inside the full-screen player, as a split and not an overlay. Approved by the owner and built
+  (LOCAL_CHANGES §104); this file is the record of what was approved and of what the build changed on a television.
 
-  What changes from `player-channels.html`: the list no longer lies over the picture. It takes 35% of the width at the
-  end edge, and the picture -- all of it, in its own proportions, never stretched -- is given the other 65%. The viewer
-  asked for the list a little narrower (32 to 35%) and the picture 65 to 68%; the two figures are one decision, because
-  what the list gives up the picture is given.
+  What changes from `player-channels.html`: the list no longer lies over the picture. It takes 35% of a handset's width
+  at the end edge, and the picture -- all of it, in its own proportions, never stretched -- is given the other 65%. The
+  viewer asked for the list a little narrower (32 to 35%) and the picture 65 to 68%; the two figures are one decision,
+  because what the list gives up the picture is given.
 
   Why 35% and not 32% on a handset: a row is a number, a logo, a name and the green disc of the channel that plays. At
   35% of an 851dp handset (298dp) the longest name the playlists in use carry, `FR| CANAL+ CINEMA 4K`, still fits in the
   name's 152dp; at 32% (272dp) it would be cut. The floor the overlay kept (340dp) is lowered to 298dp for the same
-  reason it was set -- a number, a logo and a name -- and no more. On a television, 35% of 960dp is 336dp: the floor of
-  340dp stands, and the list is 35.4%.
+  reason it was set -- a number, a logo and a name -- and no more. On a television 35% of 960dp is 336dp, under the
+  floor a row there needs (340dp), and the names are cut; the owner chose 40% for a television instead: 384dp, between
+  340 and 400dp, and the picture the other 60% (576dp, a 16:9 picture of 576x324dp).
 
   What the split gives that the overlay did not: nothing of the picture is covered, so the channel's own logo in the
   corner of its picture stays visible; the bars of the picture (the heart, the volume, the gear, and the "next" button)
@@ -30,7 +32,13 @@
   to right whatever the language, so the list is at the right, the back button at the left, and the two are as far apart
   as the screen allows.
 
-  Frames: `phone-now` is the overlay as it is, for comparison; `phone-split` and `tv-split` are the proposal.
+  Frames: `phone-now` is the overlay as it was, for comparison; `phone-split` and `tv-split` are what was built.
+
+  What the build changes from the drawing, on a television: the head of the top bar also carries the stream-quality mark
+  (26dp, not drawn here), so with the list open the title has about 78dp and only the LIVE chip fits under it -- a long
+  name is cut with an ellipsis; and the transport's end group (fill, lock) needs more than half of the room the two ends
+  share, so the play control sits about 32dp to the start side of the centre line, and where the pill that takes the
+  viewer back to the live edge is there too the gaps close to make room (`TransportPlan`). Neither is drawn below.
 
     ?frame=<name>      one frame at its device size
     ?frame=sheet       every frame stacked with its caption and its ruler, for review
@@ -131,9 +139,11 @@ const ROWS=[
   [24,'FR| CANAL+ DOCS 4K','canal',0]
 ];
 function metrics(W,H,tv){
+  // the player's own sizes: the target for the device, the play control, the circles round it, the gap between the
+  // groups of the transport (barGapLarge) and between controls inside one (barGap), and the stream-quality mark
   return tv
-    ? {t:56,inset:Math.round(W*0.048),ring:88,step:64,gap:26,row:56,plateW:46,plateH:28,lgW:44,lgH:22,head:64,pad:16,fs:16,nm:16,ttl:22,disc:28}
-    : {t:48,inset:40,ring:64,step:48,gap:23,row:48,plateW:30,plateH:24,lgW:34,lgH:17,head:56,pad:12,fs:15,nm:13,ttl:16,disc:24};
+    ? {t:56,inset:Math.round(W*0.048),ring:80,step:58,gap:24,bg:16,qual:26,row:56,plateW:46,plateH:28,lgW:44,lgH:22,head:64,pad:16,fs:16,nm:16,ttl:22,disc:28}
+    : {t:48,inset:40,ring:64,step:48,gap:21,bg:14,qual:20,row:48,plateW:30,plateH:24,lgW:34,lgH:17,head:56,pad:12,fs:15,nm:13,ttl:16,disc:24};
 }
 function rowHtml(r,m,focusIdx,i){
   const [n,name,logo,play]=r;
@@ -145,35 +155,52 @@ function rowHtml(r,m,focusIdx,i){
     ${play?`<span class="disc" style="width:${m.disc}px;height:${m.disc}px">${I(ICON.tri,m.disc*0.55)}</span>`:''}
   </div>`;
 }
+// TransportPlan (feature/player): how the three groups of the transport share their row.
+function planRow(room,middle,count,start,end,gap,minGap){
+  const gaps=count+1,shared=room-middle-gap*gaps,half=shared/2;
+  if(half>=start&&half>=end)return {s:1,e:1,gap};                                   // as drawn
+  if(shared>=start+end){const atEnd=end>half?end:shared-start;return {s:shared-atEnd,e:atEnd,gap};}   // unequal
+  const fit=(room-middle-start-end)/gaps;return {s:start,e:end,gap:Math.min(gap,Math.max(fit,minGap))}; // closer
+}
 function chrome(aw,H,m,o){
-  const t=m.t,i=m.inset,ring=m.ring;
+  const t=m.t,i=m.inset,ring=m.ring,bg=m.bg;
   const cy=H-i-ring/2;                  // the transport's centre line
   const barY=cy-ring/2-39;              // the bar sits 39dp above the play ring's top
-  const cx=aw/2;
-  const topIcons=[ICON.heart,ICON.vol,ICON.gear,ICON.dots];
-  const tops=topIcons.map((d,k)=>`<span class="abs round" style="width:${t}px;height:${t}px;right:${i+(topIcons.length-1-k)*(t+12)}px;top:${i}px">${I(d,t*0.46)}</span>`).join('');
-  // the end group: the screen's two controls, with their words when the end is wide enough and without them when it is not
+
+  // the transport: the list's pill, the steps and the play control, the screen's two controls
+  const room=aw-2*i,middle=m.step*2+ring,pl=planRow(room,middle,3,t,2*t+bg,m.gap,4);
+  const spare=room-middle-pl.gap*4,startShare=spare*pl.s/(pl.s+pl.e);
+  const prevL=i+startShare+pl.gap,ringL=prevL+m.step+pl.gap,nextL=ringL+ring+pl.gap;
+  const startLabelled=startShare>=t+64;                                             // PILL_LABEL_ROOM
   const end=[[ICON.aspect,'ملء'],[ICON.lock,'قفل']];
-  let right=i;const bot=end.slice().reverse().map(([d,w])=>{
-    const labelled=o.endLabelled;const wpx=labelled?(w==='ملء'?84:84):t;
-    const h=`<span class="abs ${labelled?'pill plain':'round'}" style="${labelled?'':`width:${t}px;`}height:${t}px;right:${right}px;top:${cy-t/2}px;${labelled?`width:${wpx}px;justify-content:center;gap:6px;padding:0;font-size:${m.fs-1}px`:''}">${I(d,labelled?m.fs+3:t*0.42)}${labelled?`<span>${w}</span>`:''}</span>`;
-    right+=wpx+12;return h;}).join('');
-  const chips=o.chips.map(c=>c==='live'?`<span class="chip live">${T.live}</span>`:c==='FHD'?`<span class="chip hd">FHD</span>`:`<span class="chip">${c}</span>`).join('');
-  const startPill=o.startLabelled
+  let right=i;const bot=end.slice().reverse().map(([d])=>{
+    const h=`<span class="abs round" style="width:${t}px;height:${t}px;right:${right}px;top:${cy-t/2}px">${I(d,t*0.42)}</span>`;
+    right+=t+bg;return h;}).join('');
+  const startPill=startLabelled
     ?`<span class="abs pill" style="left:${i}px;height:${t}px;top:${cy-t/2}px;font-size:${m.nm}px;padding:0 10px;gap:6px">${I(ICON.list,m.nm+5)}<span>${T.playlist}</span></span>`
     :`<span class="abs pill iconly" style="left:${i}px;width:${t}px;height:${t}px;top:${cy-t/2}px;padding:0;justify-content:center">${I(ICON.list,t*0.42)}</span>`;
+
+  // the top bar: the back button, the title with what is under it, and the head of the controls -- the stream-quality
+  // mark (not drawn) and four buttons. The title has what they leave, and the chips are cut between two chips.
+  const topIcons=[ICON.heart,ICON.vol,ICON.gear,ICON.dots];
+  const tops=topIcons.map((d,k)=>`<span class="abs round" style="width:${t}px;height:${t}px;right:${i+(topIcons.length-1-k)*(t+bg)}px;top:${i}px">${I(d,t*0.46)}</span>`).join('');
+  const cluster=m.qual+4*t+4*bg,titleW=Math.max(0,aw-2*i-t-2*bg-cluster-8);
+  const chipW=c=>c==='live'?64:c==='FHD'?54:c.length*8+24;
+  let used=0;const shown=[];
+  for(const c of o.chips){const w=chipW(c),next=shown.length?used+8+w:w;if(next>titleW)break;used=next;shown.push(c);}
+  const chips=shown.map(c=>c==='live'?`<span class="chip live">${T.live}</span>`:c==='FHD'?`<span class="chip hd">FHD</span>`:`<span class="chip">${c}</span>`).join('');
   return `
    <span class="abs round" style="width:${t}px;height:${t}px;left:${i}px;top:${i}px">${I(ICON.back,t*0.5)}</span>
-   <div class="abs" style="left:${i+t+12}px;top:${i-2}px">
-     <div class="ttl" style="font-size:${m.ttl}px;line-height:${t*0.5}px">FR| RTL 9 4K</div>
+   <div class="abs" style="left:${i+t+bg+4}px;top:${i-2}px;width:${titleW}px">
+     <div class="ttl" style="font-size:${m.ttl}px;line-height:${t*0.5}px;overflow:hidden;text-overflow:ellipsis">FR| RTL 9 4K</div>
      <div style="display:flex;gap:8px;margin-top:6px">${chips}</div>
    </div>
    ${tops}
    <div class="abs track" style="left:${i}px;right:${i}px;top:${barY-3}px"><i></i></div>
    ${startPill}
-   <span class="abs round" style="width:${m.step}px;height:${m.step}px;left:${cx-ring/2-m.gap-m.step}px;top:${cy-m.step/2}px">${I(ICON.prev,m.step*0.42)}</span>
-   <span class="abs play" style="width:${ring}px;height:${ring}px;left:${cx-ring/2}px;top:${cy-ring/2}px">${I(ICON.pause,ring*0.42)}</span>
-   <span class="abs round" style="width:${m.step}px;height:${m.step}px;left:${cx+ring/2+m.gap}px;top:${cy-m.step/2}px">${I(ICON.next,m.step*0.42)}</span>
+   <span class="abs round" style="width:${m.step}px;height:${m.step}px;left:${prevL}px;top:${cy-m.step/2}px">${I(ICON.prev,m.step*0.42)}</span>
+   <span class="abs play" style="width:${ring}px;height:${ring}px;left:${ringL}px;top:${cy-ring/2}px">${I(ICON.pause,ring*0.42)}</span>
+   <span class="abs round" style="width:${m.step}px;height:${m.step}px;left:${nextL}px;top:${cy-m.step/2}px">${I(ICON.next,m.step*0.42)}</span>
    ${bot}`;
 }
 function panelHtml(W,H,m,pw,mode){
@@ -193,7 +220,7 @@ function frame(s){
     pw=clamp(W*0.40,340,400);
     fw=Math.min(W,H*16/9);fh=fw*9/16;ax=(W-fw)/2;aw=fw;px=0;py=(H-fh)/2;
   }else{
-    pw=tv?Math.max(340,W*0.35):Math.round(W*0.35);
+    pw=tv?clamp(W*0.40,340,400):clamp(W*0.35,280,400);
     aw=W-pw;ax=0;fw=Math.min(aw,H*16/9);fh=fw*9/16;px=(aw-fw)/2;py=(H-fh)/2;
   }
   return {pw,aw,html:`<div class="screen" style="width:${W}px;height:${H}px">
@@ -206,8 +233,8 @@ function frame(s){
 }
 const FR={
   'phone-now':{W:851,H:393,tv:false,mode:'overlay',bars:{chips:['live','FHD','H.264','16:9'],startLabelled:true,endLabelled:true},cap:'<b>الحالي</b> — هاتف <bdi dir="ltr">851×393dp</bdi>: القائمة <b><bdi dir="ltr">40% (340dp)</bdi></b> فوق الفيديو، فالفيديو 699×393 يغطّي منه نحو 38%، وزر «التالي» مقطوع بحافتها وأيقونات القلب والصوت والترس تظهر خافتة تحتها.'},
-  'phone-split':{W:851,H:393,tv:false,mode:'split',bars:{chips:['live','FHD'],startLabelled:true,endLabelled:false},cap:'<b>المقترح</b> — هاتف <bdi dir="ltr">851×393dp</bdi>: القائمة <b><bdi dir="ltr">35% (298dp)</bdi></b> والفيديو <b><bdi dir="ltr">65% (553dp)</bdi></b> بنسبته 16:9 كاملًا غير مشوَّه (553×311، شريطان أسودان فوقه وتحته). لا شيء منه مغطّى، وأزرار الفيديو كلها ظاهرة بأحجامها.'},
-  'tv-split':{W:960,H:540,tv:true,mode:'split',bars:{chips:['live','FHD'],startLabelled:false,endLabelled:false},cap:'<b>المقترح</b> — تلفاز <bdi dir="ltr">960×540dp</bdi>: القائمة <b><bdi dir="ltr">340dp (35.4%)</bdi></b> — الحدّ الأدنى للصف كما هو — والفيديو <b><bdi dir="ltr">64.6%</bdi></b> بنسبته 16:9 كاملًا (620×349).'}
+  'phone-split':{W:851,H:393,tv:false,mode:'split',bars:{chips:['live','FHD'],startLabelled:true,endLabelled:false},cap:'<b>المعتمد</b> — هاتف <bdi dir="ltr">851×393dp</bdi>: القائمة <b><bdi dir="ltr">35% (298dp)</bdi></b> والفيديو <b><bdi dir="ltr">65% (553dp)</bdi></b> بنسبته 16:9 كاملًا غير مشوَّه (553×311، شريطان أسودان فوقه وتحته). لا شيء منه مغطّى، وأزرار الفيديو كلها ظاهرة بأحجامها.'},
+  'tv-split':{W:960,H:540,tv:true,mode:'split',bars:{chips:['live'],startLabelled:false,endLabelled:false},cap:'<b>المعتمد</b> — تلفاز <bdi dir="ltr">960×540dp</bdi>: القائمة <b><bdi dir="ltr">40% (384dp)</bdi></b> بحدّ أدنى 340dp وأقصى 400dp، والفيديو <b><bdi dir="ltr">60% (576dp)</bdi></b> بنسبته 16:9 كاملًا (576×324، شريطان أسودان فوقه وتحته). الاسم والشارات أضيق مما يظهر هنا، كما في التعليق أعلاه.'}
 };
 const p=new URLSearchParams(location.search),f=p.get('frame')||'sheet';
 function block(k,withCap){

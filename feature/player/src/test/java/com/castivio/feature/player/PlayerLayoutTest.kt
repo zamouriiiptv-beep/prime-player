@@ -793,6 +793,280 @@ class PlayerLayoutTest {
         assertTrue("the mark is ${mark.width}", mark.width >= TV_FLOOR - TOLERANCE && mark.height >= TV_FLOOR - TOLERANCE)
     }
 
+    /* ------------------------------------------------------- the list beside the film */
+
+    /**
+     * **The list is beside the film and not over it.** The film's region ends where the column begins and the two
+     * are the whole of the width: nothing of the film is under the list, which is what the panel it replaced did.
+     */
+    @Test
+    fun `the list is beside the film and not over it`() {
+        compose.showBeside(HANDSET, DeviceClass.Expanded)
+
+        val root = compose.bounds(PlayerTags.ROOT)
+        val film = compose.bounds(PlayerTags.VIDEO)
+        val panel = compose.bounds(PlayerTags.PLAYLIST_PANEL)
+
+        assertEquals("the film starts at the start edge", root.left.value, film.left.value, 0.5f)
+        assertEquals("the film ends where the list begins", panel.left.value, film.right.value, 0.5f)
+        assertEquals("the list ends at the end edge", root.right.value, panel.right.value, 0.5f)
+        assertEquals("the film keeps the whole height", root.height.value, film.height.value, 0.5f)
+        assertEquals("together they are the whole width", root.width.value, (film.width + panel.width).value, 0.5f)
+    }
+
+    /** 35% of a handset, and the film the rest. */
+    @Test
+    fun `on a handset the list is 35 percent and the film the rest`() {
+        compose.showBeside(HANDSET, DeviceClass.Expanded)
+
+        val root = compose.bounds(PlayerTags.ROOT)
+        val film = compose.bounds(PlayerTags.VIDEO)
+        val panel = compose.bounds(PlayerTags.PLAYLIST_PANEL)
+
+        // 289.45dp, laid out in whole pixels.
+        assertEquals("the list is 35% of the width", HANDSET.width.value * 0.35f, panel.width.value, 1f)
+        assertEquals("the film has the rest", root.width.value - panel.width.value, film.width.value, 0.5f)
+    }
+
+    /** 40% of a television, where the rows are larger and the names are kept whole. */
+    @Test
+    fun `on a television the list is 40 percent and the film the rest`() {
+        compose.showBeside(TELEVISION, DeviceClass.Television)
+
+        val root = compose.bounds(PlayerTags.ROOT)
+        val film = compose.bounds(PlayerTags.VIDEO)
+        val panel = compose.bounds(PlayerTags.PLAYLIST_PANEL)
+        val expected = playerMetricsFor(true, TELEVISION.width, TELEVISION.height).playlist
+
+        assertEquals("the list is the television's share", expected.value, panel.width.value, 0.5f)
+        assertEquals("which is 40% of the width", TELEVISION.width.value * 0.40f, panel.width.value, 0.5f)
+        assertEquals("the film has the rest", root.width.value - panel.width.value, film.width.value, 0.5f)
+    }
+
+    /**
+     * The picture keeps its own shape in what the list leaves: not stretched to fill it, not covered by the list,
+     * and centred in the region with its bars above and below.
+     */
+    @Test
+    fun `the picture keeps its own shape in the space the list leaves`() {
+        compose.showBeside(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingLive().copy(aspect = AspectMode.FIT, videoAspectRatio = 16f / 9f),
+        )
+
+        val film = compose.bounds(PlayerTags.VIDEO)
+        val surface = compose.bounds(PlayerTags.SURFACE)
+
+        assertEquals(
+            "16:9 was the source's shape and 16:9 is the picture's",
+            16f / 9f,
+            surface.width.value / surface.height.value,
+            0.02f,
+        )
+        assertTrue(
+            "the picture $surface is not inside the film's region $film",
+            surface.left >= film.left - TOLERANCE && surface.right <= film.right + TOLERANCE &&
+                surface.top >= film.top - TOLERANCE && surface.bottom <= film.bottom + TOLERANCE,
+        )
+        assertEquals("the region is narrower than 16:9, so its width is what runs out", film.width.value, surface.width.value, 0.5f)
+        assertTrue("the picture is shorter than the region, with bars above and below it", surface.height < film.height)
+    }
+
+    /** Fill is the viewer's choice to stretch the film to the space it has, and that space is the region's. */
+    @Test
+    fun `fill takes the film's region and does not run under the list`() {
+        compose.showBeside(HANDSET, DeviceClass.Expanded, playingLive().copy(aspect = AspectMode.FILL))
+
+        val film = compose.bounds(PlayerTags.VIDEO)
+        val surface = compose.bounds(PlayerTags.SURFACE)
+        val panel = compose.bounds(PlayerTags.PLAYLIST_PANEL)
+
+        assertEquals("the picture fills the region's width", film.width.value, surface.width.value, 0.5f)
+        assertEquals("and its height", film.height.value, surface.height.value, 0.5f)
+        assertTrue("the picture runs under the list: ${surface.right} against ${panel.left}", surface.right <= panel.left + TOLERANCE)
+    }
+
+    /**
+     * The controls are laid out in the film's region -- its width, and the window's whole height -- and not in the
+     * letterboxed picture, which is the shorter of the two, and not under the list.
+     */
+    @Test
+    fun `the controls are laid out in the film's region and not under the list`() {
+        compose.showBeside(HANDSET, DeviceClass.Expanded)
+
+        val root = compose.bounds(PlayerTags.ROOT)
+        val film = compose.bounds(PlayerTags.VIDEO)
+        val safe = compose.bounds(PlayerTags.SAFE)
+        val panel = compose.bounds(PlayerTags.PLAYLIST_PANEL)
+        val inset = playerMetricsFor(false, HANDSET.width, HANDSET.height).inset
+
+        // The inset is 39.6dp and is laid out as 40 pixels at each side: a pixel and a half is rounding, not a region.
+        assertEquals("their width is the film's less two insets", film.width.value - 2 * inset.value, safe.width.value, 1.5f)
+        assertEquals("their height is the window's less two insets", root.height.value - 2 * inset.value, safe.height.value, 1.5f)
+        assertTrue("the controls reach ${safe.right}, under the list from ${panel.left}", safe.right <= panel.left + TOLERANCE)
+    }
+
+    /**
+     * Every control still inside the safe area, clear of the others and at its floor -- on a handset, where the
+     * region is 537dp wide, and on a television, where it is 576.
+     */
+    @Test
+    fun `beside the list a handset keeps its controls inside the safe area and clear of each other`() {
+        compose.showBeside(HANDSET, DeviceClass.Expanded)
+
+        compose.assertSafe(HANDSET, tv = false)
+        compose.assertBands(HANDSET)
+        compose.assertTransportClear("handset")
+        compose.assertTargets(PHONE_FLOOR)
+    }
+
+    @Test
+    fun `beside the list a television keeps its controls inside the safe area and clear of each other`() {
+        compose.showBeside(TELEVISION, DeviceClass.Television)
+
+        compose.assertSafe(TELEVISION, tv = true)
+        compose.assertBands(TELEVISION)
+        compose.assertTransportClear("television")
+        compose.assertTargets(TV_FLOOR)
+    }
+
+    /**
+     * Behind the live edge the pill that takes the viewer back is one more control at the end of the transport, and
+     * on a television the row is the film's region: the gaps close so that it fits (`TransportPlan`), and the fill
+     * and the lock are not drawn one on the other.
+     */
+    @Test
+    fun `beside the list a television behind the live edge keeps its transport clear`() {
+        compose.showBeside(TELEVISION, DeviceClass.Television, playingLive().copy(behindLiveMs = FOUR_MINUTES))
+
+        compose.assertSafe(TELEVISION, tv = true)
+        compose.assertTransportClear("television behind the live edge")
+        compose.assertTargets(TV_FLOOR)
+    }
+
+    @Test
+    fun `beside the list the shortest handset behind the live edge keeps its transport clear`() {
+        compose.showBeside(SHORT, DeviceClass.Compact, playingLive().copy(behindLiveMs = FOUR_MINUTES))
+
+        compose.assertSafe(SHORT, tv = false)
+        compose.assertTransportClear("shortest handset behind the live edge")
+        compose.assertTargets(PHONE_FLOOR)
+    }
+
+    /** The player is laid out left to right in every language: the film at the start, the list at the end. */
+    @Test
+    fun `the list is at the right in Arabic too`() {
+        compose.showBeside(HANDSET, DeviceClass.Expanded, direction = LayoutDirection.Rtl)
+
+        val root = compose.bounds(PlayerTags.ROOT)
+        val film = compose.bounds(PlayerTags.VIDEO)
+        val panel = compose.bounds(PlayerTags.PLAYLIST_PANEL)
+
+        assertEquals("the film is not at the left", root.left.value, film.left.value, 0.5f)
+        assertEquals("the list is not at the right", root.right.value, panel.right.value, 0.5f)
+    }
+
+    /** Every other sheet is over the picture, which is what a sheet is: the film keeps the window. */
+    @Test
+    fun `the other sheets do not split the film`() {
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingLive().copy(sheet = Sheet.More),
+            LayoutDirection.Ltr,
+            channelList = rows,
+        )
+
+        val root = compose.bounds(PlayerTags.ROOT)
+        val film = compose.bounds(PlayerTags.VIDEO)
+
+        assertEquals("a sheet is over the film and not beside it", root.width.value, film.width.value, 0.5f)
+        compose.onAllNodesWithTag(PlayerTags.PLAYLIST_PANEL).assertCountEquals(0)
+    }
+
+    /** A list nobody gave rows to is not a column to leave empty: the film keeps the window. */
+    @Test
+    fun `without rows the film keeps the whole window`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingLive().copy(sheet = Sheet.Playlist), LayoutDirection.Ltr)
+
+        val root = compose.bounds(PlayerTags.ROOT)
+        val film = compose.bounds(PlayerTags.VIDEO)
+
+        assertEquals("the film was given a column that is not drawn", root.width.value, film.width.value, 0.5f)
+    }
+
+    /**
+     * A window too narrow for the film to keep half of it keeps the list as a panel over the picture, as it was:
+     * the column's floor is most of such a window.
+     */
+    @Test
+    fun `a window too narrow for a column keeps the list over the picture`() {
+        compose.showBeside(SLIVER, DeviceClass.Compact)
+
+        val root = compose.bounds(PlayerTags.ROOT)
+        val film = compose.bounds(PlayerTags.VIDEO)
+        val panel = compose.bounds(PlayerTags.PLAYLIST_PANEL)
+
+        assertEquals("the film keeps the window", root.width.value, film.width.value, 0.5f)
+        assertEquals("and the list is at its end", root.right.value, panel.right.value, 0.5f)
+        assertEquals("at the width the metrics give it", playerMetricsFor(false, SLIVER.width, SLIVER.height).playlist.value, panel.width.value, 0.5f)
+    }
+
+    /** A tap on the film beside the list is a tap beside it, and closes it: the same press as before the column. */
+    @Test
+    fun `a tap on the film beside the list closes the list`() {
+        val seen = mutableListOf<Sheet?>()
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingLive().copy(sheet = Sheet.Playlist),
+            LayoutDirection.Ltr,
+            PlayerActions(onSheet = { seen += it }),
+            channelList = rows,
+        )
+
+        compose.onNodeWithTag(PlayerTags.VIDEO).performClick()
+
+        assertEquals(listOf<Sheet?>(null), seen)
+    }
+
+    /** The statistics are the film's, and keep to the film's end edge rather than going over the list. */
+    @Test
+    fun `the statistics keep to the film's end edge beside the list`() {
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingLive().copy(statistics = true, sheet = Sheet.Playlist),
+            LayoutDirection.Ltr,
+            channelList = rows,
+        )
+
+        val panel = compose.bounds(PlayerTags.PLAYLIST_PANEL)
+        val stats = compose.bounds(PlayerTags.STATISTICS)
+
+        assertTrue("the statistics reach ${stats.right}, over the list from ${panel.left}", stats.right <= panel.left + TOLERANCE)
+    }
+
+    /** An opening lays the player's ground over the film and not over the list the viewer is choosing from. */
+    @Test
+    fun `an opening's ground covers the film and not the list`() {
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingLive().copy(picture = Picture.Opening, sheet = Sheet.Playlist),
+            LayoutDirection.Ltr,
+            channelList = rows,
+        )
+
+        val cover = compose.bounds(PlayerTags.COVER)
+        val panel = compose.bounds(PlayerTags.PLAYLIST_PANEL)
+
+        compose.assertCovers(PlayerTags.COVER, PlayerTags.SURFACE)
+        assertTrue("the ground reaches ${cover.right}, over the list from ${panel.left}", cover.right <= panel.left + TOLERANCE)
+        compose.onNodeWithTag("row.a").assertIsDisplayed()
+    }
+
     /** One press fills the screen with the picture and the next fits it back. */
     @Test
     fun `fill takes the whole screen and the next press fits it back`() {
@@ -1791,6 +2065,52 @@ class PlayerLayoutTest {
         assertTrue("controls under the $floor floor: $small", small.isEmpty())
     }
 
+    /**
+     * No control in the transport is laid over another.
+     *
+     * The controls that can be there, in the order they are on the row, each starting where the one before it ends.
+     * [ROUNDING] is what the layout's whole pixels may take: where the gaps have been closed to the width at which
+     * the controls just fit, a pixel at each edge is the most a share can be out by, and a control laid over its
+     * neighbour -- what this is for -- is a good deal more.
+     */
+    private fun ComposeContentTestRule.assertTransportClear(label: String) {
+        val controls = listOf(
+            PlayerTags.PLAYLIST, PlayerTags.PREVIOUS, PlayerTags.PLAY, PlayerTags.NEXT,
+            PlayerTags.TO_LIVE, PlayerTags.FILL, PlayerTags.LOCK,
+        )
+            .filter { onAllNodesWithTag(it).fetchSemanticsNodes().isNotEmpty() }
+            .map { it to bounds(it) }
+            .sortedBy { it.second.left.value }
+
+        assertTrue("$label: only ${controls.map { it.first }} are in the transport", controls.size >= 5)
+        for ((before, after) in controls.zipWithNext()) {
+            assertTrue(
+                "$label: ${after.first} ${after.second.left}..${after.second.right} is laid over " +
+                    "${before.first} ${before.second.left}..${before.second.right}",
+                after.second.left >= before.second.right - ROUNDING,
+            )
+        }
+    }
+
+    /**
+     * The crowded screen with the list open: every control the chrome can draw, and the column beside the film.
+     * What the safe area, the floors and the transport have to hold for once the film's region is what the list
+     * leaves of the window.
+     */
+    private fun ComposeContentTestRule.showBeside(
+        frame: Frame,
+        device: DeviceClass,
+        state: PlayerState = playingLive(),
+        direction: LayoutDirection = LayoutDirection.Ltr,
+    ) = show(
+        frame,
+        device,
+        state.copy(favorite = false, sheet = Sheet.Playlist),
+        direction,
+        PlayerActions(onStep = {}, onPlaylist = {}, onFavorite = {}),
+        channelList = rows,
+    )
+
     /** A film of a known length, which is what makes the bar something to drag. */
     private fun playingFilm() = PlayerState(
         request = PlayerRequest(
@@ -1827,6 +2147,9 @@ class PlayerLayoutTest {
     /** Narrower than any handset in landscape, so the top bar has to choose what to leave out. */
     private val NARROW = Frame(640.dp, 360.dp)
 
+    /** Too narrow for a column of the list's floor to leave the film half of the width. */
+    private val SLIVER = Frame(500.dp, 300.dp)
+
     /** The preview plate on the Channels board, where channels are changed. */
     private val PLATE = Frame(300.dp, 169.dp)
 
@@ -1858,6 +2181,9 @@ class PlayerLayoutTest {
      * was never compiled by anything that could fail.
      */
     private val TOLERANCE = 0.5.dp
+
+    /** Two device-independent pixels: what a row of exactly-fitting controls may be out by in whole pixels. */
+    private val ROUNDING = 2.dp
 
     private val CONTROLS = listOf(
         PlayerTags.BACK, PlayerTags.FAVORITE, PlayerTags.AUDIO, PlayerTags.SUBTITLES,

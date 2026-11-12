@@ -335,6 +335,15 @@ internal fun BottomBar(state: PlayerState, actions: PlayerActions) {
  */
 @Composable
 private fun Transport(state: PlayerState, actions: PlayerActions) {
+    // The row is planned from the width it has -- the whole window's, or what the list of channels leaves of it --
+    // and the groups share that width differently as it narrows: see [TransportPlan].
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        TransportRow(state, actions, room = maxWidth)
+    }
+}
+
+@Composable
+private fun TransportRow(state: PlayerState, actions: PlayerActions, room: Dp) {
     val live = state.request.isLive
     val jumps = !live || state.seekable
     val step = actions.onStep
@@ -345,14 +354,26 @@ private fun Transport(state: PlayerState, actions: PlayerActions) {
     // an 80dp circle is a speck.
     val glyph = if (circle >= BIG_CIRCLE) Sizing.iconLg else Sizing.iconMd
     val arc = if (circle >= BIG_CIRCLE) BIG_ARC else Sizing.iconXl
+    // What each group holds, from the sizes the controls are declared at, and the row's plan from that.
+    val circles = (if (step != null) 2 else 0) + (if (jumps) 2 else 0)
+    val endPills = 2 + if (live && state.isTimeshifted) 1 else 0
+    val plan = transportPlan(
+        room = room,
+        middle = maxOf(circle, target) * circles + playSize(),
+        count = circles + 1,
+        start = if (actions.onPlaylist != null) target else 0.dp,
+        end = target * endPills + barGap() * (endPills - 1),
+        gap = barGapLarge(),
+        minGap = TRANSPORT_GAP_MIN,
+    )
     Row(
         Modifier
             .fillMaxWidth()
             .testTag(PlayerTags.TRANSPORT),
-        horizontalArrangement = Arrangement.spacedBy(barGapLarge()),
+        horizontalArrangement = Arrangement.spacedBy(plan.gap),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        BoxWithConstraints(Modifier.weight(1f)) {
+        BoxWithConstraints(Modifier.weight(plan.startWeight)) {
             val labelled = maxWidth >= pillGroupWidth(pills = 1, target = target)
             Row(
                 Modifier.fillMaxWidth(),
@@ -376,7 +397,7 @@ private fun Transport(state: PlayerState, actions: PlayerActions) {
         }
 
         Row(
-            horizontalArrangement = Arrangement.spacedBy(barGapLarge()),
+            horizontalArrangement = Arrangement.spacedBy(plan.gap),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (step != null) {
@@ -428,9 +449,8 @@ private fun Transport(state: PlayerState, actions: PlayerActions) {
             }
         }
 
-        BoxWithConstraints(Modifier.weight(1f)) {
-            val pills = 2 + if (state.request.isLive && state.isTimeshifted) 1 else 0
-            val labelled = maxWidth >= pillGroupWidth(pills = pills, target = target)
+        BoxWithConstraints(Modifier.weight(plan.endWeight)) {
+            val labelled = maxWidth >= pillGroupWidth(pills = endPills, target = target)
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(barGap(), Alignment.End),
@@ -872,6 +892,9 @@ private const val JUMP_WORD = "10"
  * they share has less than this per pill the words go, and the icons do not.
  */
 private val PILL_LABEL_ROOM = 64.dp
+
+/** The least the transport's gaps are closed to when its row is too narrow for them: see [TransportPlan]. */
+private val TRANSPORT_GAP_MIN = 4.dp
 
 /** The play glyph's share of the control it is in: the reference's solid bars fill a little over a third of the ring. */
 private const val PLAY_GLYPH = 0.38f

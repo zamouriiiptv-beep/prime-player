@@ -82,10 +82,20 @@ internal data class PlayerMetrics(
      */
     val popover: Dp,
     /**
-     * How wide the list of channels is. A width for the reason [popover] is, bounded for the reason
-     * [sheetFraction] is: wide enough for a number, a logo and a name, and no wider than the film can spare.
+     * How wide the list of channels is, in the column the player gives it beside the picture. A width for the reason
+     * [popover] is, bounded for the reason [sheetFraction] is: wide enough for a number, a logo and a name, and no wider
+     * than the film can spare -- what it does not take, the picture has. 35% of a handset's width and 40% of a
+     * television's: see [PLAYLIST] and [PLAYLIST_TV].
      */
     val playlist: Dp,
+    /**
+     * Whether the list can have that column: where the film keeps at least [FILM_MIN] of the width.
+     *
+     * The column has a floor, a number, a logo and a name, so on a window narrow enough the floor is most of it and the
+     * film would be a strip beside a list. There the list goes back to being a panel over the end of the picture, which
+     * is what it was, and the film is not asked to be smaller than the window can spare.
+     */
+    val playlistBeside: Boolean,
 ) {
     /**
      * The inset every control keeps from the edge of the picture.
@@ -109,6 +119,11 @@ internal fun playerMetricsFor(tv: Boolean, width: Dp, height: Dp): PlayerMetrics
     val sheet = width.boundedFraction(SHEET, SHEET_MIN, SHEET_MAX)
     val target = Sizing.minTarget(tv)
     val inset = castivioMetrics(width, height, tv).edge
+    val playlist = if (tv) {
+        width.boundedFraction(PLAYLIST_TV, PLAYLIST_TV_MIN, PLAYLIST_MAX)
+    } else {
+        width.boundedFraction(PLAYLIST, PLAYLIST_MIN, PLAYLIST_MAX)
+    }
     val barGap = width.boundedFraction(BAR_GAP, 8.dp, 22.dp)
     val play = maxOf(height.boundedFraction(PLAY, 64.dp, 112.dp), target)
     val step = maxOf(height.boundedFraction(STEP, 48.dp, 80.dp), target)
@@ -135,7 +150,8 @@ internal fun playerMetricsFor(tv: Boolean, width: Dp, height: Dp): PlayerMetrics
         captionRaise = height.boundedFraction(CAPTION_RAISE, 56.dp, 110.dp),
         sheetFraction = (sheet / width).coerceIn(0f, 1f),
         popover = width.boundedFraction(POPOVER, POPOVER_MIN, POPOVER_MAX),
-        playlist = width.boundedFraction(PLAYLIST, PLAYLIST_MIN, PLAYLIST_MAX),
+        playlist = playlist,
+        playlistBeside = width - playlist >= width * FILM_MIN,
     )
 }
 
@@ -233,10 +249,29 @@ private val POPOVER_MIN = 272.dp
 private val POPOVER_MAX = 320.dp
 
 /**
- * The list of channels over the picture: 40% of the width between 340 and 400dp, as the design draws it
- * (`design/mockups/player-channels.html`) -- the same floor as a side sheet and a lower ceiling, because the
- * film goes on playing behind it and what it covers is what a viewer came to see.
+ * The list of channels, in a column of its own beside the picture, as the design draws it
+ * (`design/mockups/player-channels-split-ar.html`).
+ *
+ * It was a panel over the picture, 40% of the width, and what it covered was what a viewer came to see -- the end of
+ * the picture, the controls under it, the "next" button at its edge. It is a column now and the picture is given the
+ * rest, so what the list takes is a decision about both, and the viewer asked for it narrower: **35% of a handset**,
+ * with a floor of 280dp, which is a number, a logo and a name -- `FR| CANAL+ CINEMA 4K` fits in the name's 152dp at
+ * 298dp, which is 35% of an 851dp handset, and is cut at 272dp, which is 32% of it.
+ *
+ * **40% of a television**, between 340 and 400dp, where the viewer chose to keep the names whole: the rows are larger
+ * there, and 35% of 960dp is 336dp, under the floor a row needs.
+ *
+ * The ceiling is the same for both, because a share with nothing above it gave a 1920dp set a 768dp list.
  */
-private const val PLAYLIST = 0.40f
-private val PLAYLIST_MIN = 340.dp
+private const val PLAYLIST = 0.35f
+private val PLAYLIST_MIN = 280.dp
+private const val PLAYLIST_TV = 0.40f
+private val PLAYLIST_TV_MIN = 340.dp
 private val PLAYLIST_MAX = 400.dp
+
+/**
+ * The least of the width the film keeps while the list is beside it: half. Both drawings keep more -- 65% on a handset,
+ * 60% on a television -- and a window where the floors above would leave less than half is one where the film is
+ * the smaller part of its own screen. See [PlayerMetrics.playlistBeside].
+ */
+private const val FILM_MIN = 0.5f
