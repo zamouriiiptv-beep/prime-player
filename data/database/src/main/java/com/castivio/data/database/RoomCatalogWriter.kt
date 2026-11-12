@@ -41,6 +41,10 @@ import java.util.concurrent.TimeUnit
  *    re-download and nothing else, so the trade is clearly worth it — and it is
  *    restored afterwards. The journal deliberately stays WAL throughout: see
  *    `applyImportPragmas` for why that one line decided time-to-first-content.
+ *  - **A larger page cache during import only.** The ids are hashes, so the primary key's index -- and the
+ *    category's, when the provider does not keep a category's rows together -- is written in no order, and
+ *    SQLite's default cache (about 2 MB) is smaller than the trees those inserts touch. 8 MiB for the load,
+ *    the default after it, a fixed size whatever the library: see [ImportPageCache].
  *  - **The search index once, at the end.** Not row by row beside the rows, and not
  *    rebuilt whole either: the rows this import wrote, in two statements, after the
  *    last of them. See `indexWrittenRows`.
@@ -167,6 +171,8 @@ class RoomCatalogWriter(
         groupStatement = db.compileStatement(INSERT_GROUP)
         countStatement = db.compileStatement(COUNT_GROUP)
         detailStatement = db.compileStatement(INSERT_DETAIL)
+        // Last, so that nothing above can end `begin` with the cache raised and no `finish` or `abort` to follow it.
+        ImportPageCache.raise(db)
     }
 
     override fun writeGroups(groups: List<MediaGroup>) {
@@ -745,7 +751,7 @@ class RoomCatalogWriter(
     }
 
     /**
-     * Restores durability afterwards.
+     * Restores durability afterwards, and the page cache the load was given: see [ImportPageCache].
      *
      * The WAL statement is left in even though the import no longer leaves the journal
      * anywhere else: it is a repair for a connection some other writer moved, and it
@@ -760,6 +766,7 @@ class RoomCatalogWriter(
             figures.syncPragmaNanos = journalAt - syncAt
             figures.journalPragmaNanos = System.nanoTime() - journalAt
         }
+        ImportPageCache.restore(this)
     }
 
     private fun SupportSQLiteDatabase.longOf(sql: String, vararg args: Any): Long =

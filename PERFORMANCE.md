@@ -47,8 +47,19 @@ Parse is a **stream**: `okio`/`BufferedReader` line sequence in, batched
 exist as objects. Bulk insert uses prepared `SupportSQLiteStatement` rather
 than the ORM path, inside transactions of ~1,000 rows.
 
-During import only: `PRAGMA synchronous = OFF`, `journal_mode = MEMORY`,
-restored afterwards. That alone is a 3–5× speedup on cheap flash storage.
+During import only: `PRAGMA synchronous = OFF` (a 3–5× speedup on cheap flash
+storage) and an 8 MiB page cache in place of SQLite's ~2 MB default
+(`ImportPageCache`), both put back afterwards. The journal stays WAL throughout:
+in a rollback journal the writer's open transaction holds every reader off, and
+first content would wait for the whole import.
+
+The page cache is for the two indices written in no order — the primary key, whose
+ids are hashes, and the category index when a provider's list does not keep a
+category's rows together. On a desktop SQLite with this writer's table, indices
+and statement it took 8–21% off the insert time at 54k rows and 18% at 400k;
+32 MiB was scarcely better than 8. A device's share is smaller (its rows also pay
+for the JNI bindings) and has not been measured: the load strip's "writer rows"
+is where it will show.
 
 ### One pass, one batch
 
