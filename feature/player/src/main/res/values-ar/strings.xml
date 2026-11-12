@@ -42,7 +42,6 @@
     <string name="player_provider_slow">مزوّد الاشتراك يستجيب ببطء لهذه القناة</string>
     <string name="player_reconnecting">انقطع الاتصال — إعادة المحاولة</string>
     <string name="player_attempt">المحاولة %1$d من %2$d</string>
-    <string name="player_switching">المشغّل الأساسي لم يفتح هذا — جارٍ التحويل إلى الاحتياطي</string>
     <string name="player_engine_backup">المشغّل ٢</string>
 
     <string name="player_error_title">تعذّر التشغيل</string>

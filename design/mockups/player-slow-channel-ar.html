@@ -1,7 +1,7 @@
 <!doctype html>
 <!--
-  What the viewer reads while a channel is slow to start, as it is and as it is meant to be. A DRAWING, AWAITING THE
-  OWNER'S APPROVAL: no code reads any of it, and none is written before it is approved.
+  What the viewer reads while a channel is slow to start, as it was and as it is now. APPROVED BY THE OWNER ON
+  2026-11-12 AND BUILT (LOCAL_CHANGES section 106); the frames marked "now" in the sheet are what it was before.
 
   Why it was drawn. On "FR| TF1 4K", a channel whose source is slow, the viewer saw "Nothing arrived -- Retry" over the
   channel that was on, and a little later, without pressing anything, the channel played. The card was not wrong about
@@ -20,18 +20,19 @@
     So the card appears at about thirteen seconds on a slow channel whatever the channel is about to do.
 
   What is drawn as the new design -- three changes, nothing else:
-    1. The sentence about engines is not shown to the viewer (it stays in a development build and in the opening panel).
-       The line stays "Connecting to the channel..." through the hand-over.
+    1. The sentence about engines is not shown to the viewer, in any build (the opening panel still says which engine
+       opened the channel). The line stays "Connecting to the channel..." through the hand-over.
     2. No failure card while an engine is still alive and has made progress. The waiting screen of the approved drawing
        (`wait-states.png`) simply goes on, the bar at its top keeps moving, and the sentence that says the provider is slow
        stays where it is. The picture, when it comes, is the next thing the viewer sees.
-    3. The card is for a channel that really did not come: about thirty seconds after the press, in the same words, with
-       the same button. A failure the engine itself reports (a decoder that refused, a link that is not there, no
-       connection) still draws its card at once, as today.
+    3. The card is for a channel that really did not come: thirty seconds after the press (`FallbackPolicy.OPENING_CEILING_MS`),
+       whichever engine holds the connection, in the same words, with the same button; a backup that takes over late is
+       given ten seconds at the least (`PICTURE_DEADLINE_MS`, `backupWaitMs`). A failure the engine itself reports (a
+       decoder that refused, a link that is not there, no connection) still draws its card at once, as before.
 
   What is not drawn and does not change: the card's look and words; the "try the backup player" button where the card
-  carries it today; the loading screen's first two seconds; the radio. The thirty seconds is a figure to decide, not a
-  measurement: it is the ceiling of a wait with something alive behind it.
+  carries it today; the loading screen's first two seconds; the radio. The thirty seconds is the owner's decision and
+  not a measurement: it is the ceiling of a wait with something alive behind it.
 
   Geometry is the owner's handset, 851x393dp in Arabic (the player is laid out left to right in every language). Sizes
   are the build's: the card is 62% of the width, 24dp round, `overVideo` (#08071A at 86%); the title is 15sp and the
@@ -166,7 +167,7 @@ if(f==='sheet'){
   document.body.innerHTML=`
   <div class="sheet-head">
     <h1>قناة بطيئة في البدء — ما يقرؤه المشاهد من الضغط حتى تصل الصورة</h1>
-    <p>مثال قناة <bdi dir="ltr">FR| TF1 4K</bdi>: المصدر بطيء، فتعمل القناة أحيانًا بعد أكثر من عشر ثوانٍ. <b>رسم بانتظار اعتمادك — لا كود قبله.</b></p>
+    <p>مثال قناة <bdi dir="ltr">FR| TF1 4K</bdi>: المصدر بطيء، فتعمل القناة أحيانًا بعد أكثر من عشر ثوانٍ. <b>رسم معتمد ومنفَّذ في الشيفرة.</b></p>
     <div class="changes">
       <div><em>1</em>لا تُعرض للمشاهد جملة عن المشغّلات ولا عن «التحويل إلى الاحتياطي».</div>
       <div><em>2</em>لا بطاقة فشل ما دام التطبيق ما زال يحاول وهناك تقدّم: شاشة الانتظار نفسها تستمر.</div>

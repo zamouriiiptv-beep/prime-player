@@ -87,7 +87,7 @@ internal fun OpeningTitle(state: PlayerState, modifier: Modifier = Modifier) {
 }
 
 @Composable
-internal fun OpeningSpinner(state: PlayerState, modifier: Modifier = Modifier) {
+internal fun OpeningSpinner(modifier: Modifier = Modifier) {
     val colors = CastivioTheme.colors
     Column(
         modifier,
@@ -100,12 +100,9 @@ internal fun OpeningSpinner(state: PlayerState, modifier: Modifier = Modifier) {
             modifier = Modifier.size(LocalPlayerMetrics.current.spinner),
         )
         Text(
-            // "Switching to the backup" while it is happening, "Opening…" otherwise. One
-            // sentence either way: the user did not ask for the switch and cannot act on
-            // it, so it is reported and then gone.
-            text = stringResource(
-                if (state.switching) R.string.player_switching else R.string.player_opening,
-            ),
+            // "Opening…", and nothing about which engine has the source: the hand-over to the other one is the
+            // application's business, and the viewer cannot act on it.
+            text = stringResource(R.string.player_opening),
             style = CastivioType.labelMedium,
             color = colors.onBackgroundVariant,
             textAlign = TextAlign.Center,
@@ -208,7 +205,7 @@ internal fun OpeningFaceContent(state: PlayerState, face: OpeningFace, modifier:
                     modifier = Modifier.size(LocalPlayerMetrics.current.spinner),
                 )
                 Text(
-                    text = stringResource(if (state.switching) R.string.player_switching else R.string.player_connecting),
+                    text = stringResource(R.string.player_connecting),
                     style = CastivioType.labelMedium,
                     color = colors.onBackgroundVariant,
                     textAlign = TextAlign.Center,

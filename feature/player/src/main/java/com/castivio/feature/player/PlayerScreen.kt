@@ -469,7 +469,7 @@ private fun OpeningOverlay(state: PlayerState, inset: androidx.compose.ui.unit.D
             OpeningFaceContent(state, face, Modifier.align(Alignment.Center))
         } else {
             OpeningTitle(state, Modifier.align(Alignment.TopStart))
-            if (state.longWait) OpeningSpinner(state, Modifier.align(Alignment.Center))
+            if (state.longWait) OpeningSpinner(Modifier.align(Alignment.Center))
         }
     }
 }

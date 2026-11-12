@@ -294,9 +294,10 @@ class FallbackPolicyTest {
     }
 
     /**
-     * The bound for a picture is the budget to start plus what a started LibVLC still has to
-     * do: fill a film's cache and reach a keyframe. Shorter, and a backup that is playing is
-     * called a timeout; much longer, and one that never draws keeps a spinner turning.
+     * The floor under a started backup's wait is the budget to start plus what a started LibVLC
+     * still has to do: fill a film's cache and reach a keyframe. Shorter, and a backup that is
+     * about to play is called a timeout; much longer, and one begun late keeps a spinner turning
+     * past the ceiling. The wait itself is [FallbackPolicy.backupWaitMs].
      */
     @Test
     fun `the picture bound leaves a started backup its cache and a keyframe, and no more`() {
@@ -321,9 +322,9 @@ class FallbackPolicyTest {
      */
     @Test
     fun `a primary that nothing has reached is waited on, not handed over`() {
-        listOf(0L, 100, 2_900, 3_000, 3_100, 6_000, 11_900).forEach {
+        listOf(0L, 100, 2_900, 3_000, 3_100, 6_000, 11_900, 12_000, 20_000, 29_900).forEach {
             assertEquals(
-                "at $it ms with no byte: the backup cannot fix silence",
+                "at $it ms with no byte: the backup cannot fix silence, and a slow channel is not a refusal",
                 PrimaryVerdict.WAIT,
                 FallbackPolicy.primaryVerdict(elapsedMs = it, bytesAtMs = null, tracksAtMs = null),
             )
@@ -332,7 +333,7 @@ class FallbackPolicyTest {
 
     @Test
     fun `a primary that nothing reached for the whole bound is given a card, and still not the backup`() {
-        listOf(FallbackPolicy.NO_ANSWER_DEADLINE_MS, FallbackPolicy.NO_ANSWER_DEADLINE_MS + 1, 60_000L).forEach {
+        listOf(FallbackPolicy.OPENING_CEILING_MS, FallbackPolicy.OPENING_CEILING_MS + 1, 60_000L).forEach {
             assertEquals(
                 PrimaryVerdict.GIVE_UP,
                 FallbackPolicy.primaryVerdict(elapsedMs = it, bytesAtMs = null, tracksAtMs = null),
@@ -367,11 +368,11 @@ class FallbackPolicyTest {
     /** Once the server has spoken, the bound for silence is not the engine's to be held to. */
     @Test
     fun `the silence bound does not apply once a byte has been seen`() {
-        val bytesAt = FallbackPolicy.NO_ANSWER_DEADLINE_MS - 100
+        val bytesAt = FallbackPolicy.OPENING_CEILING_MS - 100
 
         assertEquals(
             PrimaryVerdict.WAIT,
-            FallbackPolicy.primaryVerdict(FallbackPolicy.NO_ANSWER_DEADLINE_MS + 1_000, bytesAt, null),
+            FallbackPolicy.primaryVerdict(FallbackPolicy.OPENING_CEILING_MS + 1_000, bytesAt, null),
         )
     }
 
@@ -399,24 +400,76 @@ class FallbackPolicyTest {
 
     /**
      * Not asserted to an exact figure, as the open deadline's is not -- but to the range outside which it
-     * stops being what it is for. Under what a provider needs to start a channel and a connection retry
-     * it hands the card to sources that were about to play; over about twenty seconds it is a spinner
-     * nobody is watching.
+     * stops being what it is for. Under what a slow provider needs to start a channel (FR| TF1 4K gave its
+     * picture after more than thirteen seconds) the card is in front of a channel that was about to arrive;
+     * over about forty-five seconds it is a spinner nobody is watching, for a host that is dead.
      */
     @Test
-    fun `the silence bound stays inside the range that makes it a bound`() {
+    fun `the opening ceiling stays inside the range that makes it a ceiling`() {
         assertTrue(
             "shorter than the open deadline would hand a silent source over sooner than a stuck one",
-            FallbackPolicy.NO_ANSWER_DEADLINE_MS > FallbackPolicy.OPEN_DEADLINE_MS,
+            FallbackPolicy.OPENING_CEILING_MS > FallbackPolicy.OPEN_DEADLINE_MS,
         )
         assertTrue(
-            "under eight seconds is a provider's cold start given up on",
-            FallbackPolicy.NO_ANSWER_DEADLINE_MS >= 8_000,
+            "under twenty seconds is the card in front of a channel that is slow to start",
+            FallbackPolicy.OPENING_CEILING_MS >= 20_000,
         )
         assertTrue(
-            "over twenty seconds is a spinner for a dead host",
-            FallbackPolicy.NO_ANSWER_DEADLINE_MS <= 20_000,
+            "over forty-five seconds is a spinner for a dead host",
+            FallbackPolicy.OPENING_CEILING_MS <= 45_000,
         )
+        assertTrue(
+            "the floor under a backup's wait is not longer than the ceiling it sits under",
+            FallbackPolicy.PICTURE_DEADLINE_MS < FallbackPolicy.OPENING_CEILING_MS,
+        )
+    }
+
+    /* ------------------------------------------------ the backup's wait: one wait from the press */
+
+    /**
+     * The viewer's wait is one wait whichever engine holds the connection: a backup that takes over inside the
+     * ceiling is waited on for what is left of it, so the card -- if it comes -- comes at the ceiling from the
+     * press, and a hand-over in the middle of the wait does not start a second one.
+     */
+    @Test
+    fun `a backup is waited on until the ceiling from the press`() {
+        assertEquals(FallbackPolicy.OPENING_CEILING_MS, FallbackPolicy.backupWaitMs(waitedMs = 0))
+        assertEquals(FallbackPolicy.OPENING_CEILING_MS - 5_000, FallbackPolicy.backupWaitMs(waitedMs = 5_000))
+        listOf(0L, 100, 3_000, 5_000, 12_000, 19_999).forEach {
+            assertEquals(
+                "handed over at $it ms: the card lands at the ceiling from the press",
+                FallbackPolicy.OPENING_CEILING_MS,
+                it + FallbackPolicy.backupWaitMs(waitedMs = it),
+            )
+        }
+    }
+
+    /**
+     * A source the primary gave up late: a backup begun at the twenty-eighth second is not a timeout at the
+     * thirtieth. It gets the floor -- its cache, a keyframe, and one spare -- and the card is later than the ceiling.
+     */
+    @Test
+    fun `a backup begun late is given its floor and not what is left of the ceiling`() {
+        val floor = FallbackPolicy.PICTURE_DEADLINE_MS
+        val ceiling = FallbackPolicy.OPENING_CEILING_MS
+
+        assertEquals("exactly where the two meet", floor, FallbackPolicy.backupWaitMs(waitedMs = ceiling - floor))
+        assertEquals(floor, FallbackPolicy.backupWaitMs(waitedMs = ceiling - floor + 1))
+        assertEquals(floor, FallbackPolicy.backupWaitMs(waitedMs = ceiling - 2_000))
+        assertEquals(floor, FallbackPolicy.backupWaitMs(waitedMs = ceiling))
+        assertEquals("however late", floor, FallbackPolicy.backupWaitMs(waitedMs = 10 * ceiling))
+    }
+
+    /** The later the hand-over, the less is left of the ceiling -- never more, and never under the floor. */
+    @Test
+    fun `a backup's wait only shrinks as the hand-over comes later, down to its floor`() {
+        var previous = Long.MAX_VALUE
+        for (waited in 0L..(2 * FallbackPolicy.OPENING_CEILING_MS) step 250) {
+            val wait = FallbackPolicy.backupWaitMs(waited)
+            assertTrue("at $waited: $wait is longer than at the hand-over before it ($previous)", wait <= previous)
+            assertTrue("at $waited: $wait is under the floor", wait >= FallbackPolicy.PICTURE_DEADLINE_MS)
+            previous = wait
+        }
     }
 
     @Test

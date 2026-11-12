@@ -206,7 +206,7 @@ interface PlaybackEngine {
      * **For the primary engine two of the marks are also what its opening budget is read from:**
      * [OpeningMarks.firstBytesMs] and [OpeningMarks.tracksKnownMs]. They decide whether it is
      * waited on or handed to the backup -- see [FallbackPolicy.primaryVerdict] -- so a primary
-     * that reports neither is waited on for [FallbackPolicy.NO_ANSWER_DEADLINE_MS] and then given
+     * that reports neither is waited on for [FallbackPolicy.OPENING_CEILING_MS] and then given
      * a card, and is never handed over by the budget. Reading them is a few atomic loads and one
      * small object, which is why the player may ask this often.
      */

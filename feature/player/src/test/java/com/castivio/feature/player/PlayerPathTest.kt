@@ -74,7 +74,7 @@ import org.junit.Test
  *    `viewModelScope` exactly as the framework does when a real player screen goes away.
  *  - **`advanceUntilIdle` hangs the same way inside a test**, and is wrong a second time
  *    over: before a first frame it runs the opening budget -- the primary's ticks, up to
- *    [FallbackPolicy.NO_ANSWER_DEADLINE_MS] -- and switching to the backup engine or showing
+ *    [FallbackPolicy.OPENING_CEILING_MS] -- and switching to the backup engine or showing
  *    the card is the exact thing several of these tests assert does not happen.
  *
  * `runCurrent` runs everything already queued and moves the clock by nothing, which is
@@ -327,7 +327,6 @@ class PlayerPathTest {
         assertEquals("two engines, in order", listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.built)
         assertTrue("and it is still opening rather than showing a card",
             model.state.value?.picture is Picture.Opening)
-        assertTrue("with the switch reported", model.state.value?.switching == true)
     }
 
     /**
@@ -415,7 +414,6 @@ class PlayerPathTest {
             "and it is still opening on the backup rather than showing a card",
             model.state.value?.picture is Picture.Opening,
         )
-        assertTrue("with the switch reported", model.state.value?.switching == true)
     }
 
     /**
@@ -458,7 +456,7 @@ class PlayerPathTest {
         assertEquals("six seconds of silence is not a reason for a second engine", listOf(EngineId.PRIMARY), engines.built)
         assertTrue("still opening: ${model.now().picture}", model.now().picture is Picture.Opening)
 
-        advanceTimeBy(FallbackPolicy.NO_ANSWER_DEADLINE_MS - FallbackPolicy.OPEN_DEADLINE_MS * 2 - 200)
+        advanceTimeBy(FallbackPolicy.OPENING_CEILING_MS - FallbackPolicy.OPEN_DEADLINE_MS * 2 - 200)
         runCurrent()
         assertTrue("and still inside the bound: ${model.now().picture}", model.now().picture is Picture.Opening)
 
@@ -470,11 +468,10 @@ class PlayerPathTest {
         assertEquals(PlaybackError.TIMEOUT, picture.reason)
         assertTrue("with the backup on it for the viewer to choose", picture.canTryBackup)
         assertFalse("the spinner went with the wait", model.now().longWait)
-        assertFalse(model.now().switching)
         assertEquals("and no second engine was built", listOf(EngineId.PRIMARY), engines.built)
         assertTrue(
             "the report says how long it waited: ${model.now().diagnosis}",
-            model.now().diagnosis!!.timedOutAfterMs!! >= FallbackPolicy.NO_ANSWER_DEADLINE_MS,
+            model.now().diagnosis!!.timedOutAfterMs!! >= FallbackPolicy.OPENING_CEILING_MS,
         )
     }
 
@@ -483,7 +480,7 @@ class PlayerPathTest {
     fun `the card after a silent source builds the backup on a press, and Retry asks the primary again`() = playerTest {
         val first = model()
         first.open(liveRequest())
-        advanceTimeBy(FallbackPolicy.NO_ANSWER_DEADLINE_MS + 200)
+        advanceTimeBy(FallbackPolicy.OPENING_CEILING_MS + 200)
         runCurrent()
         assertTrue(first.now().picture is Picture.Failed)
 
@@ -495,7 +492,7 @@ class PlayerPathTest {
         engines.built.clear()
         val second = model()
         second.open(liveRequest())
-        advanceTimeBy(FallbackPolicy.NO_ANSWER_DEADLINE_MS + 200)
+        advanceTimeBy(FallbackPolicy.OPENING_CEILING_MS + 200)
         runCurrent()
         assertTrue(second.now().picture is Picture.Failed)
         engines.built.clear()
@@ -579,7 +576,7 @@ class PlayerPathTest {
     fun `a frame after the silent card puts the picture over it`() = playerTest {
         val model = model()
         model.open(liveRequest())
-        advanceTimeBy(FallbackPolicy.NO_ANSWER_DEADLINE_MS + 200)
+        advanceTimeBy(FallbackPolicy.OPENING_CEILING_MS + 200)
         runCurrent()
         assertTrue(model.now().picture is Picture.Failed)
 
@@ -628,8 +625,8 @@ class PlayerPathTest {
         engines.last.receives()
         advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 500)
         runCurrent()
-        // The budget switched to the backup. Let that one expire too.
-        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 100)
+        // The budget switched to the backup. Let the viewer's wait run out: one wait from the press, the hand-over in it.
+        advanceTimeBy(FallbackPolicy.OPENING_CEILING_MS)
         runCurrent()
 
         val picture = model.state.value?.picture
@@ -646,7 +643,8 @@ class PlayerPathTest {
             model.state.value?.diagnosis?.reason,
         )
         assertEquals(
-            FallbackPolicy.OPEN_DEADLINE_MS,
+            "from the press, which is the ceiling",
+            FallbackPolicy.OPENING_CEILING_MS,
             model.state.value?.diagnosis?.timedOutAfterMs,
         )
     }
@@ -2905,7 +2903,7 @@ class PlayerPathTest {
         val model = model()
         val request = liveRequest()
         model.open(request)
-        advanceTimeBy(FallbackPolicy.NO_ANSWER_DEADLINE_MS + 200)
+        advanceTimeBy(FallbackPolicy.OPENING_CEILING_MS + 200)
         runCurrent()
         model.tryBackup()
         runCurrent()
@@ -4216,7 +4214,7 @@ class PlayerPathTest {
         assertFalse(model.now().longWait)
     }
 
-    /** Both engines silent: the spinner turns through the switch and ends on the timeout card. */
+    /** Both engines silent: the spinner turns through the switch and ends on the timeout card, at the ceiling from the press. */
     @Test
     fun `both engines timing out ends on the card`() = playerTest {
         val model = model()
@@ -4229,7 +4227,7 @@ class PlayerPathTest {
         assertEquals(listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.built)
         assertTrue("through the switch", model.now().longWait)
 
-        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 1)
+        advanceTimeBy(FallbackPolicy.OPENING_CEILING_MS)
         runCurrent()
         assertEquals(PlaybackError.TIMEOUT, (model.now().picture as Picture.Failed).reason)
         assertFalse(model.now().longWait)
@@ -4376,35 +4374,41 @@ class PlayerPathTest {
         assertEquals(listOf(EngineId.BACKUP), engines.built)
     }
 
-    /** A backup that never starts is the silence the three seconds are for, as it always was. */
+    /**
+     * A backup that never starts is waited on as any other: until the ceiling from the press, and then the card.
+     *
+     * It used to have its card at three seconds, from its own open. A card at three seconds over a source that is slow
+     * to start is a card over a channel that is about to play, and the viewer reads "failed" and then watches it.
+     */
     @Test
-    fun `a backup that never starts still has its card at three seconds`() = playerTest {
+    fun `a backup that never starts has its card at the ceiling from the press`() = playerTest {
         val model = model()
         model.open(vodRequest())
         runCurrent()
         engines.last.fail(PlaybackError.DECODER_INIT)
         runCurrent()
 
-        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS - 1)
+        advanceTimeBy(FallbackPolicy.OPENING_CEILING_MS - 1)
         runCurrent()
-        assertTrue(model.now().picture is Picture.Opening)
+        assertTrue("no card at ${FallbackPolicy.OPENING_CEILING_MS - 1}ms: ${model.now().picture}", model.now().picture is Picture.Opening)
+        assertTrue("and the wait goes on in the same words", model.now().longWait)
 
         advanceTimeBy(2)
         runCurrent()
         val picture = model.now().picture
         assertTrue("a card: $picture", picture is Picture.Failed)
         assertEquals(PlaybackError.TIMEOUT, (picture as Picture.Failed).reason)
-        assertEquals(FallbackPolicy.OPEN_DEADLINE_MS, model.now().diagnosis?.timedOutAfterMs)
+        assertEquals(FallbackPolicy.OPENING_CEILING_MS, model.now().diagnosis?.timedOutAfterMs)
         assertFalse(model.now().longWait)
     }
 
     /**
-     * A backup that started and never draws still ends, on the timeout card and at the bound
-     * for a picture: never at three seconds, never for ever. A picture after the card is still
-     * this opening's, as it is after any timeout.
+     * A backup that started and never draws still ends, on the timeout card and at the ceiling from the press:
+     * never at three or ten seconds, never for ever. A picture after the card is still this opening's, as it is
+     * after any timeout.
      */
     @Test
-    fun `a backup that started and never draws ends on the timeout card at the picture bound`() = playerTest {
+    fun `a backup that started and never draws ends on the timeout card at the ceiling`() = playerTest {
         val model = model()
         model.open(liveRequest())
         runCurrent()
@@ -4414,9 +4418,9 @@ class PlayerPathTest {
         backup.begin()
         runCurrent()
 
-        advanceTimeBy(FallbackPolicy.PICTURE_DEADLINE_MS - 1)
+        advanceTimeBy(FallbackPolicy.OPENING_CEILING_MS - 1)
         runCurrent()
-        assertTrue("still waiting inside the bound: ${model.now().picture}", model.now().picture is Picture.Opening)
+        assertTrue("still waiting inside the ceiling: ${model.now().picture}", model.now().picture is Picture.Opening)
         assertTrue(model.now().longWait)
 
         advanceTimeBy(2)
@@ -4427,12 +4431,166 @@ class PlayerPathTest {
         assertEquals(PlaybackError.TIMEOUT, picture.reason)
         assertFalse("the fallback is spent", picture.canTryBackup)
         assertFalse("and the spinner went with the wait", model.now().longWait)
-        assertEquals("the report says how long", FallbackPolicy.PICTURE_DEADLINE_MS, model.now().diagnosis?.timedOutAfterMs)
+        assertEquals("the report says how long", FallbackPolicy.OPENING_CEILING_MS, model.now().diagnosis?.timedOutAfterMs)
         assertEquals(listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.built)
 
         backup.renderFirstFrame()
         runCurrent()
         assertTrue(model.now().picture is Picture.Playing)
+    }
+
+    /**
+     * The channel that was slow, as the owner found it on FR| TF1 4K: bytes arrive, then the tracks, the primary draws
+     * nothing and is handed over at five seconds, and the backup's picture comes late. No card is drawn on the way --
+     * the hand-over is silent and the wait goes on in the same words -- so when the picture comes there is nothing
+     * to take away, and the viewer has read no word of failure.
+     */
+    @Test
+    fun `a slow channel handed to the backup is not given a card, and its picture comes to a clean screen`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        engines.last.receives(bytesMs = 50)
+        advanceTimeBy(2_000)
+        runCurrent()
+        engines.last.receives(bytesMs = 50, tracksMs = 1_900)
+        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 200)
+        runCurrent()
+        assertEquals("handed over after three seconds without a step", listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.built)
+        val backup = engines.last
+        backup.begin()
+        runCurrent()
+
+        // Thirteen seconds from the press: where the card used to be.
+        advanceTimeBy(8_000)
+        runCurrent()
+        assertTrue("no card at thirteen seconds: ${model.now().picture}", model.now().picture is Picture.Opening)
+        assertTrue("the same waiting screen", model.now().longWait)
+
+        advanceTimeBy(5_000)
+        runCurrent()
+        assertTrue("nor at eighteen: ${model.now().picture}", model.now().picture is Picture.Opening)
+
+        backup.renderFirstFrame()
+        runCurrent()
+        assertTrue("the picture: ${model.now().picture}", model.now().picture is Picture.Playing)
+        assertEquals(EngineId.BACKUP, model.now().engine)
+        assertFalse(model.now().longWait)
+    }
+
+    /** The same channel that never comes: a card, in the same words, at the ceiling from the press -- and a late picture still draws over it. */
+    @Test
+    fun `a slow channel that does not come gets its card at the ceiling, counted from the press`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        engines.last.receives(bytesMs = 50)
+        advanceTimeBy(2_000)
+        runCurrent()
+        engines.last.receives(bytesMs = 50, tracksMs = 1_900)
+        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 200)
+        runCurrent()
+        val backup = engines.last
+        backup.begin()
+        runCurrent()
+
+        advanceTimeBy(FallbackPolicy.OPENING_CEILING_MS - 5_300 - 1_000)
+        runCurrent()
+        assertTrue("a second before the ceiling: ${model.now().picture}", model.now().picture is Picture.Opening)
+
+        advanceTimeBy(2_000)
+        runCurrent()
+        val picture = model.now().picture
+        assertTrue("a card at the ceiling: $picture", picture is Picture.Failed)
+        assertEquals(PlaybackError.TIMEOUT, (picture as Picture.Failed).reason)
+        assertTrue(
+            "the report counts from the press, not from the backup's start: ${model.now().diagnosis?.timedOutAfterMs}",
+            model.now().diagnosis!!.timedOutAfterMs!! in FallbackPolicy.OPENING_CEILING_MS..(FallbackPolicy.OPENING_CEILING_MS + 200),
+        )
+
+        backup.renderFirstFrame()
+        runCurrent()
+        assertTrue("and a picture after the card draws over it", model.now().picture is Picture.Playing)
+    }
+
+    /**
+     * A source the primary gave up late: a backup begun at the twenty-ninth second is not a timeout at the thirtieth.
+     * It is given its floor, and the card comes later than the ceiling.
+     */
+    @Test
+    fun `a backup begun late is given its floor and not what is left of the ceiling`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        advanceTimeBy(26_000)
+        runCurrent()
+        assertEquals("nothing had reached the primary: it is waited on", listOf(EngineId.PRIMARY), engines.built)
+        engines.last.receives(bytesMs = 50)
+        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 300)
+        runCurrent()
+        assertEquals("handed over at about twenty-nine seconds", listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.built)
+        engines.last.begin()
+        runCurrent()
+
+        advanceTimeBy(FallbackPolicy.PICTURE_DEADLINE_MS - 1_000)
+        runCurrent()
+        assertTrue("no card at the ceiling, nine seconds into the backup: ${model.now().picture}", model.now().picture is Picture.Opening)
+
+        advanceTimeBy(2_000)
+        runCurrent()
+        val picture = model.now().picture
+        assertTrue("a card once its floor is spent: $picture", picture is Picture.Failed)
+        assertTrue(
+            "from the press: ${model.now().diagnosis?.timedOutAfterMs}",
+            model.now().diagnosis!!.timedOutAfterMs!! >= FallbackPolicy.OPENING_CEILING_MS + FallbackPolicy.PICTURE_DEADLINE_MS - 1_500,
+        )
+    }
+
+    /** A channel the memory sends straight to the backup is a first engine like any other: it is given the whole ceiling. */
+    @Test
+    fun `a channel opened on the backup by the memory is given the whole ceiling`() = playerTest {
+        val request = liveRequest()
+        memory.remember(FallbackPolicy.sourceKey(request.url), EngineId.BACKUP)
+        val model = model()
+        model.open(request)
+        runCurrent()
+        assertEquals(listOf(EngineId.BACKUP), engines.built)
+
+        advanceTimeBy(FallbackPolicy.OPENING_CEILING_MS - 1_000)
+        runCurrent()
+        assertTrue("no card a second before the ceiling: ${model.now().picture}", model.now().picture is Picture.Opening)
+
+        advanceTimeBy(2_000)
+        runCurrent()
+        assertEquals(PlaybackError.TIMEOUT, (model.now().picture as Picture.Failed).reason)
+    }
+
+    /** Retry is a press, so its wait is the whole ceiling again, and not what the failed attempt had left. */
+    @Test
+    fun `a retry after the ceiling waits the whole ceiling again`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        // Handed over after three seconds, so that the attempt that failed had a wait of its own to carry into the next.
+        engines.last.receives()
+        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 200)
+        runCurrent()
+        assertEquals(listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.built)
+        advanceTimeBy(FallbackPolicy.OPENING_CEILING_MS)
+        runCurrent()
+        assertTrue(model.now().picture is Picture.Failed)
+
+        model.retry()
+        runCurrent()
+        assertTrue(model.now().picture is Picture.Opening)
+
+        advanceTimeBy(FallbackPolicy.OPENING_CEILING_MS - 1_000)
+        runCurrent()
+        assertTrue("a new wait: ${model.now().picture}", model.now().picture is Picture.Opening)
+
+        advanceTimeBy(2_000)
+        runCurrent()
+        assertTrue("and a new card at its ceiling: ${model.now().picture}", model.now().picture is Picture.Failed)
     }
 
     /**
@@ -4450,7 +4608,7 @@ class PlayerPathTest {
         engines.last.fail(PlaybackError.UNKNOWN)
         runCurrent()
 
-        advanceTimeBy(FallbackPolicy.PICTURE_DEADLINE_MS + 1)
+        advanceTimeBy(FallbackPolicy.OPENING_CEILING_MS + 1)
         runCurrent()
 
         assertEquals("nothing switched on its own", listOf(EngineId.PRIMARY), engines.built)
@@ -4459,7 +4617,6 @@ class PlayerPathTest {
         picture as Picture.Failed
         assertEquals(PlaybackError.UNKNOWN, picture.reason)
         assertTrue("still offering the backup", picture.canTryBackup)
-        assertFalse(model.now().switching)
     }
 
     /** A backup that failed says why, and the budget running out behind its card does not rename it. */
@@ -4476,7 +4633,7 @@ class PlayerPathTest {
         backup.fail(PlaybackError.DECODING)
         runCurrent()
 
-        advanceTimeBy(FallbackPolicy.PICTURE_DEADLINE_MS)
+        advanceTimeBy(FallbackPolicy.OPENING_CEILING_MS + 1)
         runCurrent()
 
         val picture = model.now().picture
@@ -4509,7 +4666,7 @@ class PlayerPathTest {
         engines.last.renderFirstFrame()
         runCurrent()
 
-        advanceTimeBy(FallbackPolicy.PICTURE_DEADLINE_MS)
+        advanceTimeBy(FallbackPolicy.OPENING_CEILING_MS + 1)
         runCurrent()
         assertTrue(model.now().picture is Picture.Playing)
         assertEquals("Second", model.now().request.title)

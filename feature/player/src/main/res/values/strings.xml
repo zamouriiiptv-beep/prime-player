@@ -52,7 +52,6 @@
     <string name="player_reconnecting">Connection lost — retrying</string>
     <!-- %1$d of %2$d -->
     <string name="player_attempt">Attempt %1$d of %2$d</string>
-    <string name="player_switching">The main player could not open this — switching to the backup</string>
     <string name="player_engine_backup">Player 2</string>
 
     <!-- The three failures -->

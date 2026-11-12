@@ -56,13 +56,6 @@ data class PlayerState(
     val providerSlow: Boolean = false,
     /** Which engine is actually playing. Shown only as a small badge, and only for the backup. */
     val engine: EngineId = EngineId.PRIMARY,
-    /**
-     * The switch, while it is happening.
-     *
-     * A sentence that appears and goes away, not a decision to present: the user did not
-     * ask for the fallback and cannot act on it.
-     */
-    val switching: Boolean = false,
     val controls: Boolean = true,
     val locked: Boolean = false,
     /**

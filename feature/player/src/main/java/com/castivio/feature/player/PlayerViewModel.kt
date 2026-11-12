@@ -66,8 +66,14 @@ import kotlinx.coroutines.launch
  * [FallbackPolicy.primaryVerdict]. A stream that is arriving and that engine 1 cannot make a
  * picture of is handed to the backup after [FallbackPolicy.OPEN_DEADLINE_MS] without a step.
  * A source that has sent it nothing is not: the backup would put the same question to the
- * same server, so engine 1 is waited on for [FallbackPolicy.NO_ANSWER_DEADLINE_MS] and then
- * there is a card, with the backup one press away.
+ * same server, so engine 1 is waited on until [FallbackPolicy.OPENING_CEILING_MS] from the
+ * press and then there is a card, with the backup one press away.
+ *
+ * **What the viewer is told is not what the engines are doing.** The hand-over is silent: the
+ * loading screen goes on saying what it said, and the card -- "Nothing arrived" -- is drawn
+ * for a channel that did not come, once, at the one ceiling from the press, whichever engine
+ * holds the connection ([FallbackPolicy.backupWaitMs]); neither engine is stopped behind it, so a
+ * picture that comes after it draws over it. A failure an engine reports is drawn at once.
  *
  * A deadline rather than a count because a count does not bound anything: three attempts
  * at a host that accepts connections and never sends bytes is three read timeouts, and the
@@ -177,8 +183,15 @@ class PlayerViewModel @Inject constructor(
     /** Whether the current attempt ended by the budget expiring rather than by an error. */
     private var timedOut = false
 
-    /** Which of the two bounds in [deadlineFor] it was, for the report. */
-    private var timedOutAfterMs = FallbackPolicy.OPEN_DEADLINE_MS
+    /** How long the viewer had waited from the press when the budget ran out, for the report. */
+    private var timedOutAfterMs = FallbackPolicy.OPENING_CEILING_MS
+
+    /**
+     * How long this opening has been waited on, on the primary loop's own clock -- a tenth of a second at a time --
+     * for the backup to be waited on for what is left of the ceiling: see [awaitBackup]. Begun again with every
+     * attempt, by [timeFrom], and not by a fallback, which is the same wait.
+     */
+    private var openingWaitedMs = 0L
 
     /**
      * The viewer's caption settings, read once.
@@ -420,7 +433,6 @@ class PlayerViewModel @Inject constructor(
             Log.e(TAG, "could not build the $id engine", error)
             _state.value = _state.value?.copy(
                 picture = Picture.Failed(PlaybackError.UNKNOWN, canTryBackup = id == EngineId.PRIMARY),
-                switching = false,
             )
             return
         }
@@ -498,10 +510,10 @@ class PlayerViewModel @Inject constructor(
      *
      * The **primary** is timed by what has reached it, until it draws: [awaitPrimary].
      *
-     * The **backup** is timed from the open. [FallbackPolicy.OPEN_DEADLINE_MS] is for the engine
-     * to start. LibVLC starts before it draws, and a backup that has started is given until
-     * [FallbackPolicy.PICTURE_DEADLINE_MS] for its picture rather than a card at three seconds
-     * over a source that is about to play: [awaitBackup].
+     * The **backup** is timed by the viewer's wait, which is one wait from the press: what is
+     * left of [FallbackPolicy.OPENING_CEILING_MS], and [FallbackPolicy.PICTURE_DEADLINE_MS] at the
+     * least. LibVLC starts before it draws, and a card at three or ten seconds over a source
+     * that is slow to start is a card over a channel about to play: [awaitBackup].
      */
     private fun deadlineFor(running: PlaybackEngine, id: EngineId): Job = viewModelScope.launch {
         when (id) {
@@ -531,6 +543,7 @@ class PlayerViewModel @Inject constructor(
         while (true) {
             delay(OPENING_TICK_MS)
             elapsed += OPENING_TICK_MS
+            openingWaitedMs = elapsed
             if (running.firstFrameAtMs.value != null || _state.value?.picture is Picture.Failed) return
             val marks = running.openingMarks()
             if (!slowSaid && elapsed >= PROVIDER_SLOW_MS && marks.serverAnsweredMs == null) {
@@ -560,21 +573,23 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    /** The backup's two bounds from the open: to start, and then to draw. See [deadlineFor]. */
+    /**
+     * The backup's wait: what is left of [FallbackPolicy.OPENING_CEILING_MS] after what the primary
+     * was waited on, and its floor at the least -- [FallbackPolicy.backupWaitMs]. One wait from the press
+     * whichever engine holds the connection, so a hand-over in the middle of it does not start a second.
+     *
+     * Not the three seconds "to start" and ten "to draw" it used to have from its own open: those drew the
+     * card over a channel that was slow and was about to play, and the viewer read "failed" and then
+     * watched it. A backup that has not drawn when this ends is the card; one that reports a failure is
+     * drawn at once, by [onEngineState].
+     */
     private suspend fun awaitBackup(running: PlaybackEngine) {
-        delay(FallbackPolicy.OPEN_DEADLINE_MS)
-        // Still not started. Not an error — the engine has not said anything — but the
-        // budget is spent, and a source that has not opened in three seconds is not
-        // about to.
-        if (running.startedAtMs.value == null) {
-            Log.w(TAG, "${EngineId.BACKUP} did not start in ${FallbackPolicy.OPEN_DEADLINE_MS}ms")
-            timeOut(after = FallbackPolicy.OPEN_DEADLINE_MS)
-            return
-        }
-        delay(FallbackPolicy.PICTURE_DEADLINE_MS - FallbackPolicy.OPEN_DEADLINE_MS)
+        val waited = openingWaitedMs
+        val wait = FallbackPolicy.backupWaitMs(waited)
+        delay(wait)
         if (running.firstFrameAtMs.value == null) {
-            Log.w(TAG, "${EngineId.BACKUP} started but drew nothing in ${FallbackPolicy.PICTURE_DEADLINE_MS}ms")
-            timeOut(after = FallbackPolicy.PICTURE_DEADLINE_MS)
+            Log.w(TAG, "${EngineId.BACKUP} drew nothing in ${wait}ms, after the primary's ${waited}ms")
+            timeOut(after = waited + wait)
         }
     }
 
@@ -618,7 +633,6 @@ class PlayerViewModel @Inject constructor(
         )
         _state.value = current.copy(
             picture = card,
-            switching = false,
             longWait = false,
             providerSlow = false,
             diagnosis = engine?.diagnosis?.value ?: timeoutDiagnosis(card) ?: current.diagnosis,
@@ -639,10 +653,9 @@ class PlayerViewModel @Inject constructor(
 
         // Re-read, because `onFirstFrame` writes to `_state` and the tail of this function
         // rebuilds the state from a snapshot. Built from `current`, that rebuild silently
-        // discarded both of the things the first frame had just established: which engine
-        // is playing, and that the switch is over. After a fallback the screen therefore
-        // still said PRIMARY while the backup was decoding, and the "switching to the
-        // backup" line never cleared — the same emission that carried the frame undid them.
+        // discarded what the first frame had just established: which engine is playing.
+        // After a fallback the screen therefore still said PRIMARY while the backup was
+        // decoding — the same emission that carried the frame undid it.
         //
         // That is the defect this whole round exists to remove. "Which engine actually
         // ran?" is the first question asked of a failure, and the player was answering it
@@ -752,7 +765,7 @@ class PlayerViewModel @Inject constructor(
         }
         // The picture is here, so the wait is over; the spinner goes with the opening below.
         waitJob?.cancel(); waitJob = null
-        _state.value = current.copy(engine = engineId, switching = false)
+        _state.value = current.copy(engine = engineId)
         startTicker()
     }
 
@@ -770,7 +783,6 @@ class PlayerViewModel @Inject constructor(
             val card = Picture.Failed(reason, canTryBackup = false)
             _state.value = current.copy(
                 picture = card,
-                switching = false,
                 longWait = false,
                 providerSlow = false,
                 // `timeoutDiagnosis` belongs here as much as it does on the engine-state
@@ -811,7 +823,6 @@ class PlayerViewModel @Inject constructor(
         stopEngine()
         releaseNanos = System.nanoTime() - stopping
         _state.value = current.copy(
-            switching = true,
             picture = Picture.Opening,
             diagnosis = report,
             attempt = if (hadPicture) beginWait(since = System.nanoTime()) else current.attempt,
@@ -844,7 +855,6 @@ class PlayerViewModel @Inject constructor(
         timeFrom(pressed, pressed, releasedAt = System.nanoTime())
         _state.value = current.copy(
             picture = Picture.Opening,
-            switching = true,
             attempt = beginWait(since = pressed),
             longWait = false,
             providerSlow = false,
@@ -904,7 +914,6 @@ class PlayerViewModel @Inject constructor(
         _state.value = current.copy(
             picture = Picture.Opening,
             engine = on,
-            switching = false,
             attempt = beginWait(since = pressed),
             longWait = false,
             providerSlow = false,
@@ -1030,7 +1039,7 @@ class PlayerViewModel @Inject constructor(
             ticker?.cancel(); ticker = null
             // Nothing is opening while the application is away; the return begins a new wait.
             waitJob?.cancel(); waitJob = null
-            _state.value = current.copy(picture = Picture.Opening, switching = false, longWait = false, providerSlow = false)
+            _state.value = current.copy(picture = Picture.Opening, longWait = false, providerSlow = false)
             return
         }
 
@@ -1067,7 +1076,6 @@ class PlayerViewModel @Inject constructor(
             timeFrom(asked, asked, releasedAt = asked)
             _state.value = current.copy(
                 picture = Picture.Opening,
-                switching = false,
                 attempt = beginWait(since = asked),
                 longWait = false,
                 providerSlow = false,
@@ -1626,6 +1634,7 @@ class PlayerViewModel @Inject constructor(
      * been let go, so the gap between the two is what the release cost.
      */
     private fun timeFrom(from: Long, openedAt: Long, releasedAt: Long) {
+        openingWaitedMs = 0
         askedAtNanos = from
         pressToOpenNanos = openedAt - from
         releaseNanos = releasedAt - openedAt

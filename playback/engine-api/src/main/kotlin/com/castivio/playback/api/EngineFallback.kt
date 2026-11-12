@@ -62,7 +62,7 @@ enum class PrimaryVerdict {
     /** The stream is reaching the engine and it has stopped making progress: the backup can plausibly fix it. */
     FALL_OVER,
 
-    /** Nothing has reached the engine in [FallbackPolicy.NO_ANSWER_DEADLINE_MS]: a card, because the backup cannot fix silence. */
+    /** Nothing has reached the engine in [FallbackPolicy.OPENING_CEILING_MS]: a card, because the backup cannot fix silence. */
     GIVE_UP,
 }
 
@@ -124,11 +124,12 @@ object FallbackPolicy {
     /**
      * How long an engine may go without a sign of life before it is given up on.
      *
-     * For the **primary** the three seconds are counted from its last sign of life, not from
-     * the press: from the first bytes of the stream, and again from its tracks being known.
+     * They are the **primary**'s, and are counted from its last sign of life, not from the
+     * press: from the first bytes of the stream, and again from its tracks being known.
      * See [primaryVerdict]. Before any byte has reached it there is nothing to count from,
-     * and [NO_ANSWER_DEADLINE_MS] is the bound. For the **backup** they are the time to
-     * start, counted from the open, as they always were.
+     * and [OPENING_CEILING_MS] is the bound. The **backup** is not held to them: it is waited
+     * on until [OPENING_CEILING_MS] from the press, and for [PICTURE_DEADLINE_MS] at the least
+     * -- see [backupWaitMs].
      *
      * Three seconds is chosen against the failure it protects from rather than against a
      * healthy stream: bytes arriving that the engine cannot make a picture of -- a transport
@@ -145,43 +146,40 @@ object FallbackPolicy {
     const val OPEN_DEADLINE_MS: Long = 3_000
 
     /**
-     * How long the primary is waited on while nothing of the stream has reached it at all.
+     * How long a viewer is made to wait, counted from the press, for the first picture of a source an engine is
+     * still on the connection of, before a card says that nothing arrived: thirty seconds.
      *
-     * ## Why this is not [OPEN_DEADLINE_MS]
+     * ## Why one ceiling, from the press
      *
-     * The three seconds were chosen on the reading that a source silent for three seconds is
-     * refusing. The opening panel on a phone over 4G read otherwise: channels to which neither
-     * engine got a single byte in six seconds -- the primary for three, then the backup for
-     * three -- and the same kind of channel playing when pressed again a little later. A
-     * provider that starts a channel for its first viewer, or a link that is still warming up,
-     * is slow and not refusing; and handing a silent source to the backup is the one switch
-     * that cannot help, because the backup puts the same question to the same server, and on
-     * an account that allows one connection may put it while the first is still being let go.
+     * The budgets above decide *which engine* has the source. They used to decide when to tell the viewer as well --
+     * a card at twelve seconds for a primary that nothing had reached, and at ten seconds from its own start for a
+     * backup that drew nothing -- and on a channel whose source is slow to start that was a card saying "Nothing
+     * arrived" over a channel that was about to arrive. FR| TF1 4K, in the owner's hands, gave its picture after more
+     * than thirteen seconds, by the one engine or the other: neither is stopped behind a card, so the picture drew
+     * over it, and the viewer had read "failed" and then watched the channel play.
      *
-     * So before the first byte the primary is left on its connection, and what ends the wait
-     * is this bound, which is a card -- the viewer's retry, or the backup by hand -- and not
-     * an automatic switch. Long enough for a provider's cold start and the primary's own
-     * connection retry; short enough that a dead host does not turn the spinner for ever.
+     * So the card is for a channel that did not come, and the wait that comes before it is one wait: counted from
+     * the press, whichever engine holds the connection, with the hand-over between the two in it and nothing said
+     * about it. This is the bound for a primary that nothing has reached ([primaryVerdict]) and for a backup that has
+     * drawn nothing ([backupWaitMs]).
+     *
+     * A failure an engine *reports* is not this bound's: a decoder that refused, a link that is not there, no
+     * connection -- each is decided, and drawn on a card, the moment it arrives.
+     *
+     * The figure is a decision and not a measurement. Under about twenty seconds it is the card in front of a
+     * provider that starts a channel for its first viewer; over about forty-five it is a spinner for a dead host.
      */
-    const val NO_ANSWER_DEADLINE_MS: Long = 12_000
+    const val OPENING_CEILING_MS: Long = 30_000
 
     /**
-     * How long a **backup** that has started gets to show its first picture, counted from the
-     * same open as [OPEN_DEADLINE_MS].
+     * The least a **backup** is given, counted from its own start, to show its first picture.
      *
-     * [OPEN_DEADLINE_MS] is measured, for the backup, to [PlaybackEngine.startedAtMs]. For
-     * Media3 that is the first frame, and the primary is timed by [primaryVerdict] instead, so
-     * this never comes into it. LibVLC starts before it draws: it fills its
-     * network cache — a second for a film, half of one for a channel — and then waits for a
-     * picture it can decode, which on a live stream can be a keyframe several seconds away.
-     * A backup that had started inside three seconds always counted as open; giving its
-     * picture the three seconds meant for silence would put a timeout card in front of
-     * sources that play.
-     *
-     * So this is a bound, not a budget: three seconds to start, a second of cache, a long
-     * keyframe interval of five, and one spare. A source that has started and still shows
-     * nothing by then gets the existing timeout card — the alternative is a spinner that
-     * turns for ever over a sound with no picture.
+     * The bound it is waited on is [OPENING_CEILING_MS] from the press, and this is the floor under it, for a source
+     * the primary gave up late: a backup begun at the twenty-eighth second is not a timeout at the thirtieth.
+     * LibVLC starts before it draws: it fills its network cache -- a second for a film, half of one for a channel --
+     * and then waits for a picture it can decode, which on a live stream can be a keyframe several seconds away. So
+     * the floor is the budget for all of that: three seconds to start, a second of cache, a long keyframe interval of
+     * five, and one spare.
      */
     const val PICTURE_DEADLINE_MS: Long = 10_000
 
@@ -196,8 +194,12 @@ object FallbackPolicy {
      * flat budget could not tell apart:
      *
      * - **Nothing has reached it** -- no byte of the stream. The source is slow or gone, and
-     *   no other engine decodes what has not arrived. Wait, up to [NO_ANSWER_DEADLINE_MS],
-     *   and then [PrimaryVerdict.GIVE_UP]: a card, with the backup left to the viewer.
+     *   no other engine decodes what has not arrived. Wait, up to [OPENING_CEILING_MS],
+     *   and then [PrimaryVerdict.GIVE_UP]: a card, with the backup left to the viewer. The
+     *   backup puts the same question to the same server, and on an account that allows one
+     *   connection may put it while the first is still being let go -- and a provider that
+     *   starts a channel for its first viewer is slow, not refusing, so the primary is left
+     *   on its connection for as long as a viewer can be asked to wait.
      * - **Bytes are arriving and it cannot make a picture of them.** That is the engine's
      *   problem, and the backup's demuxer and decoders are what can fix it. After
      *   [OPEN_DEADLINE_MS] without a step -- from the first bytes, and again from the tracks
@@ -218,9 +220,24 @@ object FallbackPolicy {
      */
     fun primaryVerdict(elapsedMs: Long, bytesAtMs: Long?, tracksAtMs: Long?): PrimaryVerdict {
         val lastStepAt = tracksAtMs ?: bytesAtMs
-            ?: return if (elapsedMs >= NO_ANSWER_DEADLINE_MS) PrimaryVerdict.GIVE_UP else PrimaryVerdict.WAIT
+            ?: return if (elapsedMs >= OPENING_CEILING_MS) PrimaryVerdict.GIVE_UP else PrimaryVerdict.WAIT
         return if (elapsedMs - lastStepAt >= OPEN_DEADLINE_MS) PrimaryVerdict.FALL_OVER else PrimaryVerdict.WAIT
     }
+
+    /**
+     * How long a **backup** is waited on for its first picture, from the moment it starts, when the viewer has already
+     * waited [waitedMs] for the channel: what is left of [OPENING_CEILING_MS], and never less than
+     * [PICTURE_DEADLINE_MS].
+     *
+     * The viewer's wait is one wait whichever engine holds the connection, so a backup that takes over at five seconds
+     * is waited on for twenty-five more and the card, if it comes, comes at thirty from the press; and a backup that
+     * takes over at twenty-eight is waited on for its floor, and not called a timeout two seconds after it began.
+     *
+     * Pure, as the rest of the policy is, so that the arithmetic is tested without a player.
+     *
+     * @param waitedMs how long the viewer has waited for this channel before the backup began, from the press.
+     */
+    fun backupWaitMs(waitedMs: Long): Long = maxOf(OPENING_CEILING_MS - waitedMs, PICTURE_DEADLINE_MS)
 
     /**
      * Which engine opens this source right now.
