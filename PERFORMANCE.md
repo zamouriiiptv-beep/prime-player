@@ -133,6 +133,14 @@ Zapping is what a live-TV user does most, and it's where this player has to win.
 4. **Reuse connections.** One OkHttp client with a warm pool: consecutive
    channels usually share a host, so TLS handshake and DNS are already paid.
 5. **Cache resolved URLs** for the session so redirects aren't re-walked.
+6. **Never wait on LibVLC with the main thread.** LibVLC 3 lets go of a source
+   synchronously: stopping or releasing a player joins the thread that reads the
+   stream, and for a stream that never played (a server that answered and said
+   nothing, a name still being resolved) that thread ends when its read gives up
+   — seconds. The backup engine's `release()` hands the whole teardown to a
+   thread of its own (`BoundedTeardown`) and waits for it at most
+   `TEARDOWN_GRACE_MS` (200 ms): a quick teardown is finished before the next
+   channel asks for a decoder, as before, and a slow one is not a frozen screen.
 
 **Honest limit:** if the provider's edge needs 800 ms to first byte, no client
 trick fixes it. Our budget is *our* overhead — under 200 ms — and Diagnostics

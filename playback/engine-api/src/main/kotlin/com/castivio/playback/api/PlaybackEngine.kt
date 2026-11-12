@@ -223,6 +223,16 @@ interface PlaybackEngine {
      */
     fun qualityReading(): QualityReading? = null
 
+    /**
+     * Lets go of everything the engine holds. Nothing may be called on it afterwards, and calling it again does nothing.
+     *
+     * Called on the main thread, each time a channel is left, so an engine whose source can take long to let go does
+     * that elsewhere and returns without waiting for all of it: the backup engine's does -- LibVLC joins the thread that
+     * reads the stream, and for a stream that never played that is when its read gives up -- and waits only a moment for
+     * it. What the caller can rely on is that the engine has stopped reporting and stopped drawing when this returns;
+     * what the next channel needs of the device, a decoder above all, is free by then when the teardown was quick, and a
+     * moment later when it was not.
+     */
     fun release()
 }
 

@@ -111,11 +111,20 @@ class VlcPlaybackEngine(
     /** The process's one LibVLC -- see [sharedLibVlc]. Never released by an engine. */
     private val libVLC: LibVLC by lazy { sharedLibVlc(appContext) }
 
-    private val mediaPlayer: MediaPlayer by lazy {
+    /**
+     * The player is built the first time something needs it, and an engine that is let go of before that never builds one:
+     * letting go must not be what builds LibVLC and a player, on the main thread, so that they can be released at once.
+     */
+    private val mediaPlayerHolder = lazy {
         MediaPlayer(libVLC).apply {
             setEventListener(eventListener)
         }
     }
+
+    private val mediaPlayer: MediaPlayer get() = mediaPlayerHolder.value
+
+    /** Where LibVLC is let go of, off the thread that asked: see [release] and [BoundedTeardown]. */
+    private val teardown = BoundedTeardown(TEARDOWN_GRACE_MS, TEARDOWN_THREAD)
 
     private var currentMedia: Media? = null
 
@@ -245,9 +254,13 @@ class VlcPlaybackEngine(
         if (isReleased) return
         when (output) {
             null -> {
-                val vout = mediaPlayer.vlcVout
-                if (vout.areViewsAttached()) {
-                    vout.detachViews()
+                // A player that was never built has nothing attached, and taking the surface away is not a reason to
+                // build one: the player asks for this when it lets an engine go, which may be one that never opened.
+                if (mediaPlayerHolder.isInitialized()) {
+                    val vout = mediaPlayer.vlcVout
+                    if (vout.areViewsAttached()) {
+                        vout.detachViews()
+                    }
                 }
                 currentSurfaceView?.removeOnLayoutChangeListener(windowSizer)
                 currentSurfaceView = null
@@ -413,6 +426,14 @@ class VlcPlaybackEngine(
         }
     }
 
+    /**
+     * Stops the source and keeps the engine, on the caller's thread and until LibVLC has finished.
+     *
+     * Synchronous, and that is deliberate rather than overlooked: the application lets a backup engine go with
+     * [release], which is the one that does not wait, and stops only an engine it keeps for the next channel -- see
+     * [PlaybackEngine.reusable], which this one never offers. An engine that is stopped and then opened again has to be
+     * stopped by the time it is opened, and a teardown that is still running somewhere else is how it would not be.
+     */
     override fun stop() {
         if (!isReleased) {
             mediaPlayer.stop()
@@ -667,39 +688,66 @@ class VlcPlaybackEngine(
         )
     }
 
+    /**
+     * Lets go of the player, and of LibVLC's hold on the source, **without holding the thread that asked**.
+     *
+     * LibVLC 3 stops and releases a player synchronously: the call returns when the thread that reads the stream has
+     * finished, and for a source that never played -- a server that answered and then said nothing, a name still being
+     * resolved, a connection being retried -- that is when its read gives up, seconds later. This is called on the main
+     * thread, each time a channel the backup engine opened is left: by Back, by the next channel, by "retry on
+     * Media3". A channel that would not open was a screen that did not answer, with no key working and no way to close
+     * the application, until the connection timed out. See [BoundedTeardown].
+     *
+     * What is done here, on the caller's thread, is what has to be: the views belong to it, and LibVLC stops reporting
+     * to this engine now and not when its teardown is done. What can take long is done on the teardown's thread, in the
+     * order it always was -- the input, the media, what the media read from, the player -- and the caller waits for it
+     * [TEARDOWN_GRACE_MS] at the most. Within that the teardown is as it was, finished before the next channel asks for
+     * a decoder; past it, it carries on and the caller does not.
+     *
+     * Everything LibVLC holds is handed to the teardown and not touched from here again, so nothing is used by two
+     * threads at once.
+     */
     override fun release() {
         if (isReleased) return
         isReleased = true
 
-        runCatching {
-            val vout = mediaPlayer.vlcVout
-            if (vout.areViewsAttached()) {
-                vout.detachViews()
+        val player = if (mediaPlayerHolder.isInitialized()) mediaPlayerHolder.value else null
+        if (player != null) {
+            runCatching {
+                val vout = player.vlcVout
+                if (vout.areViewsAttached()) {
+                    vout.detachViews()
+                }
             }
         }
         currentSurfaceView?.removeOnLayoutChangeListener(windowSizer)
         currentSurfaceView = null
 
-        mediaPlayer.setEventListener(null)
+        player?.setEventListener(null)
 
-        runCatching {
-            if (mediaPlayer.isPlaying) {
-                mediaPlayer.stop()
-            }
-        }
-
-        runCatching {
-            currentMedia?.release()
-            currentMedia = null
-        }
-
-        closeDescriptor()
-
-        runCatching {
-            mediaPlayer.release()
-        }
+        val media = currentMedia
+        currentMedia = null
+        val descriptor = currentDescriptor
+        currentDescriptor = null
 
         _state.value = PlaybackState.Idle
+
+        val askedAt = SystemClock.elapsedRealtime()
+        val finished = teardown.run {
+            runCatching {
+                if (player?.isPlaying == true) {
+                    player.stop()
+                }
+            }
+            runCatching { media?.release() }
+            runCatching { descriptor?.close() }
+            runCatching { player?.release() }
+            Log.i(TAG, "LibVLC let go in ${SystemClock.elapsedRealtime() - askedAt} ms")
+        }
+        teardown.close()
+        if (!finished) {
+            Log.w(TAG, "LibVLC is still letting go after $TEARDOWN_GRACE_MS ms; the caller moves on")
+        }
     }
 
     private fun classifyOpenError(error: Throwable): PlaybackError = when (error) {
@@ -727,6 +775,19 @@ class VlcPlaybackEngine(
 
         /** The sub-picture track LibVLC is given to show none: its own word for "no subtitle". */
         const val NO_SPU = -1
+
+        /**
+         * How long letting go of LibVLC may hold the thread that asked for it: see [release].
+         *
+         * A source that played lets go in tens of milliseconds, so the usual teardown is finished inside this and the
+         * next channel finds what the last one held -- a hardware decoder, the audio output -- free, as it always did.
+         * The figure is also the longest a key press can wait on a source that will not let go, and 200 ms is a
+         * hesitation on a remote, where the seconds it replaces were a screen that did not answer.
+         */
+        const val TEARDOWN_GRACE_MS = 200L
+
+        /** The teardown's thread, as a stack dump or `ps` names it. */
+        const val TEARDOWN_THREAD = "castivio-vlc-teardown"
 
         @Volatile
         private var shared: LibVLC? = null
