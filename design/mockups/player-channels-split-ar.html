@@ -1,0 +1,225 @@
+<!doctype html>
+<!--
+  The channel list inside the full-screen player, as a split and not an overlay. Drawn before code.
+
+  What changes from `player-channels.html`: the list no longer lies over the picture. It takes 35% of the width at the
+  end edge, and the picture -- all of it, in its own proportions, never stretched -- is given the other 65%. The viewer
+  asked for the list a little narrower (32 to 35%) and the picture 65 to 68%; the two figures are one decision, because
+  what the list gives up the picture is given.
+
+  Why 35% and not 32% on a handset: a row is a number, a logo, a name and the green disc of the channel that plays. At
+  35% of an 851dp handset (298dp) the longest name the playlists in use carry, `FR| CANAL+ CINEMA 4K`, still fits in the
+  name's 152dp; at 32% (272dp) it would be cut. The floor the overlay kept (340dp) is lowered to 298dp for the same
+  reason it was set -- a number, a logo and a name -- and no more. On a television, 35% of 960dp is 336dp: the floor of
+  340dp stands, and the list is 35.4%.
+
+  What the split gives that the overlay did not: nothing of the picture is covered, so the channel's own logo in the
+  corner of its picture stays visible; the bars of the picture (the heart, the volume, the gear, and the "next" button)
+  are no longer under a panel that ghosts them -- on the overlay the "next" button was cut by the panel's edge; and the
+  controls the viewer can reach are the controls he can see.
+
+  What it costs: while the list is open the picture is smaller -- on this handset it goes from 699x393dp to 553x311dp --
+  and is letterboxed top and bottom, because 65% of a 20:9 screen is a wider frame than 16:9 needs height for.
+
+  Where the bars live: in the picture's area, full height, and not inside the letterboxed picture. A 311dp-high picture
+  could not hold a 48dp back button, the title and its chips above, and the bar, the transport and the pill below, and
+  leave a picture to look at; in the area the bars keep the clear middle they have today (128dp) and use the black above
+  and below the picture as well. The controls keep their sizes, which come from the window, as everywhere in the player.
+
+  Side: the end edge, as every other panel of the player (settings, tracks), and as the overlay was. The player is left
+  to right whatever the language, so the list is at the right, the back button at the left, and the two are as far apart
+  as the screen allows.
+
+  Frames: `phone-now` is the overlay as it is, for comparison; `phone-split` and `tv-split` are the proposal.
+
+    ?frame=<name>      one frame at its device size
+    ?frame=sheet       every frame stacked with its caption and its ruler, for review
+
+  Colours are Color.kt tokens; names, logos and figures are examples.
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>Player channel list, split</title>
+<style>
+@font-face{font-family:"Castivio Sans";font-weight:400;src:url("../../core/design/src/main/res/font/inter_regular.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:500;src:url("../../core/design/src/main/res/font/inter_medium.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:600;src:url("../../core/design/src/main/res/font/inter_semibold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:700;src:url("../../core/design/src/main/res/font/inter_bold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:400;src:url("../../core/design/src/main/res/font/plex_arabic_regular.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:500;src:url("../../core/design/src/main/res/font/plex_arabic_medium.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:700;src:url("../../core/design/src/main/res/font/plex_arabic_bold.ttf") format("truetype")}
+:root{
+  --ground:#05040E; --panel:#0A0B1E; --edge:rgba(172,180,214,.10); --edgeSoft:rgba(255,255,255,.08);
+  --glass:rgba(255,255,255,.06); --glassStrong:rgba(255,255,255,.12); --glassBorder:rgba(255,255,255,.14);
+  --violet:#9B6BFF; --violetEdge:#B694FF; --azure:#4C9BFF; --ring:#6FB2FF; --success:#3DD68C; --amber:#FFB84D;
+  --ink:#D6D3E8; --strong:#FFFFFF; --muted:#8C8CA8; --live:#2FBF9B;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;color:var(--strong);font-family:"Castivio Sans","Castivio Arabic","DejaVu Sans",sans-serif}
+body.sheet{padding:20px;width:max-content;background:#0c0c14}
+svg{display:block;flex:none}
+.cap{font:14px/1.5 "Castivio Arabic","Castivio Sans","DejaVu Sans",sans-serif;color:#b9b9d4;margin:22px 0 8px;max-width:860px;direction:rtl}
+.cap b{color:#fff}
+.ruler{display:flex;margin-top:6px;font:12px/1 "Castivio Arabic","Castivio Sans","DejaVu Sans",sans-serif;color:#0c0c14;direction:ltr}
+.ruler span{padding:5px 8px;text-align:center;white-space:nowrap}
+.ruler .a{background:#7fb4ff}.ruler .b{background:#c9a8ff}
+
+.screen{position:relative;overflow:hidden;direction:ltr;background:#000}
+.area{position:absolute;top:0}
+.pic{position:absolute;overflow:hidden;
+  background:radial-gradient(90% 80% at 30% 40%,#3a3320 0%,#171410 55%,#07060a 100%)}
+.pic i{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.45),transparent 28%,transparent 62%,rgba(0,0,0,.55))}
+.abs{position:absolute}
+.round{border-radius:50%;background:var(--glassStrong);border:1px solid var(--glassBorder);display:flex;align-items:center;justify-content:center}
+.pill{border-radius:999px;background:var(--glassStrong);border:1px solid var(--ring);box-shadow:0 0 0 2px rgba(111,178,255,.45);display:flex;align-items:center;gap:8px;padding:0 16px;color:var(--strong);white-space:nowrap}
+.pill.plain{border:1px solid var(--glassBorder);box-shadow:none}
+.ttl{font-weight:700;unicode-bidi:plaintext;white-space:nowrap}
+.chip{height:24px;border-radius:999px;padding:0 12px;display:flex;align-items:center;font-size:13px;background:rgba(255,255,255,.10);border:1px solid var(--glassBorder);color:var(--ink)}
+.chip.live{background:var(--live);border-color:var(--live);color:#04130e;font-weight:700}
+.chip.hd{border-color:var(--ring);color:#fff}
+.track{height:6px;border-radius:3px;background:rgba(255,255,255,.16)}
+.track i{display:block;height:100%;width:62%;border-radius:3px;background:linear-gradient(90deg,var(--azure),var(--violet))}
+.play{border-radius:50%;background:rgba(255,255,255,.10);display:flex;align-items:center;justify-content:center;border:4px solid var(--violet);box-shadow:0 0 0 2px rgba(111,178,255,.35)}
+
+.panel{position:absolute;top:0;bottom:0;right:0;display:flex;flex-direction:column}
+.panel.over{background:rgba(8,9,26,.93);border-left:1px solid var(--edgeSoft)}
+.panel.split{background:var(--panel);border-left:1px solid var(--edgeSoft)}
+.head{display:flex;align-items:center;gap:10px;flex:none}
+.head .t{flex:1;min-width:0;display:flex;flex-direction:column}
+.head .t b{line-height:1.3;direction:ltr;unicode-bidi:isolate;text-align:left}
+.head .t span{color:var(--muted);line-height:1.3;direction:ltr;unicode-bidi:isolate;text-align:left}
+.x{border-radius:50%;background:var(--glass);border:1px solid var(--glassBorder);display:flex;align-items:center;justify-content:center;flex:none}
+.list{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:6px}
+.r{flex:none;border-radius:14px;display:flex;align-items:center;gap:10px;padding:0 12px;border:1px solid transparent}
+.r .no{flex:none;border-radius:8px;background:var(--glass);border:1px solid var(--edge);display:flex;align-items:center;justify-content:center;
+  font-variant-numeric:tabular-nums;color:var(--strong);font-weight:600}
+.r .lg{flex:none;border-radius:4px;display:flex;align-items:center;justify-content:center;font-weight:800;letter-spacing:-.2px;overflow:hidden}
+.r .lg.canal{background:#EDEDF2;color:#10101a}
+.r .lg.rtl9{background:transparent;color:#8d5cff;font-size:1.25em;letter-spacing:0}
+.r .nm{flex:1;min-width:0;color:var(--strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;unicode-bidi:plaintext;text-align:left}
+.r .disc{flex:none;border-radius:50%;background:var(--success);display:flex;align-items:center;justify-content:center}
+</style>
+</head>
+<body>
+<script>
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const I=(d,s,extra='')=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ${extra}>${d}</svg>`;
+const ICON={
+  back:'<path d="M19 12H5M11 6l-6 6 6 6"/>',
+  heart:'<path d="M12 21s-7-4.6-9.3-9.2C1.2 8.6 3 5 6.4 5c2 0 3.4 1.1 4.2 2.4h2.8C14.2 6.1 15.600 5 17.600 5 21 5 22.800 8.600 21.300 11.800 19 16.400 12 21 12 21z"/>',
+  vol:'<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.500 8.500a5 5 0 0 1 0 7M19 6a8.500 8.500 0 0 1 0 12"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M19.400 15a1.700 1.700 0 0 0 .3 1.800l.1.1a2 2 0 1 1-2.800 2.800l-.1-.1a1.700 1.700 0 0 0-1.800-.3 1.700 1.700 0 0 0-1 1.500V21a2 2 0 1 1-4 0v-.1a1.700 1.700 0 0 0-1.100-1.500 1.700 1.700 0 0 0-1.800.3l-.1.1a2 2 0 1 1-2.800-2.800l.1-.1a1.700 1.700 0 0 0 .3-1.800 1.700 1.700 0 0 0-1.500-1H3a2 2 0 1 1 0-4h.1a1.700 1.700 0 0 0 1.500-1.100 1.700 1.700 0 0 0-.3-1.800l-.1-.1a2 2 0 1 1 2.800-2.800l.1.1a1.700 1.700 0 0 0 1.800.3H9a1.700 1.700 0 0 0 1-1.500V3a2 2 0 1 1 4 0v.1a1.700 1.700 0 0 0 1 1.500 1.700 1.700 0 0 0 1.800-.3l.1-.1a2 2 0 1 1 2.800 2.800l-.1.1a1.700 1.700 0 0 0-.3 1.800V9a1.700 1.700 0 0 0 1.500 1H21a2 2 0 1 1 0 4h-.1a1.700 1.700 0 0 0-1.500 1z"/>',
+  dots:'<circle cx="12" cy="5" r="1.600" fill="#fff"/><circle cx="12" cy="12" r="1.600" fill="#fff"/><circle cx="12" cy="19" r="1.600" fill="#fff"/>',
+  list:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h10M7 17h6"/>',
+  aspect:'<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
+  prev:'<path d="M6 5v14" /><path d="M19 5L9 12l10 7z" fill="#fff"/>',
+  next:'<path d="M18 5v14"/><path d="M5 5l10 7-10 7z" fill="#fff"/>',
+  pause:'<path d="M9 5v14M15 5v14" stroke-width="3.200"/>',
+  close:'<path d="M6 6l12 12M18 6L6 18"/>',
+  lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+  tri:'<path d="M8 5l11 7-11 7z" fill="#04130e" stroke="none"/>'
+};
+const T={title:'قائمة التشغيل',count:n=>`${n} قناة`,playlist:'قائمة التشغيل',live:'مباشر'};
+const ROWS=[
+  [18,'FR| RTL 9 4K','rtl9',1],
+  [19,'FR| CANAL+ 4K','canal',0],
+  [20,'FR| CANAL+ CINEMA 4K','canal',0],
+  [21,'FR| CANAL+ KIDS 4K','canal',0],
+  [22,'FR| CANAL+ SPORT 4K','canal',0],
+  [23,'FR| CANAL+ PL 4K','canal',0],
+  [24,'FR| CANAL+ DOCS 4K','canal',0]
+];
+function metrics(W,H,tv){
+  return tv
+    ? {t:56,inset:Math.round(W*0.048),ring:88,step:64,gap:26,row:56,plateW:46,plateH:28,lgW:44,lgH:22,head:64,pad:16,fs:16,nm:16,ttl:22,disc:28}
+    : {t:48,inset:40,ring:64,step:48,gap:23,row:48,plateW:30,plateH:24,lgW:34,lgH:17,head:56,pad:12,fs:15,nm:13,ttl:16,disc:24};
+}
+function rowHtml(r,m,focusIdx,i){
+  const [n,name,logo,play]=r;
+  const lg=logo==='rtl9'?'RTL9':'CANAL+';
+  return `<div class="r" style="height:${m.row}px">
+    <span class="no" style="width:${m.plateW}px;height:${m.plateH}px;font-size:${m.nm-1}px">${n}</span>
+    <span class="lg ${logo}" style="width:${m.lgW}px;height:${m.lgH}px;font-size:${logo==='rtl9'?m.lgH*0.62:m.lgH*0.5}px">${lg}</span>
+    <span class="nm" style="font-size:${m.nm}px;font-weight:500">${name}</span>
+    ${play?`<span class="disc" style="width:${m.disc}px;height:${m.disc}px">${I(ICON.tri,m.disc*0.55)}</span>`:''}
+  </div>`;
+}
+function chrome(aw,H,m,o){
+  const t=m.t,i=m.inset,ring=m.ring;
+  const cy=H-i-ring/2;                  // the transport's centre line
+  const barY=cy-ring/2-39;              // the bar sits 39dp above the play ring's top
+  const cx=aw/2;
+  const topIcons=[ICON.heart,ICON.vol,ICON.gear,ICON.dots];
+  const tops=topIcons.map((d,k)=>`<span class="abs round" style="width:${t}px;height:${t}px;right:${i+(topIcons.length-1-k)*(t+12)}px;top:${i}px">${I(d,t*0.46)}</span>`).join('');
+  // the end group: the screen's two controls, with their words when the end is wide enough and without them when it is not
+  const end=[[ICON.aspect,'ملء'],[ICON.lock,'قفل']];
+  let right=i;const bot=end.slice().reverse().map(([d,w])=>{
+    const labelled=o.endLabelled;const wpx=labelled?(w==='ملء'?84:84):t;
+    const h=`<span class="abs ${labelled?'pill plain':'round'}" style="${labelled?'':`width:${t}px;`}height:${t}px;right:${right}px;top:${cy-t/2}px;${labelled?`width:${wpx}px;justify-content:center;gap:6px;padding:0;font-size:${m.fs-1}px`:''}">${I(d,labelled?m.fs+3:t*0.42)}${labelled?`<span>${w}</span>`:''}</span>`;
+    right+=wpx+12;return h;}).join('');
+  const chips=o.chips.map(c=>c==='live'?`<span class="chip live">${T.live}</span>`:c==='FHD'?`<span class="chip hd">FHD</span>`:`<span class="chip">${c}</span>`).join('');
+  const startPill=o.startLabelled
+    ?`<span class="abs pill" style="left:${i}px;height:${t}px;top:${cy-t/2}px;font-size:${m.nm}px;padding:0 10px;gap:6px">${I(ICON.list,m.nm+5)}<span>${T.playlist}</span></span>`
+    :`<span class="abs pill iconly" style="left:${i}px;width:${t}px;height:${t}px;top:${cy-t/2}px;padding:0;justify-content:center">${I(ICON.list,t*0.42)}</span>`;
+  return `
+   <span class="abs round" style="width:${t}px;height:${t}px;left:${i}px;top:${i}px">${I(ICON.back,t*0.5)}</span>
+   <div class="abs" style="left:${i+t+12}px;top:${i-2}px">
+     <div class="ttl" style="font-size:${m.ttl}px;line-height:${t*0.5}px">FR| RTL 9 4K</div>
+     <div style="display:flex;gap:8px;margin-top:6px">${chips}</div>
+   </div>
+   ${tops}
+   <div class="abs track" style="left:${i}px;right:${i}px;top:${barY-3}px"><i></i></div>
+   ${startPill}
+   <span class="abs round" style="width:${m.step}px;height:${m.step}px;left:${cx-ring/2-m.gap-m.step}px;top:${cy-m.step/2}px">${I(ICON.prev,m.step*0.42)}</span>
+   <span class="abs play" style="width:${ring}px;height:${ring}px;left:${cx-ring/2}px;top:${cy-ring/2}px">${I(ICON.pause,ring*0.42)}</span>
+   <span class="abs round" style="width:${m.step}px;height:${m.step}px;left:${cx+ring/2+m.gap}px;top:${cy-m.step/2}px">${I(ICON.next,m.step*0.42)}</span>
+   ${bot}`;
+}
+function panelHtml(W,H,m,pw,mode){
+  const rows=ROWS.map((r,i)=>rowHtml(r,m,0,i)).join('');
+  return `<div class="panel ${mode==='overlay'?'over':'split'}" style="width:${pw}px">
+    <div class="head" style="height:${m.head}px;padding:${m.pad}px ${m.pad}px 0 ${m.pad+4}px;margin-bottom:${m.pad/2}px">
+      <div class="t"><b style="font-size:${m.fs+2}px">${T.title}</b><span style="font-size:${m.fs-3}px">${T.count(28)}</span></div>
+      <span class="x" style="width:${m.t}px;height:${m.t}px">${I(ICON.close,22)}</span>
+    </div>
+    <div class="list" style="padding:0 ${m.pad}px ${m.pad}px">${rows}</div>
+  </div>`;
+}
+function frame(s){
+  const {W,H,tv,mode}=s,m=metrics(W,H,tv);
+  let pw,ax,aw,px,py,fw,fh;
+  if(mode==='overlay'){
+    pw=clamp(W*0.40,340,400);
+    fw=Math.min(W,H*16/9);fh=fw*9/16;ax=(W-fw)/2;aw=fw;px=0;py=(H-fh)/2;
+  }else{
+    pw=tv?Math.max(340,W*0.35):Math.round(W*0.35);
+    aw=W-pw;ax=0;fw=Math.min(aw,H*16/9);fh=fw*9/16;px=(aw-fw)/2;py=(H-fh)/2;
+  }
+  return {pw,aw,html:`<div class="screen" style="width:${W}px;height:${H}px">
+    <div class="area" style="left:${ax}px;width:${aw}px;height:${H}px">
+      <div class="pic" style="left:${px}px;top:${py}px;width:${fw}px;height:${fh}px"><i></i></div>
+      ${chrome(aw,H,m,s.bars)}
+    </div>
+    ${panelHtml(W,H,m,pw,mode)}
+  </div>`};
+}
+const FR={
+  'phone-now':{W:851,H:393,tv:false,mode:'overlay',bars:{chips:['live','FHD','H.264','16:9'],startLabelled:true,endLabelled:true},cap:'<b>الحالي</b> — هاتف <bdi dir="ltr">851×393dp</bdi>: القائمة <b><bdi dir="ltr">40% (340dp)</bdi></b> فوق الفيديو، فالفيديو 699×393 يغطّي منه نحو 38%، وزر «التالي» مقطوع بحافتها وأيقونات القلب والصوت والترس تظهر خافتة تحتها.'},
+  'phone-split':{W:851,H:393,tv:false,mode:'split',bars:{chips:['live','FHD'],startLabelled:true,endLabelled:false},cap:'<b>المقترح</b> — هاتف <bdi dir="ltr">851×393dp</bdi>: القائمة <b><bdi dir="ltr">35% (298dp)</bdi></b> والفيديو <b><bdi dir="ltr">65% (553dp)</bdi></b> بنسبته 16:9 كاملًا غير مشوَّه (553×311، شريطان أسودان فوقه وتحته). لا شيء منه مغطّى، وأزرار الفيديو كلها ظاهرة بأحجامها.'},
+  'tv-split':{W:960,H:540,tv:true,mode:'split',bars:{chips:['live','FHD'],startLabelled:false,endLabelled:false},cap:'<b>المقترح</b> — تلفاز <bdi dir="ltr">960×540dp</bdi>: القائمة <b><bdi dir="ltr">340dp (35.4%)</bdi></b> — الحدّ الأدنى للصف كما هو — والفيديو <b><bdi dir="ltr">64.6%</bdi></b> بنسبته 16:9 كاملًا (620×349).'}
+};
+const p=new URLSearchParams(location.search),f=p.get('frame')||'sheet';
+function block(k,withCap){
+  const s=FR[k],r=frame(s);
+  const pct=Math.round(r.aw/s.W*1000)/10,pp=Math.round(r.pw/s.W*1000)/10;
+  const ruler=s.mode==='split'
+    ?`<div class="ruler" style="width:${s.W}px"><span class="a" style="width:${r.aw}px">الفيديو <bdi dir="ltr">${pct}%</bdi></span><span class="b" style="width:${r.pw}px">القائمة <bdi dir="ltr">${pp}%</bdi></span></div>`
+    :`<div class="ruler" style="width:${s.W}px"><span class="a" style="width:${s.W-r.pw}px">الفيديو يبقى تحت القائمة</span><span class="b" style="width:${r.pw}px">القائمة <bdi dir="ltr">${pp}%</bdi> فوقه</span></div>`;
+  return (withCap?`<div class="cap">${k} — ${s.cap}</div>`:'')+r.html+ruler;
+}
+if(f==='sheet'){document.body.className='sheet';document.body.innerHTML=Object.keys(FR).map(k=>block(k,true)).join('');}
+else{document.body.innerHTML=block(f,false);}
+</script>
+</body>
+</html>
