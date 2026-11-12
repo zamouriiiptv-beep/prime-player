@@ -66,6 +66,25 @@ interface CatalogWriter {
      */
     fun countGroups(groupIds: Collection<String>) {}
 
+    /**
+     * Whether the catalogue already holds rows of [kind] for [sourceId]: what makes an import of that section a refresh,
+     * with something on the screen and a viewer who wants it to end, rather than a first load, whose viewer is waiting
+     * for its first rows.
+     *
+     * Asked before [begin], and of the writer because it is the one that already asks the same of the whole source --
+     * it leaves the sort-title index out of a first load. False by default, which makes every import a first load, as
+     * every import was.
+     */
+    fun holdsRows(sourceId: String, kind: MediaKind): Boolean = false
+
+    /**
+     * This import is a refresh: the rows of what it writes are already here, so the readers have something to show and
+     * are told of its batches rarely -- once in a long while and at the end -- instead of at the pace of a first load,
+     * which they are waiting on. Called before [begin]. Does nothing by default: a writer that keeps no observers has
+     * nobody to tell.
+     */
+    fun tellRarely() {}
+
     /** Makes everything written so far visible to readers. */
     fun commit()
 

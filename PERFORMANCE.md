@@ -85,6 +85,36 @@ the table. The first group appears in well under a second and the rest fills in
 behind it. **Time-to-first-content is the metric users feel**, not
 time-to-complete.
 
+### A refresh is not a first load
+
+A first load has a viewer waiting for the first category, so a section's one
+reply is parsed as it arrives. A **refresh** — the section already holds rows for
+that source — has rows on the screen and a viewer who wants it to *end*, and it
+is not the same job:
+
+- **The reply is taken to a file first** (`ReplySpool`, in the application's cache,
+  deleted when read), then parsed from the file. Read as it arrives, the
+  connection stays open for as long as the database writer needs — the parser
+  reads nothing while it waits for the writer — and on a phone whose writer took
+  about a millisecond a row that was minutes, against ten seconds for the reply to
+  arrive. A weak network broke it at 40,000 of 54,000 rows and the import went on
+  to ask for 833 categories one at a time: 619 s, against 74 s when the same
+  update was not cut. From a file the reply is over when the connection has
+  delivered it, and a file does not break. The price is that writing begins when
+  the download ends instead of beside it, so a refresh that would not have been
+  cut takes about the download's time longer. Skipped below 256 MiB free, and for
+  the radio.
+- **The screens are told every 10 s, and at the end**, instead of every second
+  (`RoomCatalogWriter.tellRarely`). A refresh replaces rows the screens already
+  show, and each telling makes every one of them read the tables again — on a phone
+  with a large catalogue, a large share of the processor during the load. The
+  first rows and the first counted category are still told at once.
+
+Neither applies to a first load, which is unchanged. The load strip says which was
+used: its `reply:` line gives the one reply's outcome and, when it was not used,
+the cause, the rows it had delivered and the seconds it had run; its `database:`
+line gives how often the screens were told.
+
 ### Do the work once
 
 - `HEAD` with `If-None-Match` / `If-Modified-Since`; a `304` skips everything.

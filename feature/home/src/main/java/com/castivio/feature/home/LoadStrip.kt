@@ -2,6 +2,8 @@ package com.castivio.feature.home
 
 import android.os.SystemClock
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,6 +32,7 @@ import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
@@ -224,10 +227,15 @@ private fun ExpandedCard(lines: List<StripLine>, fontSize: Dp, close: @Composabl
     val colors = CastivioTheme.colors
     // What the corner holds, kept clear of the text: the arrow, a gap and the button, which is at the floor of a target.
     val corner = Sizing.minTarget(CastivioTheme.device.isTv) + Sizing.iconSm + Spacing.lg
+    // Never taller than the screen: a measurement has more lines than a phone has room for, and a card that grows past the top
+    // loses its first lines -- the total among them. What does not fit is scrolled to.
+    val room = LocalConfiguration.current.screenHeightDp.dp - EXPANDED_MARGIN
     Box(Modifier.fillMaxWidth()) {
         Column(
             Modifier
                 .fillMaxWidth()
+                .heightIn(max = room)
+                .verticalScroll(rememberScrollState())
                 .padding(start = fontSize, end = corner, top = fontSize / 2, bottom = fontSize / 2),
         ) {
             lines.forEach { line ->
@@ -282,6 +290,9 @@ private const val CARD_OPACITY = 0.9f
 /** The collapsed card is about this tall: the range a viewer can take in at a glance without losing the board beneath it. */
 private val COLLAPSED_MIN = 65.dp
 private val COLLAPSED_MAX = 75.dp
+
+/** What an open card leaves of the screen's height: the status bar above it and a little air. */
+private val EXPANDED_MARGIN = 24.dp
 
 /** The arrow of a chevron that points at the trailing edge: a quarter turn to point down, three to point up. */
 private const val OPEN_ARROW_DEGREES = 90f

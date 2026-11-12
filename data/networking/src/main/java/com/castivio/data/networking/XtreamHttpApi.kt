@@ -4,6 +4,7 @@ import android.util.Log
 import com.castivio.core.common.AppError
 import com.castivio.core.common.Outcome
 import com.castivio.data.parsing.JsonFormatException
+import com.castivio.data.parsing.ReplySpool
 import com.castivio.data.parsing.WholeSectionUnsupported
 import com.castivio.data.parsing.XtreamAccount
 import com.castivio.data.parsing.XtreamArchiveEntry
@@ -14,8 +15,10 @@ import com.castivio.data.parsing.XtreamUrls
 import androidx.tracing.trace
 import com.castivio.core.platform.CastivioTrace
 import com.castivio.domain.MediaKind
+import okhttp3.Call
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.ResponseBody
 import com.castivio.core.platform.DevDiagnostics
 import com.castivio.core.platform.PerformanceLog
 import java.io.IOException
@@ -50,6 +53,11 @@ class XtreamHttpApi(
      * without a debuggable build.
      */
     private val metered: () -> Boolean = { DevDiagnostics.enabled },
+    /**
+     * Where a reply is taken to a file before it is read, for the import that asks for it -- see [allStreamsDownloaded].
+     * Null takes nothing anywhere: every reply is read as it arrives, which is every caller but an import.
+     */
+    private val spool: ReplySpool? = null,
 ) : XtreamImportEngine.Api {
 
     override fun categories(kind: MediaKind): Reader = open(
@@ -365,6 +373,36 @@ class XtreamHttpApi(
     }
 
     /**
+     * [allStreams], taken to a file first: the connection is read to its end at its own speed, with nothing waiting on
+     * the database, and what is handed back is read from the file -- see [ReplySpool] for why a refresh wants that.
+     *
+     * The same request and the same answers as [allStreams], one attempt and never retried here: a refusal is
+     * [WholeSectionUnsupported], and a download that broke is thrown as it was, for the engine to ask once more. The
+     * connection's meters are on the download, so the strip's wire figures say how long the *download* took, and the
+     * decoded count is on the file, where the parser reads.
+     *
+     * With no [spool], or with no room for one, this is [allStreams]: the reply is read as it arrives.
+     */
+    override fun allStreamsDownloaded(kind: MediaKind, isCancelled: () -> Boolean): Reader? {
+        val spool = spool
+        if (spool == null || !spool.hasRoom()) return allStreams(kind)
+        val url = XtreamUrls.api(base, username, password, action = kind.streamsAction())
+        val action = actionOf(url)
+        return trace(traceName(url)) {
+            PerformanceLog.requestStarted(action)
+            try {
+                openToFile(url, spool, isCancelled)
+            } catch (e: HttpStatusException) {
+                PerformanceLog.requestFailed(action, reasonOf(e))
+                throw WholeSectionUnsupported("HTTP ${e.statusCode}", e, e.statusCode)
+            } catch (e: IOException) {
+                PerformanceLog.requestFailed(action, reasonOf(e))
+                throw e
+            }
+        }
+    }
+
+    /**
      * Whether asking again could plausibly get a different answer.
      *
      * The distinction is "about the moment" versus "about the request". A timeout, a
@@ -387,6 +425,22 @@ class XtreamHttpApi(
     }
 
     private fun openNow(url: String, noCache: Boolean = false): Reader {
+        val (call, body) = send(url, noCache)
+        // Reading the body as a stream, never as a string: a category response can
+        // be tens of megabytes and `string()` would hold all of it.
+        val stream = body.byteStream()
+        if (!metered()) {
+            return InputStreamReader(decompressIfNeeded(stream), Charsets.UTF_8).buffered(READ_BUFFER)
+        }
+        return meteredReader(CallMetrics.label(call.request().url), stream)
+    }
+
+    /**
+     * The request, sent, and its answer's body: or the status it was refused with.
+     *
+     * Shared by the two ways a reply is opened, so that what is asked and how a refusal is told are one thing.
+     */
+    private fun send(url: String, noCache: Boolean): Pair<Call, ResponseBody> {
         val builder = Request.Builder().url(url).get()
         if (userAgent != null) builder.header("User-Agent", userAgent)
         // The header the origin is asked to honour, not a local flag: it forces
@@ -403,13 +457,43 @@ class XtreamHttpApi(
             response.close()
             throw HttpStatusException(response.code)
         }
-        // Reading the body as a stream, never as a string: a category response can
-        // be tens of megabytes and `string()` would hold all of it.
-        val stream = body.byteStream()
-        if (!metered()) {
-            return InputStreamReader(decompressIfNeeded(stream), Charsets.UTF_8).buffered(READ_BUFFER)
+        return call to body
+    }
+
+    /**
+     * [openNow]'s reply, read to its end into [spool]'s file before it is returned.
+     *
+     * The connection is let go the moment the download ends, whichever way it ends, and a reply that does not arrive
+     * leaves no file. The gzip sniff and the decoded count are on the file, as they were on the connection.
+     */
+    private fun openToFile(url: String, spool: ReplySpool, isCancelled: () -> Boolean): Reader {
+        val (call, body) = send(url, noCache = false)
+        val measured = metered()
+        val action = if (measured) CallMetrics.label(call.request().url) else ""
+        val wire = body.byteStream()
+        val timed = if (measured) {
+            MeteredInputStream(wire, timed = true) { _, nanos -> CallMetrics.recordBlocked(action, nanos) }
+        } else {
+            wire
         }
-        return meteredReader(CallMetrics.label(call.request().url), stream)
+        val file = try {
+            spool.take(timed, isCancelled)
+        } finally {
+            body.close()
+        }
+        val unpacked = try {
+            decompressIfNeeded(file)
+        } catch (e: IOException) {
+            // The file is the reader's to delete, and nobody has it yet.
+            file.close()
+            throw e
+        }
+        if (!measured) return InputStreamReader(unpacked, Charsets.UTF_8).buffered(READ_BUFFER)
+        val sniffedGzip = unpacked is GZIPInputStream
+        val handedOn = MeteredInputStream(unpacked, timed = false) { bytes, _ ->
+            CallMetrics.recordDecoded(action, bytes, sniffedGzip)
+        }
+        return InputStreamReader(handedOn, Charsets.UTF_8).buffered(READ_BUFFER)
     }
 
     /**

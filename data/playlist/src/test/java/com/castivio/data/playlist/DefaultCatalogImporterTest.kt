@@ -479,6 +479,76 @@ class DefaultCatalogImporterTest {
     }
 
     /**
+     * A section whose rows are on the device is a refresh: the viewer has something on the screen and wants the load to
+     * end, so its one reply is taken to a file before it is read and the screens are told rarely. The rows are the
+     * rows a first load writes -- the download changes how the reply arrives and nothing about what is in it.
+     */
+    @Test
+    fun `a refresh takes its reply to a file first and tells the screens rarely`() = runBlocking {
+        val panel = OneReplyXtreamApi()
+        val account = PlaylistSource.Xtream("http://panel:8080", "user", "pass")
+        writer.rowsHere = true
+
+        importer(xtreamApi = panel).importKind(account, MediaKind.LIVE).toList()
+
+        assertEquals(listOf(MediaKind.LIVE), panel.downloadedAsks)
+        assertEquals("not asked as well as downloaded", emptyList<MediaKind>(), panel.wholeSectionAsks)
+        assertEquals(1, writer.toldRarely)
+        assertEquals("the rows of a first load", listOf("Nova Sports"), writer.items.map { it.title })
+        assertTrue(logged.toString(), logged.any { it.contains("LIVE: one reply (downloaded first), 1 rows, 0 under no category") })
+    }
+
+    /** A first load is neither: its viewer is waiting for the first category, and the rows arrive as they are read. */
+    @Test
+    fun `a first load reads its reply as it arrives and tells the screens at the usual pace`() = runBlocking {
+        val panel = OneReplyXtreamApi()
+        val account = PlaylistSource.Xtream("http://panel:8080", "user", "pass")
+        writer.rowsHere = false
+
+        importer(xtreamApi = panel).importKind(account, MediaKind.LIVE).toList()
+
+        assertEquals(listOf(MediaKind.LIVE), panel.wholeSectionAsks)
+        assertEquals(emptyList<MediaKind>(), panel.downloadedAsks)
+        assertEquals(0, writer.toldRarely)
+    }
+
+    /** What is asked is the section of the source it is for: another section's rows do not make this one a refresh. */
+    @Test
+    fun `the writer is asked about this source and this section`() = runBlocking {
+        val account = PlaylistSource.Xtream("http://panel:8080", "user", "pass")
+
+        importer(xtreamApi = OneReplyXtreamApi()).importKind(account, MediaKind.MOVIE).toList()
+
+        assertEquals(listOf(SourceIds.of(account) to MediaKind.MOVIE), writer.asked)
+    }
+
+    /** The radio has no reply of its own to take, and is not asked about. */
+    @Test
+    fun `the radio is never a refresh, whatever is on the device`() = runBlocking {
+        val panel = OneReplyXtreamApi()
+        writer.rowsHere = true
+
+        importer(xtreamApi = panel).importKind(PlaylistSource.Xtream("http://panel:8080", "user", "pass"), MediaKind.RADIO).toList()
+
+        assertEquals(emptyList<MediaKind>(), panel.downloadedAsks)
+        assertEquals(0, writer.toldRarely)
+        assertEquals(emptyList<Pair<String, MediaKind>>(), writer.asked)
+    }
+
+    /** A database that cannot answer is a first load: the import it was before, not one that fails on a question. */
+    @Test
+    fun `a read that fails is a first load`() = runBlocking {
+        val panel = OneReplyXtreamApi()
+        writer.rowsHereFails = true
+
+        val progress = importer(xtreamApi = panel).importKind(PlaylistSource.Xtream("http://panel:8080", "user", "pass"), MediaKind.LIVE).toList()
+
+        assertTrue(progress.toString(), progress.none { it is ImportProgress.Failed })
+        assertEquals(listOf(MediaKind.LIVE), panel.wholeSectionAsks)
+        assertEquals(0, writer.toldRarely)
+    }
+
+    /**
      * The shows are the longest walk of the three -- a request per category -- so a section opened for
      * the first time asks for the list of them whole, for an account and for a playlist read through its
      * panel alike, and writes shells.
@@ -1141,6 +1211,9 @@ class DefaultCatalogImporterTest {
         val wholeSectionAsks: MutableList<MediaKind> = java.util.Collections.synchronizedList(mutableListOf())
         val categoryAsks: MutableList<Pair<MediaKind, String>> = java.util.Collections.synchronizedList(mutableListOf())
 
+        /** The sections whose reply was asked for as a download: a refresh. */
+        val downloadedAsks: MutableList<MediaKind> = java.util.Collections.synchronizedList(mutableListOf())
+
         override fun categories(kind: MediaKind): Reader = panel.categories(kind)
 
         override fun streams(kind: MediaKind, categoryId: String): Reader {
@@ -1150,6 +1223,15 @@ class DefaultCatalogImporterTest {
 
         override fun allStreams(kind: MediaKind): Reader? {
             wholeSectionAsks += kind
+            return reply()
+        }
+
+        override fun allStreamsDownloaded(kind: MediaKind, isCancelled: () -> Boolean): Reader? {
+            downloadedAsks += kind
+            return reply()
+        }
+
+        private fun reply(): Reader {
             val hidden = (1..orphans).joinToString("") { """,{"stream_id":"9$it","name":"Hidden $it","category_id":"9"}""" }
             return StringReader(
                 """[{"stream_id":"21","name":"Radio Mars","category_id":"2"},""" +
@@ -1252,6 +1334,24 @@ class DefaultCatalogImporterTest {
 
         /** The sections each import begun writes and replaces, in order. */
         val scopes = mutableListOf<Set<MediaKind>>()
+
+        /** Whether the rows of what is asked about are on the device already, and what was asked. */
+        var rowsHere = false
+        var rowsHereFails = false
+        val asked = mutableListOf<Pair<String, MediaKind>>()
+
+        /** How many imports were told to tell the screens rarely: the refreshes. */
+        var toldRarely = 0
+
+        override fun holdsRows(sourceId: String, kind: MediaKind): Boolean {
+            asked += sourceId to kind
+            if (rowsHereFails) throw IllegalStateException("the database could not be read")
+            return rowsHere
+        }
+
+        override fun tellRarely() {
+            toldRarely++
+        }
 
         override fun begin(sourceId: String, mode: ImportMode, sections: Set<MediaKind>) {
             began += sourceId to mode

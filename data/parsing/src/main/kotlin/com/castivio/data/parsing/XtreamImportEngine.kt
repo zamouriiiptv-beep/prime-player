@@ -9,6 +9,7 @@ import com.castivio.domain.MediaGroup
 import com.castivio.domain.MediaKind
 import com.castivio.domain.RequestTimes
 import java.io.Reader
+import java.util.Locale
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
@@ -119,6 +120,17 @@ class XtreamImportEngine(
          * implementation that says nothing is one that is asked per category, as before.
          */
         fun allStreams(kind: MediaKind): Reader? = null
+
+        /**
+         * [allStreams], taken to a file before it is read: it returns when the connection has delivered the whole
+         * reply, and what it returns is read from the file -- see [ReplySpool], and `downloadFirst` on
+         * [importCatalogue] for what it is for.
+         *
+         * [isCancelled] is asked while the reply arrives, so a download nobody wants any more stops at its next piece.
+         * The same as [allStreams] by default: an implementation that cannot take a reply to a file reads it as it
+         * arrives, and an import that asked for the file gets exactly the import it had before there was one.
+         */
+        fun allStreamsDownloaded(kind: MediaKind, isCancelled: () -> Boolean = { false }): Reader? = allStreams(kind)
     }
 
     /** The moments an import passes through, for a caller that owns a clock to time. */
@@ -186,16 +198,32 @@ class XtreamImportEngine(
         val gapFilled: Int = 0,
         /** Why the one reply was not used, by class name. */
         val cause: String? = null,
+        /** The reply was taken to a file before it was read: a refresh. See `downloadFirst` on [importCatalogue]. */
+        val downloaded: Boolean = false,
+        /**
+         * How many entries of a reply that failed had been read when it did. Zero when it did not fail, and for a
+         * reply that was taken to a file first and never arrived.
+         */
+        val readBeforeFailure: Int = 0,
+        /** How long the pass of a reply that failed had run when it did, in milliseconds. Zero when it did not fail. */
+        val afterMs: Long = 0,
     ) {
-        override fun toString(): String = when (strategy) {
-            StreamStrategy.WHOLE_SECTION ->
-                "$kind: one reply, $streams rows, $orphans under no category" +
-                    (if (elsewhere > 0) ", $elsewhere left to another section" else "") +
-                    ", $gapFilled categories asked again"
-            StreamStrategy.REFUSED -> "$kind: one reply refused (${cause ?: "empty"}), asked per category"
-            StreamStrategy.FAILED -> "$kind: one reply failed (${cause ?: "unknown"}), asked per category"
-            StreamStrategy.PER_CATEGORY -> "$kind: asked per category"
+        override fun toString(): String {
+            val how = if (downloaded) "one reply (downloaded first)" else "one reply"
+            return when (strategy) {
+                StreamStrategy.WHOLE_SECTION ->
+                    "$kind: $how, $streams rows, $orphans under no category" +
+                        (if (elsewhere > 0) ", $elsewhere left to another section" else "") +
+                        ", $gapFilled categories asked again"
+                StreamStrategy.REFUSED -> "$kind: $how refused (${cause ?: "empty"}), asked per category"
+                StreamStrategy.FAILED ->
+                    "$kind: $how failed (${cause ?: "unknown"}) after ${group(readBeforeFailure)} rows and " +
+                        "${String.format(Locale.ROOT, "%.1f", afterMs / MS_PER_SECOND)} s, asked per category"
+                StreamStrategy.PER_CATEGORY -> "$kind: asked per category"
+            }
         }
+
+        private fun group(value: Int): String = String.format(Locale.ROOT, "%,d", value)
     }
 
     /**
@@ -324,6 +352,23 @@ class XtreamImportEngine(
          * Empty by default: a caller that does not opt in is asked per category.
          */
         wholeSection: Set<MediaKind> = emptySet(),
+        /**
+         * The kinds whose one reply is taken to a file before it is read -- a refresh, which has rows on the screen
+         * and wants to end -- rather than read as it arrives, which a first load does so that its first category is
+         * on the screen in seconds. Only a kind in [wholeSection] has a reply to take.
+         *
+         * ## Why
+         *
+         * Read as it arrives, the reply stays open for as long as the writer needs, because the parser waits for the
+         * writer and reads nothing meanwhile: a minute and more where the writer takes a millisecond a row. A network
+         * that breaks a reply in that time breaks one that was nearly all there, and the import then asks for every
+         * category on its own -- see [ReplySpool], and `LOCAL_CHANGES.md` §105 for the measurement. Taken to a file
+         * first, it is over in the time the connection takes, and what is read afterwards is a file. A download that
+         * fails is asked once more, as a reply asked beside the categories always was.
+         *
+         * Empty by default: a caller that does not opt in reads as it always did.
+         */
+        downloadFirst: Set<MediaKind> = emptySet(),
         /** Told how each section's streams were fetched. */
         onStreams: (StreamsReport) -> Unit = {},
         /** Told as the import reaches each [Phase]. The engine has no clock; the caller does. */
@@ -624,13 +669,16 @@ class XtreamImportEngine(
                 // so it walks its own categories instead -- a handful of small requests.
                 val oneReply = endpointKind in wholeSection && requested == endpointKind
 
+                // Taken to a file before it is read, for the pass that was asked to: a refresh. See `downloadFirst`.
+                val downloaded = oneReply && endpointKind in downloadFirst
+
                 // **Asked for now, beside the categories, and not after them.** The reply does not depend on the
                 // categories to be asked for -- only to be filed, which happens as it is read -- and the panel
                 // takes about a second to begin answering it. Asked after the categories and their groups, that
                 // second was waited out in a row with theirs: the viewer's first channel came two seconds in
                 // where the slower of the two would have brought it. Only the asking moves; the body is read
                 // after the groups are written, exactly as before. See [EarlyReply] for what a failure of it does.
-                val early = if (oneReply && !isCancelled()) EarlyReply(api, endpointKind).also { askedEarly += it } else null
+                val early = if (oneReply && !isCancelled()) EarlyReply(api, endpointKind, downloaded, isCancelled).also { askedEarly += it } else null
 
                 val categories = api.categories(endpointKind).use { reader ->
                     val list = ArrayList<XtreamCategory>(64)
@@ -686,9 +734,9 @@ class XtreamImportEngine(
                     val meter = PassMeter(nanoClock)
                     // The reply as asked for before, or asked for now when it was not.
                     val open: () -> Reader? = if (early != null) {
-                        { early.take { api.allStreams(endpointKind) } }
+                        { early.take { api.oneReply(endpointKind, downloaded, isCancelled) } }
                     } else {
-                        { api.allStreams(endpointKind) }
+                        { api.oneReply(endpointKind, downloaded, isCancelled) }
                     }
                     pass(countCategories = false, meter = meter) { events ->
                         coroutineScope {
@@ -731,6 +779,7 @@ class XtreamImportEngine(
                                     orphans = outcome.orphans,
                                     elsewhere = outcome.elsewhere,
                                     gapFilled = gaps.size,
+                                    downloaded = downloaded,
                                 ),
                             )
                             gaps
@@ -751,6 +800,11 @@ class XtreamImportEngine(
                                         else -> StreamStrategy.PER_CATEGORY
                                     },
                                     cause = outcome.cause?.reportName(),
+                                    downloaded = downloaded,
+                                    // What the reply had delivered when it failed, and how long it had run: the two
+                                    // figures that say whether it was cut at a moment or at a size.
+                                    readBeforeFailure = meter.parsed,
+                                    afterMs = meter.windowNanos.ms(),
                                 ),
                             )
                             ordered
@@ -1454,7 +1508,13 @@ class XtreamImportEngine(
      * [discard] closes an answer nobody took and makes the request close the one still on its way. It is safe to call
      * at any time and any number of times, and after [take] it does nothing.
      */
-    private class EarlyReply(private val api: Api, private val kind: MediaKind) {
+    private class EarlyReply(
+        private val api: Api,
+        private val kind: MediaKind,
+        /** Taken to a file before it is handed over: the asking then lasts as long as the download. */
+        private val downloaded: Boolean,
+        private val isCancelled: () -> Boolean,
+    ) {
         private val lock = Any()
         private val answered = CountDownLatch(1)
 
@@ -1472,7 +1532,8 @@ class XtreamImportEngine(
 
         private fun ask() {
             try {
-                val opened = api.allStreams(kind)
+                // A download nobody wants any more -- the import was left, or [discard] was called -- stops at its next piece.
+                val opened = api.oneReply(kind, downloaded) { isCancelled() || synchronized(lock) { abandoned } }
                 synchronized(lock) {
                     if (abandoned) runCatching { opened?.close() } else reader = opened
                     completed = true
@@ -1869,3 +1930,10 @@ class WholeSectionUnsupported(
 
 /** Nanoseconds as the milliseconds a [RequestTimes] is told in. */
 private fun Long.ms(): Long = this / 1_000_000
+
+/** Milliseconds in a second, for the seconds a report says. */
+private const val MS_PER_SECOND = 1_000.0
+
+/** A section's one reply, asked for the way the import was told to: taken to a file first, or read as it arrives. */
+private fun XtreamImportEngine.Api.oneReply(kind: MediaKind, downloaded: Boolean, isCancelled: () -> Boolean): Reader? =
+    if (downloaded) allStreamsDownloaded(kind, isCancelled) else allStreams(kind)

@@ -304,12 +304,15 @@ object LoadTrace {
 
         if (session.expectsLoad) lines += StripLine(figures(session, report, pulse), StripTone.MUTED)
 
+        reply(report)?.let { lines += StripLine(it, StripTone.MUTED) }
+
         wire(report).forEach { lines += StripLine(it, StripTone.MUTED) }
 
         work(report)?.let { lines += StripLine(it, StripTone.MUTED) }
 
         pipeline(report)?.let { lines += StripLine(it, StripTone.MUTED) }
         probes(report).forEach { lines += StripLine(it, StripTone.MUTED) }
+        database(report)?.let { lines += StripLine(it, StripTone.MUTED) }
 
         session.failure?.let { f ->
             lines += StripLine(
@@ -414,6 +417,29 @@ object LoadTrace {
     }
 
     /**
+     * How the section's streams were fetched, in the importer's own words: the one reply or the walk, taken to a file
+     * first or read as it arrived, and -- when it was not the reply that was used -- why, how many rows it had delivered
+     * and how long it had run when it failed. What was missing from a load that took ten minutes: the strip said that a
+     * walk of every category had happened, and not that the reply had failed first or what had cut it.
+     */
+    private fun reply(report: SectionReport?): String? = report?.notes?.get(NOTE_STREAMS)?.let { "reply: $it" }
+
+    /**
+     * The database's side of the load, on one line: how often the screens were told, where the writer waited for its
+     * transaction and how its commits ended, and what the file and its log came to. The figures the writer has always
+     * left in its notes for the log, and that nobody holding a phone could read.
+     */
+    private fun database(report: SectionReport?): String? {
+        val parts = listOfNotNull(
+            report?.notes?.get(NOTE_TOLD)?.let { "screens told $it" },
+            report?.notes?.get(NOTE_TX_BEGIN)?.let { "tx begin $it" },
+            report?.notes?.get(NOTE_TX_END)?.let { "tx end $it" },
+            report?.notes?.get(NOTE_DB_CONTEXT)?.let { "db $it" },
+        )
+        return if (parts.isEmpty()) null else "database: " + parts.joinToString(" · ")
+    }
+
+    /**
      * What the processor did against what the clock says, and when the first rows moved.
      *
      * A thread's CPU time set beside its wall time says how much of the wall time it was running: a reader or a writer
@@ -468,6 +494,11 @@ object LoadTrace {
     private const val NOTE_WRITER_CPU = "writer cpu"
     private const val NOTE_PROCESS_CPU = "process cpu"
     private const val NOTE_THREAD_CPU = "thread cpu"
+    private const val NOTE_STREAMS = "streams"
+    private const val NOTE_TOLD = "told"
+    private const val NOTE_TX_BEGIN = "tx begin"
+    private const val NOTE_TX_END = "tx end"
+    private const val NOTE_DB_CONTEXT = "db context"
 
     /** Said in place of a size that is not known yet. */
     private const val MEASURING = "جارٍ القياس"

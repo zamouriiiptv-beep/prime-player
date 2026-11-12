@@ -104,7 +104,8 @@ class RoomCatalogWriter(
     private var detailStatement: SupportSQLiteStatement? = null
 
     // ------------------------------------------------------ telling the observers
-    private val pacer = UpdatePacer(notifyEveryMs)
+    private var notifyInterval = notifyEveryMs
+    private var pacer = UpdatePacer(notifyInterval)
     @Volatile private var timer: ScheduledFuture<*>? = null
     private var rowsSinceCommit = false
     private var countedSinceCommit = false
@@ -114,6 +115,26 @@ class RoomCatalogWriter(
     // ------------------------------------------------------ measuring (development builds only)
     private var measuring = false
     private var figures = Figures()
+
+    /** A read of the index the rows are looked up by: one row's worth, whatever the size of the section. */
+    override fun holdsRows(sourceId: String, kind: MediaKind): Boolean =
+        database.openHelper.writableDatabase.longOf(
+            "SELECT EXISTS (SELECT 1 FROM media WHERE source_id = ? AND kind = ?)",
+            sourceId,
+            kind.name,
+        ) == 1L
+
+    /**
+     * A refresh tells the screens every [REFRESH_NOTIFY_INTERVAL_MS], and at its end, instead of every
+     * [notifyEveryMs]: the rows it writes replace rows the screens already show, and each telling makes every screen read
+     * the tables again -- seconds of processor time on a phone with the films in it, which was half of the application's
+     * during a refresh and went to the readers instead of the writer. The first rows and the first counted category are
+     * still told at once, as for any load.
+     */
+    override fun tellRarely() {
+        notifyInterval = REFRESH_NOTIFY_INTERVAL_MS
+        pacer = UpdatePacer(notifyInterval)
+    }
 
     override fun begin(sourceId: String, mode: ImportMode, sections: Set<MediaKind>) {
         require(sections.isNotEmpty()) { "an import of no section" }
@@ -364,7 +385,13 @@ class RoomCatalogWriter(
      * notification, made at the viewer's request.
      */
     override fun tellNow() {
-        runCatching { tell() }
+        runCatching { told() }
+    }
+
+    /** Tells the readers, and counts it: how often they were told is a figure of the load. */
+    private fun told() {
+        figures.told++
+        tell()
     }
 
     private fun commitNow() {
@@ -403,7 +430,7 @@ class RoomCatalogWriter(
         // does not exist.
         if (step is UpdatePacer.Step.Later) schedule(step.afterMs)
         val urgent = (firstRows || firstCounts) && pacer.urgent(now) == UpdatePacer.Step.Now
-        if (step == UpdatePacer.Step.Now || urgent) tell()
+        if (step == UpdatePacer.Step.Now || urgent) told()
     }
 
     private fun schedule(afterMs: Long) {
@@ -415,7 +442,7 @@ class RoomCatalogWriter(
         // A database closed under a late timer is not an error worth a crash.
         runCatching {
             when (val step = pacer.due(monotonicMs())) {
-                UpdatePacer.Step.Now -> tell()
+                UpdatePacer.Step.Now -> told()
                 is UpdatePacer.Step.Later -> schedule(step.afterMs)
                 UpdatePacer.Step.Wait -> Unit
             }
@@ -427,7 +454,7 @@ class RoomCatalogWriter(
         timer?.cancel(false)
         timer = null
         pacer.reset()
-        tell()
+        told()
     }
 
     override fun finish(summary: ImportSummary) {
@@ -557,6 +584,9 @@ class RoomCatalogWriter(
         var rowsWallNanos = 0L
         var rowsCpuNanos = 0L
 
+        /** How many times the readers were told, the first rows and the end included. */
+        var told = 0
+
         var opens = 0
         var openNanos = 0L
         var openMaxNanos = 0L
@@ -602,6 +632,10 @@ class RoomCatalogWriter(
         val f = figures
         val walAtEnd = probed { db.sizeOf(WAL_SUFFIX) }
         val dbBytes = probed { db.sizeOf("") }
+        PerformanceLog.note(
+            NOTE_TOLD,
+            "${f.told} times, at most one every ${notifyInterval / 1_000} s",
+        )
         PerformanceLog.note(
             NOTE_TX_BEGIN,
             "${f.opens} opens, total ${tenthsOfMs(f.openNanos)}, max ${tenthsOfMs(f.openMaxNanos)}" +
@@ -660,6 +694,11 @@ class RoomCatalogWriter(
     private fun release() {
         timer?.cancel(false)
         timer = null
+        // The next import is a first load until it says it is not.
+        if (notifyInterval != notifyEveryMs) {
+            notifyInterval = notifyEveryMs
+            pacer = UpdatePacer(notifyInterval)
+        }
         runCatching { itemStatement?.close() }
         runCatching { groupStatement?.close() }
         runCatching { countStatement?.close() }
@@ -787,6 +826,7 @@ class RoomCatalogWriter(
         const val NOTE_SORT_INDEX = "sort index"
 
         /** The run's notes on the end of a load, development builds only: see [noteFigures]. */
+        const val NOTE_TOLD = "told"
         const val NOTE_TX_BEGIN = "tx begin"
         const val NOTE_TX_END = "tx end"
         const val NOTE_FTS = "fts"
@@ -933,3 +973,6 @@ class RoomCatalogWriter(
 
 /** About one notification a second during a load: see [RoomCatalogWriter]. */
 const val NOTIFY_INTERVAL_MS = 1_000L
+
+/** About one in ten seconds during a refresh, which has rows on the screen already: see [RoomCatalogWriter.tellRarely]. */
+const val REFRESH_NOTIFY_INTERVAL_MS = 10_000L

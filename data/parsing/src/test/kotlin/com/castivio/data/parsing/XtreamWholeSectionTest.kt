@@ -622,6 +622,253 @@ class XtreamWholeSectionTest {
         assertEquals("no orphan is lost from the count", pass.orphans, pass.orphanCategories.values.sum())
     }
 
+    // ------------------------------------------------------------ taken to a file first
+
+    /**
+     * A refresh asks for the reply as a download. The rows it leaves are the rows the walk leaves -- the download changes
+     * how the reply arrives and nothing about what is in it -- and the reply is asked for once.
+     */
+    @Test
+    fun `a reply taken to a file first leaves exactly the rows the walk leaves`() {
+        val reports = mutableListOf<StreamsReport>()
+        val api = panel()
+        val writer = RecordingWriter()
+
+        XtreamImportEngine(writer).importCatalogue(
+            "src",
+            api,
+            kinds = LIVE_ENDPOINT,
+            mode = ImportMode.APPEND,
+            wholeSection = setOf(MediaKind.LIVE),
+            downloadFirst = setOf(MediaKind.LIVE),
+            onStreams = { reports += it },
+        )
+
+        assertEquals(walkedRows(), writer.rows())
+        assertEquals("asked for as a download, once", 1, api.downloadedRequests)
+        assertEquals("and not as well as the reply that arrives", 0, api.wholeSectionRequests)
+        assertEquals(StreamStrategy.WHOLE_SECTION, reports.single().strategy)
+        assertTrue("the report says how it came", reports.single().downloaded)
+        assertEquals(emptyList<String>(), api.categoryStreamRequests)
+    }
+
+    /** A first load does not opt in, and reads as it always did: its first category is on the screen in seconds. */
+    @Test
+    fun `a reply is read as it arrives unless the import was told to take it to a file`() {
+        val reports = mutableListOf<StreamsReport>()
+        val api = panel()
+
+        XtreamImportEngine(RecordingWriter()).importCatalogue(
+            "src",
+            api,
+            kinds = LIVE_ENDPOINT,
+            wholeSection = setOf(MediaKind.LIVE),
+            onStreams = { reports += it },
+        )
+
+        assertEquals(1, api.wholeSectionRequests)
+        assertEquals(0, api.downloadedRequests)
+        assertFalse(reports.single().downloaded)
+    }
+
+    /** An API that has no way to take a reply to a file gets the import it had before there was one. */
+    @Test
+    fun `an API that cannot download is read as it arrives, and the import is the same`() {
+        val api = ArrivingOnlyPanel(WHOLE_REPLY)
+        val reports = mutableListOf<StreamsReport>()
+        val writer = RecordingWriter()
+
+        XtreamImportEngine(writer).importCatalogue(
+            "src",
+            api,
+            kinds = LIVE_ENDPOINT,
+            wholeSection = setOf(MediaKind.LIVE),
+            downloadFirst = setOf(MediaKind.LIVE),
+            onStreams = { reports += it },
+        )
+
+        assertEquals(1, api.wholeSectionRequests)
+        assertEquals(walkedRows(), writer.rows())
+        assertEquals(StreamStrategy.WHOLE_SECTION, reports.single().strategy)
+    }
+
+    /** The radio has no reply of its own to take: it walks its categories, whatever the live section was told. */
+    @Test
+    fun `the radio is never downloaded, it asks no reply`() {
+        val api = panel()
+
+        XtreamImportEngine(RecordingWriter()).importCatalogue(
+            "src",
+            api,
+            kinds = setOf(MediaKind.RADIO),
+            wholeSection = setOf(MediaKind.LIVE),
+            downloadFirst = setOf(MediaKind.LIVE),
+        )
+
+        assertEquals(0, api.downloadedRequests)
+        assertEquals(0, api.wholeSectionRequests)
+    }
+
+    /** A kind that has no one reply has nothing to take, and what it is told changes nothing. */
+    @Test
+    fun `a kind that is walked is not downloaded either`() {
+        val api = panel()
+
+        XtreamImportEngine(RecordingWriter()).importCatalogue(
+            "src",
+            api,
+            kinds = setOf(MediaKind.LIVE, MediaKind.MOVIE),
+            wholeSection = setOf(MediaKind.LIVE),
+            downloadFirst = setOf(MediaKind.LIVE, MediaKind.MOVIE),
+        )
+
+        assertEquals("only the live section had a reply to take", 1, api.downloadedRequests)
+        assertEquals(listOf(MediaKind.MOVIE to "5"), api.streamRequests.filter { it.first == MediaKind.MOVIE })
+    }
+
+    /**
+     * A download that failed is asked once more, as a reply asked beside the categories always was: it is cheaper than
+     * the walk by minutes, and a connection that dropped once is often there the second time.
+     */
+    @Test
+    fun `a download that fails is asked once more, and the second is the import`() {
+        val reports = mutableListOf<StreamsReport>()
+        var asked = 0
+        val api = panel(wholeSection = { if (asked++ == 0) throw IOException("connection reset") else StringReader(WHOLE_REPLY) })
+        val writer = RecordingWriter()
+
+        XtreamImportEngine(writer).importCatalogue(
+            "src",
+            api,
+            kinds = LIVE_ENDPOINT,
+            wholeSection = setOf(MediaKind.LIVE),
+            downloadFirst = setOf(MediaKind.LIVE),
+            onStreams = { reports += it },
+        )
+
+        assertEquals(2, api.downloadedRequests)
+        assertEquals(StreamStrategy.WHOLE_SECTION, reports.single().strategy)
+        assertEquals(walkedRows(), writer.rows())
+        assertEquals("no category was asked for on its own", emptyList<String>(), api.categoryStreamRequests)
+    }
+
+    /** Twice is a failed reply: the walk, and a report that says it was a download and that nothing had been read. */
+    @Test
+    fun `a download that fails twice is the walk, reported as a download that never arrived`() {
+        val reports = mutableListOf<StreamsReport>()
+        val api = panel(wholeSection = { throw IOException("connection reset") })
+        val writer = RecordingWriter()
+
+        XtreamImportEngine(writer).importCatalogue(
+            "src",
+            api,
+            kinds = LIVE_ENDPOINT,
+            wholeSection = setOf(MediaKind.LIVE),
+            downloadFirst = setOf(MediaKind.LIVE),
+            onStreams = { reports += it },
+        )
+
+        val report = reports.single()
+        assertEquals(StreamStrategy.FAILED, report.strategy)
+        assertTrue(report.downloaded)
+        assertEquals("IOException", report.cause)
+        assertEquals("a download that never arrived read nothing", 0, report.readBeforeFailure)
+        assertEquals(walkedRows(), writer.rows())
+    }
+
+    /** What the report says of a reply that broke: how far it had got, which is what tells a cut at a moment from one at a size. */
+    @Test
+    fun `a reply that breaks says how many rows it had delivered`() {
+        val reports = mutableListOf<StreamsReport>()
+        val api = panel(wholeSection = { BreakingReader(WHOLE_REPLY, breakAfter = WHOLE_REPLY.length / 2) })
+        // A clock that moves a second every time it is read, so that the time a pass ran is more than none.
+        var nanos = 0L
+
+        XtreamImportEngine(RecordingWriter(), batchSize = 1, nanoClock = { nanos += 1_000_000_000L; nanos }).importCatalogue(
+            "src",
+            api,
+            kinds = LIVE_ENDPOINT,
+            wholeSection = setOf(MediaKind.LIVE),
+            onStreams = { reports += it },
+        )
+
+        val report = reports.single()
+        assertEquals(StreamStrategy.FAILED, report.strategy)
+        assertFalse(report.downloaded)
+        assertTrue("some rows had been read: ${report.readBeforeFailure}", report.readBeforeFailure in 1..4)
+        assertTrue("and how long it had run is said: ${report.afterMs}", report.afterMs >= 1_000)
+    }
+
+    /**
+     * The question a download watches is the import's own: a download for an import that was left stops at its next piece
+     * rather than at its end. Asked while the reply is being read, so it is what the import says then.
+     */
+    @Test
+    fun `the download is given the import's own cancellation to watch`() {
+        var cancelled = false
+        var before: Boolean? = null
+        var after: Boolean? = null
+        lateinit var api: Panel
+        api = panel(
+            wholeSection = {
+                object : Reader() {
+                    private val delegate = StringReader(WHOLE_REPLY)
+                    private var first = true
+
+                    override fun read(cbuf: CharArray, off: Int, len: Int): Int {
+                        if (first) {
+                            first = false
+                            before = api.downloadStops?.invoke()
+                            cancelled = true
+                            after = api.downloadStops?.invoke()
+                        }
+                        return delegate.read(cbuf, off, len)
+                    }
+
+                    override fun close() = delegate.close()
+                }
+            },
+        )
+
+        XtreamImportEngine(RecordingWriter()).importCatalogue(
+            "src",
+            api,
+            kinds = LIVE_ENDPOINT,
+            wholeSection = setOf(MediaKind.LIVE),
+            downloadFirst = setOf(MediaKind.LIVE),
+            isCancelled = { cancelled },
+        )
+
+        assertEquals("not cancelled while the import goes on", false, before)
+        assertEquals("cancelled when the import is", true, after)
+    }
+
+    /** The words a report says, which a strip prints and a log keeps: the figures that tell what happened and no address. */
+    @Test
+    fun `a failed reply is reported with its cause, its rows and its seconds`() {
+        val report = StreamsReport(
+            kind = MediaKind.LIVE,
+            strategy = StreamStrategy.FAILED,
+            cause = "SocketTimeoutException",
+            downloaded = true,
+            readBeforeFailure = 40_000,
+            afterMs = 55_400,
+        )
+
+        assertEquals(
+            "LIVE: one reply (downloaded first) failed (SocketTimeoutException) after 40,000 rows and 55.4 s, asked per category",
+            report.toString(),
+        )
+        assertEquals(
+            "LIVE: one reply, 52636 rows, 0 under no category, 0 categories asked again",
+            StreamsReport(MediaKind.LIVE, StreamStrategy.WHOLE_SECTION, streams = 52_636).toString(),
+        )
+        assertEquals(
+            "LIVE: one reply (downloaded first), 5 rows, 0 under no category, 0 categories asked again",
+            StreamsReport(MediaKind.LIVE, StreamStrategy.WHOLE_SECTION, streams = 5, downloaded = true).toString(),
+        )
+    }
+
     // ------------------------------------------------------------------ fixtures
 
     private fun walkedRows(): List<Row> = RecordingWriter().also { writer ->
@@ -638,6 +885,10 @@ class XtreamWholeSectionTest {
      */
     private class Panel(private val wholeSection: (() -> Reader)?) : XtreamImportEngine.Api {
         var wholeSectionRequests = 0
+
+        /** How often the reply was asked for as a download, and the question the import gave it to stop on. */
+        @Volatile var downloadedRequests = 0
+        @Volatile var downloadStops: (() -> Boolean)? = null
         val streamRequests: MutableList<Pair<MediaKind, String>> = Collections.synchronizedList(mutableListOf())
         val categoryStreamRequests: List<String>
             get() = synchronized(streamRequests) { streamRequests.filter { it.first != MediaKind.MOVIE }.map { it.second } }
@@ -665,6 +916,34 @@ class XtreamWholeSectionTest {
             val open = wholeSection ?: return null
             wholeSectionRequests++
             return open()
+        }
+
+        override fun allStreamsDownloaded(kind: MediaKind, isCancelled: () -> Boolean): Reader? {
+            val open = wholeSection ?: return null
+            downloadedRequests++
+            downloadStops = isCancelled
+            return open()
+        }
+
+        override fun series(categoryId: String): Reader = StringReader("[]")
+        override fun seriesInfo(seriesId: String): Reader = StringReader("{}")
+        override fun streamUrl(kind: MediaKind, streamId: String, extension: String?): String =
+            XtreamUrls.stream("http://host", "u", "p", kind, streamId, extension)
+    }
+
+    /** An API as old as the import: it reads a reply as it arrives and has never heard of a download. */
+    private class ArrivingOnlyPanel(private val reply: String) : XtreamImportEngine.Api {
+        var wholeSectionRequests = 0
+
+        override fun categories(kind: MediaKind): Reader = StringReader(
+            """[{"category_id":"1","category_name":"Sports"},{"category_id":"2","category_name":"News"},""" +
+                """{"category_id":"3","category_name":"Radio FM"}]""",
+        )
+
+        override fun streams(kind: MediaKind, categoryId: String): Reader = StringReader("[]")
+        override fun allStreams(kind: MediaKind): Reader? {
+            wholeSectionRequests++
+            return StringReader(reply)
         }
 
         override fun series(categoryId: String): Reader = StringReader("[]")

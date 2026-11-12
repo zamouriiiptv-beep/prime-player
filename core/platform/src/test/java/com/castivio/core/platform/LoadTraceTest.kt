@@ -337,6 +337,47 @@ class LoadTraceTest {
         assertTrue("the moments are from the press and in order: $text", "at: screen 0.60 · rows 0.65 · load done 1.00" in text)
     }
 
+    /**
+     * What a ten-minute load did not say: how the reply fared, how often the screens were told, where the writer waited. The
+     * importer and the writer have left these in the run's notes all along, for a log nobody holding a phone could read.
+     */
+    @Test
+    fun `the reply and the database's side are lines of their own, and only when they were said`() {
+        fun report(notes: Map<String, String>) = SectionReport(
+            section = PerfSection.CHANNELS, run = 1, startedAtNanos = 0, mode = PerfMode.WARM, fullLoadMs = 1_000, notes = notes,
+        )
+        val session = LoadSession(
+            id = 1, section = PerfSection.CHANNELS, origin = LoadOrigin.WARM, pressedAtNanos = 0,
+            expectsLoad = true, expectsScreen = true, run = 1, state = LoadState.DONE, endedMs = 1_100,
+        )
+        val said = report(
+            mapOf(
+                "streams" to "LIVE: one reply (downloaded first), 54,348 rows, 0 under no category, 0 categories asked again",
+                "told" to "8 times, at most one every 10 s",
+                "tx begin" to "28 opens, total 0.4 s, max 0.1 s",
+                "tx end" to "27 commits, total 1.1 s, max 0.2 s",
+                "db context" to "APPEND · sort index kept · wal 120.4 MB -> 3.2 MB",
+            ),
+        )
+
+        val shown = LoadTrace.render(session, 0L, said, pulse = null).map { it.text }
+        val absent = LoadTrace.render(session, 0L, report(emptyMap()), pulse = null).map { it.text }
+
+        val reply = "reply: LIVE: one reply (downloaded first), 54,348 rows, 0 under no category, 0 categories asked again"
+        assertTrue(shown.toString(), reply in shown)
+        assertEquals(
+            "the reply is said right after the figures it explains",
+            shown.indexOfFirst { it.startsWith("read ") } + 1,
+            shown.indexOf(reply),
+        )
+        assertTrue(
+            shown.toString(),
+            "database: screens told 8 times, at most one every 10 s · tx begin 28 opens, total 0.4 s, max 0.1 s" +
+                " · tx end 27 commits, total 1.1 s, max 0.2 s · db APPEND · sort index kept · wal 120.4 MB -> 3.2 MB" in shown,
+        )
+        assertTrue(absent.toString(), absent.none { it.startsWith("reply:") || it.startsWith("database:") })
+    }
+
     @Test
     fun `the wire lines appear when a call was answered by the network, and only then`() {
         fun wire(encoding: List<String>, encoded: Int) = WireFigures(

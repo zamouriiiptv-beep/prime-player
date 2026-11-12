@@ -716,6 +716,15 @@ class DefaultCatalogImporter(
         cancelled: () -> Boolean,
     ): ImportProgress.Failed? {
         val writer = WatchedWriter(writerFactory(), tellsRead = true)
+        // **A refresh, or a first load.** The rows of this section are here already when the viewer pressed it again -- or
+        // pressed Refresh, or came back to a section whose mark was forgotten -- and they have something on the screen and
+        // want the load to end. Its one reply is then taken to a file before it is read, so that it is over in the time the
+        // connection takes and not in the time the writer takes, and the screens are told rarely instead of every second.
+        // A first load is neither: its viewer is waiting for the first category, and the rows arrive as they are read. The
+        // radio has no reply of its own to take.
+        // A read that fails is a first load: the import it was before.
+        val refresh = kind != MediaKind.RADIO && runCatching { writer.holdsRows(sourceId, kind) }.getOrDefault(false)
+        if (refresh) writer.tellRarely()
         // Phase B instrumentation, and the only reason these two lines exist: how many
         // requests one section costs is a property of the *user's* provider, so it cannot
         // be learned from this repository or from a fixture -- only from a real
@@ -765,6 +774,7 @@ class DefaultCatalogImporter(
                 // than inside the whole live list. The engine falls back to the walk by itself;
                 // see `wholeSection`.
                 wholeSection = if (kind == MediaKind.RADIO) emptySet() else setOf(kind),
+                downloadFirst = if (refresh) setOf(kind) else emptySet(),
                 onStreams = { report ->
                     replyUsed = report.strategy == XtreamImportEngine.StreamStrategy.WHOLE_SECTION
                     PerformanceLog.note(NOTE_STREAMS, report.toString())

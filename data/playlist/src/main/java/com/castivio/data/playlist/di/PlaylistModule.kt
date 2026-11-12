@@ -23,6 +23,7 @@ import com.castivio.data.parsing.StalkerImportEngine
 import com.castivio.domain.MediaKind
 import com.castivio.domain.identity.DeviceIdentity
 import com.castivio.data.networking.XtreamHttpApi
+import com.castivio.data.parsing.ReplySpool
 import com.castivio.data.parsing.XtreamImportEngine
 import com.castivio.data.playlist.AndroidLocalPlaylistReader
 import com.castivio.data.playlist.DefaultCatalogImporter
@@ -89,6 +90,15 @@ object PlaylistModule {
     fun playlistCopies(store: PlaylistCopyStore): PlaylistCopies = store
 
     /**
+     * Where a refresh's one reply is taken to a file before it is read, in the app's cache: derived data the system may
+     * take back, deleted as soon as it has been read. See [ReplySpool].
+     */
+    @Provides
+    @Singleton
+    fun replySpool(@ApplicationContext context: Context): ReplySpool =
+        ReplySpool(File(context.cacheDir, "replies"))
+
+    /**
      * A film's details: asked of its provider when its page opens, and kept in the cache after that. The
      * cache is the database's; the provider is the same one the film came from.
      */
@@ -149,12 +159,13 @@ object PlaylistModule {
         identity: DeviceIdentity,
         copies: PlaylistCopyStore,
         early: EarlyCategories,
+        spool: ReplySpool,
     ): CatalogImporter = DefaultCatalogImporter(
         http = http,
         writerFactory = { writers.get() },
         sources = sources,
         localFiles = localFiles,
-        xtreamApiFactory = { source -> source.toApi(client) },
+        xtreamApiFactory = { source -> source.toApi(client, spool) },
         copies = copies,
         // The device address a portal handshake needs, from the one place that derives
         // it. Never asked of the user: it is the address the activation screen already
@@ -297,8 +308,8 @@ object PlaylistModule {
             MediaKind.RADIO -> PerfSection.RADIO
         }
 
-    private fun PlaylistSource.Xtream.toApi(client: OkHttpClient): XtreamImportEngine.Api =
-        XtreamHttpApi(client, host, username, password)
+    private fun PlaylistSource.Xtream.toApi(client: OkHttpClient, spool: ReplySpool): XtreamImportEngine.Api =
+        XtreamHttpApi(client, host, username, password, spool = spool)
 
     /**
      * A portal's engine API, with the session it needs opened lazily.

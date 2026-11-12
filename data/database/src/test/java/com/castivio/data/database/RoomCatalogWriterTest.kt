@@ -551,6 +551,100 @@ class RoomCatalogWriterTest {
         assertEquals(atTheEnd, t.told)
     }
 
+    /**
+     * A refresh has rows on the screen already, so it tells the screens rarely: the first rows at once, as for any load,
+     * then once in ten seconds and at the end -- not once a second, which made every screen read the tables again and was
+     * half of the application's processor during a refresh on a phone with the films in it.
+     */
+    @Test
+    fun `a refresh is told about rarely, and its end always`() = runBlocking {
+        Fixtures.register(database, "src")
+        val t = Told()
+        t.writer.tellRarely()
+        t.writer.begin("src", ImportMode.APPEND)
+
+        t.writer.writeItems(listOf(liveItem("first", "First")))
+        t.writer.commit()
+        assertEquals("the first rows at once, as for any load", 1, t.told)
+
+        // Nine seconds of commits, one every half second: a first load would tell nine times in them.
+        repeat(18) { n ->
+            t.now += 500
+            t.writer.writeItems(listOf(liveItem("later-$n", "Later $n")))
+            t.writer.commit()
+        }
+        assertEquals("nothing more inside the ten seconds", 1, t.told)
+        assertEquals("every batch is committed whether or not anybody was told", 19, rowsOf("src"))
+
+        t.writer.finish(summaryOf(19))
+        assertEquals("the end is always told", 2, t.told)
+    }
+
+    @Test
+    fun `a refresh is told again when its long interval is up`() = runBlocking {
+        Fixtures.register(database, "src")
+        val t = Told()
+        t.writer.tellRarely()
+        t.writer.begin("src", ImportMode.APPEND)
+        t.writer.writeItems(listOf(liveItem("a", "A")))
+        t.writer.commit()
+        assertEquals(1, t.told)
+
+        t.now += REFRESH_NOTIFY_INTERVAL_MS - 1_000
+        t.writer.writeItems(listOf(liveItem("b", "B")))
+        t.writer.commit()
+        assertEquals("a second short of the interval", 1, t.told)
+
+        t.now += 1_000
+        t.writer.writeItems(listOf(liveItem("c", "C")))
+        t.writer.commit()
+        // Told by this commit, or by the timer that was waiting for exactly this moment: once either way.
+        val deadline = System.nanoTime() + 3_000_000_000L
+        while (t.told < 2 && System.nanoTime() < deadline) Thread.sleep(10)
+        assertEquals("the interval is up", 2, t.told)
+        t.writer.abort(null)
+    }
+
+    /** The slow pace is for the load that asked for it: the writer that is used again is back at the pace of a first load. */
+    @Test
+    fun `the usual pace comes back for the next load`() = runBlocking {
+        Fixtures.register(database, "src")
+        val t = Told()
+        t.writer.tellRarely()
+        t.writer.begin("src", ImportMode.APPEND)
+        t.writer.writeItems(listOf(liveItem("a", "A")))
+        t.writer.commit()
+        t.writer.finish(summaryOf(1))
+        val afterTheRefresh = t.told
+
+        t.writer.begin("src", ImportMode.APPEND)
+        t.writer.writeItems(listOf(liveItem("b", "B")))
+        t.writer.commit()
+        assertEquals("its first rows at once", afterTheRefresh + 1, t.told)
+
+        t.now += 1_000
+        t.writer.writeItems(listOf(liveItem("c", "C")))
+        t.writer.commit()
+        assertEquals("and the next a second later, not ten", afterTheRefresh + 2, t.told)
+        t.writer.abort(null)
+    }
+
+    /** What makes a load a refresh: rows of this section of this source are on the device already. */
+    @Test
+    fun `the writer says whether a section of a source has rows on the device`() {
+        Fixtures.register(database, "src")
+        val writer = RoomCatalogWriter(database) { 2_000L }
+        assertFalse("nothing is there before the first load", writer.holdsRows("src", MediaKind.LIVE))
+
+        writer.begin("src", ImportMode.APPEND)
+        writer.writeItems(listOf(liveItem("a", "A")))
+        writer.finish(summaryOf(1))
+
+        assertTrue(writer.holdsRows("src", MediaKind.LIVE))
+        assertFalse("another section's rows are not this one's", writer.holdsRows("src", MediaKind.MOVIE))
+        assertFalse("nor another source's", writer.holdsRows("other", MediaKind.LIVE))
+    }
+
     private companion object {
         /** Read on the writer's own connection, which is what a load in progress can be asked on. */
         const val COUNT_OF_FIRST = "SELECT item_count FROM media_group WHERE id = 'first'"
