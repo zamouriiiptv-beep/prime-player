@@ -13,7 +13,12 @@ jobs:
     # A compose test that renders an indefinite spinner never reaches idle, and without
     # this the job sat on one blocked assertion until GitHub's six-hour default killed it.
     # A hang should cost minutes and read as a failure, not a day and read as "running".
-    timeout-minutes: 30
+    #
+    # Forty-five, not thirty: the build and every Android unit test take 24 to 29 minutes
+    # on a runner of ordinary speed, and 30 minutes and 7 seconds on a slow one, which
+    # cancelled a run in which every step had passed -- two seconds before it would have
+    # finished. A limit that an ordinary run can reach is not a limit on hangs.
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
