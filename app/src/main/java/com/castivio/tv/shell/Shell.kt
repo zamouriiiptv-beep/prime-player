@@ -966,14 +966,22 @@ private fun CatalogSelection.asPlayerRequest(timeShifts: TimeShiftSources? = nul
     catchUpHours = catchUpHours,
     archiveOf = archiveOf,
     face = if (live && (artworkUrl != null || programme != null)) OpeningFace(artworkUrl, programme, programmeHours) else null,
-    // A channel whose provider says it keeps an archive is given the means of rewinding it. What it is *confirmed* to offer is for the
-    // player to ask, a moment after the picture: see `PlayerViewModel.offerTimeShift`. A programme played from Catch-up is not rewound.
-    timeShift = if (live && archiveOf == null && (catchUpHours ?: 0) > 0 && mediaId != null && timeShifts != null) {
-        TimeShiftHandle(timeShifts.forChannel(mediaId, title, catchUpHours ?: 0))
-    } else {
-        null
-    },
+    timeShift = timeShiftHandle(timeShifts),
 )
+
+/**
+ * The means of rewinding this press, or null when it is not one that can be.
+ *
+ * A channel whose provider says it keeps an archive is given it; what the archive is *confirmed* to offer is for the player to ask, a
+ * moment after the picture -- see `PlayerViewModel.offerTimeShift`. A film, an episode, a channel with no id to be found by, and a
+ * programme played from Catch-up (which is the archive already) are not rewound.
+ */
+private fun CatalogSelection.timeShiftHandle(timeShifts: TimeShiftSources?): TimeShiftHandle? {
+    val channel = mediaId ?: return null
+    val archiveHours = catchUpHours ?: return null
+    if (timeShifts == null || !live || archiveOf != null || archiveHours <= 0) return null
+    return TimeShiftHandle(timeShifts.forChannel(channel, title, archiveHours))
+}
 
 /** Which rail entry a section belongs to, so Home's "see all" lands somewhere real. */
 /**
