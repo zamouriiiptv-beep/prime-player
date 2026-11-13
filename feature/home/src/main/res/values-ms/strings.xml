@@ -14,9 +14,29 @@
     <string name="browse_empty_section_detail">Bahagian lain tidak terjejas. Jika ini kelihatan salah, segar semula — import yang masih berjalan mengisi bahagian satu demi satu.</string>
     <string name="browse_empty_action">Segar semula</string>
     <string name="show_season">Musim %1$d</string>
+    <string name="show_preparing">Pembekal anda sedang menyediakan episod…</string>
     <string name="show_no_episodes_title">Belum ada episod</string>
     <string name="show_no_episodes_detail">Pembekal anda menyenaraikan rancangan ini tetapi belum menghantar episodnya. Ia biasanya muncul selepas penyegaran berikutnya.</string>
+    <string name="show_play">Main</string>
+    <string name="show_play_episode">Main %1$s</string>
+    <string name="show_continue">Teruskan %1$s</string>
+    <string name="show_failed_title">Episod tidak dapat dimuatkan</string>
+    <string name="show_failed_detail">Semak sambungan peranti ini, kemudian cuba lagi.</string>
+    <string name="show_retry">Cuba lagi</string>
+    <plurals name="show_seasons">
+        <item quantity="other">%d musim</item>
+    </plurals>
+    <plurals name="show_episodes">
+        <item quantity="other">%d episod</item>
+    </plurals>
     <string name="show_back">Kembali</string>
+    <string name="show_nav_overview">Gambaran keseluruhan</string>
+    <string name="show_nav_seasons">Musim</string>
+    <string name="show_nav_cast">Pelakon</string>
+    <string name="show_nav_similar">Serupa</string>
+    <string name="show_favorite_add">Tambah ke kegemaran</string>
+    <string name="show_favorite_remove">Alih keluar daripada kegemaran</string>
+    <string name="show_similar_title">Rancangan serupa</string>
     <string name="home_brand">CASTIVIO</string>
     <string name="home_empty_title">Belum ada apa-apa diimport</string>
     <string name="home_empty_detail">Pembekal anda berjaya dihubungi tetapi tidak menghantar saluran, filem atau siri. Segar semula dari satu bahagian, atau tambah pembekal lain.</string>
@@ -149,6 +169,12 @@
     <string name="movies_recent_empty_title">Belum ada filem yang ditonton</string>
     <string name="movies_recent_empty_detail">Filem yang anda main akan dipaparkan di sini, yang terkini dahulu.</string>
     <string name="movie_play">Main filem</string>
+    <string name="movie_added">Ditambah pada %1$s</string>
+    <string name="movie_plot_title">Sinopsis</string>
+    <string name="movie_plot_more">Lihat semua</string>
+    <string name="movie_plot_close">Tutup</string>
+    <string name="movie_director">Pengarah:</string>
+    <string name="movie_cast">Pelakon:</string>
     <string name="movie_favorite_add">Tambah ke kegemaran</string>
     <string name="movie_favorite_remove">Alih keluar daripada kegemaran</string>
     <string name="hide_title">Sembunyikan buket dan saluran</string>

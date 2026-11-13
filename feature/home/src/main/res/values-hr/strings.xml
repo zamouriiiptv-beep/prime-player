@@ -14,9 +14,33 @@
     <string name="browse_empty_section_detail">Ostali odjeljci nisu pogođeni. Ako ovo izgleda pogrešno, osvježite — uvoz koji je u tijeku puni odjeljke jedan po jedan.</string>
     <string name="browse_empty_action">Osvježi</string>
     <string name="show_season">%1$d. sezona</string>
+    <string name="show_preparing">Vaš davatelj priprema epizode…</string>
     <string name="show_no_episodes_title">Još nema epizoda</string>
     <string name="show_no_episodes_detail">Vaš davatelj prikazuje ovaj naslov, ali nije poslao njegove epizode. Obično se pojave nakon sljedećeg osvježavanja.</string>
+    <string name="show_play">Pokreni</string>
+    <string name="show_play_episode">Pokreni %1$s</string>
+    <string name="show_continue">Nastavi %1$s</string>
+    <string name="show_failed_title">Epizode nije bilo moguće učitati</string>
+    <string name="show_failed_detail">Provjerite vezu ovog uređaja pa pokušajte ponovno.</string>
+    <string name="show_retry">Pokušaj ponovno</string>
+    <plurals name="show_seasons">
+        <item quantity="one">%d sezona</item>
+        <item quantity="few">%d sezone</item>
+        <item quantity="other">%d sezona</item>
+    </plurals>
+    <plurals name="show_episodes">
+        <item quantity="one">%d epizoda</item>
+        <item quantity="few">%d epizode</item>
+        <item quantity="other">%d epizoda</item>
+    </plurals>
     <string name="show_back">Natrag</string>
+    <string name="show_nav_overview">Pregled</string>
+    <string name="show_nav_seasons">Sezone</string>
+    <string name="show_nav_cast">Glumci</string>
+    <string name="show_nav_similar">Slično</string>
+    <string name="show_favorite_add">Dodaj u favorite</string>
+    <string name="show_favorite_remove">Ukloni iz favorita</string>
+    <string name="show_similar_title">Slične serije</string>
     <string name="home_brand">CASTIVIO</string>
     <string name="home_empty_title">Još ništa nije uvezeno</string>
     <string name="home_empty_detail">Vaš davatelj je odgovorio, ali nije poslao kanale, filmove ni serije. Osvježite iz nekog odjeljka ili dodajte drugog davatelja.</string>
@@ -149,6 +173,12 @@
     <string name="movies_recent_empty_title">Još niste gledali nijedan film</string>
     <string name="movies_recent_empty_detail">Ovdje se prikazuju filmovi koje pokrenete, najnoviji prvi.</string>
     <string name="movie_play">Pokreni film</string>
+    <string name="movie_added">Dodano %1$s</string>
+    <string name="movie_plot_title">Radnja</string>
+    <string name="movie_plot_more">Prikaži sve</string>
+    <string name="movie_plot_close">Zatvori</string>
+    <string name="movie_director">Redatelj:</string>
+    <string name="movie_cast">Glumci:</string>
     <string name="movie_favorite_add">Dodaj u favorite</string>
     <string name="movie_favorite_remove">Ukloni iz favorita</string>
     <string name="hide_title">Sakrij pakete i kanale</string>

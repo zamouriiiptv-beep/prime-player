@@ -207,6 +207,11 @@
     <string name="movie_favorite_add">إضافة إلى المفضلة</string>
     <string name="movie_favorite_remove">إزالة من المفضلة</string>
     <string name="movie_plot_more">عرض الكل</string>
+    <!-- Labels on a film's page. The film's own words (its name, category, genres, plot and the people's names) stay as its provider wrote them. -->
+    <string name="movie_plot_title">القصة</string>
+    <string name="movie_added">أُضيف في %1$s</string>
+    <string name="movie_director">المخرج:</string>
+    <string name="movie_cast">الممثلون:</string>
     <string name="show_play">تشغيل</string>
     <string name="show_play_episode">تشغيل %1$s</string>
     <string name="show_continue">متابعة %1$s</string>

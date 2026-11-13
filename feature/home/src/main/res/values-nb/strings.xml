@@ -14,9 +14,31 @@
     <string name="browse_empty_section_detail">De andre seksjonene er uberørt. Ser det feil ut, oppdater — en import som fortsatt kjører, fyller seksjonene én om gangen.</string>
     <string name="browse_empty_action">Oppdater</string>
     <string name="show_season">Sesong %1$d</string>
+    <string name="show_preparing">Leverandøren din klargjør episodene…</string>
     <string name="show_no_episodes_title">Ingen episoder ennå</string>
     <string name="show_no_episodes_detail">Leverandøren din viser denne tittelen, men har ikke sendt episodene. De dukker vanligvis opp etter neste oppdatering.</string>
+    <string name="show_play">Spill av</string>
+    <string name="show_play_episode">Spill av %1$s</string>
+    <string name="show_continue">Fortsett %1$s</string>
+    <string name="show_failed_title">Episodene kunne ikke lastes inn</string>
+    <string name="show_failed_detail">Sjekk tilkoblingen på denne enheten, og prøv igjen.</string>
+    <string name="show_retry">Prøv igjen</string>
+    <plurals name="show_seasons">
+        <item quantity="one">%d sesong</item>
+        <item quantity="other">%d sesonger</item>
+    </plurals>
+    <plurals name="show_episodes">
+        <item quantity="one">%d episode</item>
+        <item quantity="other">%d episoder</item>
+    </plurals>
     <string name="show_back">Tilbake</string>
+    <string name="show_nav_overview">Oversikt</string>
+    <string name="show_nav_seasons">Sesonger</string>
+    <string name="show_nav_cast">Skuespillere</string>
+    <string name="show_nav_similar">Lignende</string>
+    <string name="show_favorite_add">Legg til i favoritter</string>
+    <string name="show_favorite_remove">Fjern fra favoritter</string>
+    <string name="show_similar_title">Lignende serier</string>
     <string name="home_brand">CASTIVIO</string>
     <string name="home_empty_title">Ingenting importert ennå</string>
     <string name="home_empty_detail">Leverandøren din svarte, men sendte verken kanaler, filmer eller serier. Oppdater fra en seksjon, eller legg til en annen leverandør.</string>
@@ -149,6 +171,12 @@
     <string name="movies_recent_empty_title">Du har ikke sett noen filmer ennå</string>
     <string name="movies_recent_empty_detail">Filmene du spiller av, vises her, med de sist sette først.</string>
     <string name="movie_play">Spill av film</string>
+    <string name="movie_added">Lagt til %1$s</string>
+    <string name="movie_plot_title">Handling</string>
+    <string name="movie_plot_more">Vis alle</string>
+    <string name="movie_plot_close">Lukk</string>
+    <string name="movie_director">Regissør:</string>
+    <string name="movie_cast">Skuespillere:</string>
     <string name="movie_favorite_add">Legg til i favoritter</string>
     <string name="movie_favorite_remove">Fjern fra favoritter</string>
     <string name="hide_title">Skjul buketter og kanaler</string>

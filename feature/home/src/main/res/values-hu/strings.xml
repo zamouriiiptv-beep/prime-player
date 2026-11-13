@@ -14,9 +14,31 @@
     <string name="browse_empty_section_detail">A többi szakaszt ez nem érinti. Ha hibásnak tűnik, frissítsen — a még futó importálás egyesével tölti fel a szakaszokat.</string>
     <string name="browse_empty_action">Frissítés</string>
     <string name="show_season">%1$d. évad</string>
+    <string name="show_preparing">A szolgáltatója előkészíti az epizódokat…</string>
     <string name="show_no_episodes_title">Még nincsenek epizódok</string>
     <string name="show_no_episodes_detail">A szolgáltatója felsorolja ezt a műsort, de nem küldte el az epizódjait. Általában a következő frissítés után jelennek meg.</string>
+    <string name="show_play">Lejátszás</string>
+    <string name="show_play_episode">%1$s lejátszása</string>
+    <string name="show_continue">%1$s folytatása</string>
+    <string name="show_failed_title">Az epizódokat nem sikerült betölteni</string>
+    <string name="show_failed_detail">Ellenőrizze ennek az eszköznek a kapcsolatát, majd próbálja újra.</string>
+    <string name="show_retry">Újra</string>
+    <plurals name="show_seasons">
+        <item quantity="one">%d évad</item>
+        <item quantity="other">%d évad</item>
+    </plurals>
+    <plurals name="show_episodes">
+        <item quantity="one">%d epizód</item>
+        <item quantity="other">%d epizód</item>
+    </plurals>
     <string name="show_back">Vissza</string>
+    <string name="show_nav_overview">Áttekintés</string>
+    <string name="show_nav_seasons">Évadok</string>
+    <string name="show_nav_cast">Szereplők</string>
+    <string name="show_nav_similar">Hasonlók</string>
+    <string name="show_favorite_add">Hozzáadás a kedvencekhez</string>
+    <string name="show_favorite_remove">Eltávolítás a kedvencek közül</string>
+    <string name="show_similar_title">Hasonló sorozatok</string>
     <string name="home_brand">CASTIVIO</string>
     <string name="home_empty_title">Még semmi sincs importálva</string>
     <string name="home_empty_detail">A szolgáltatója elérhető volt, de nem küldött csatornákat, filmeket vagy sorozatokat. Frissítsen valamelyik szakaszból, vagy adjon hozzá másik szolgáltatót.</string>
@@ -149,6 +171,12 @@
     <string name="movies_recent_empty_title">Még nem néztél filmet</string>
     <string name="movies_recent_empty_detail">Itt jelennek meg a lejátszott filmek, a legutóbbi elöl.</string>
     <string name="movie_play">Film lejátszása</string>
+    <string name="movie_added">Hozzáadva: %1$s</string>
+    <string name="movie_plot_title">Cselekmény</string>
+    <string name="movie_plot_more">Összes megjelenítése</string>
+    <string name="movie_plot_close">Bezárás</string>
+    <string name="movie_director">Rendező:</string>
+    <string name="movie_cast">Szereplők:</string>
     <string name="movie_favorite_add">Hozzáadás a kedvencekhez</string>
     <string name="movie_favorite_remove">Eltávolítás a kedvencek közül</string>
     <string name="hide_title">Csomagok és csatornák elrejtése</string>

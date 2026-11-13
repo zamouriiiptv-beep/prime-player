@@ -14,9 +14,31 @@
     <string name="browse_empty_section_detail">باقی حصے متاثر نہیں ہوئے۔ اگر یہ غلط لگے تو تازہ کریں — جاری درآمد حصوں کو ایک ایک کر کے بھرتی ہے۔</string>
     <string name="browse_empty_action">تازہ کریں</string>
     <string name="show_season">سیزن %1$d</string>
+    <string name="show_preparing">آپ کا فراہم کنندہ اقساط تیار کر رہا ہے…</string>
     <string name="show_no_episodes_title">ابھی کوئی قسط نہیں</string>
     <string name="show_no_episodes_detail">آپ کا فراہم کنندہ یہ شو دکھاتا ہے مگر اس کی اقساط نہیں بھیجیں۔ عام طور پر اگلی تازہ کاری کے بعد ظاہر ہو جاتی ہیں۔</string>
+    <string name="show_play">چلائیں</string>
+    <string name="show_play_episode">%1$s چلائیں</string>
+    <string name="show_continue">%1$s جاری رکھیں</string>
+    <string name="show_failed_title">اقساط لوڈ نہیں ہو سکیں</string>
+    <string name="show_failed_detail">اس آلے کا کنکشن جانچیں، پھر دوبارہ کوشش کریں۔</string>
+    <string name="show_retry">دوبارہ کوشش کریں</string>
+    <plurals name="show_seasons">
+        <item quantity="one">%d سیزن</item>
+        <item quantity="other">%d سیزن</item>
+    </plurals>
+    <plurals name="show_episodes">
+        <item quantity="one">%d قسط</item>
+        <item quantity="other">%d اقساط</item>
+    </plurals>
     <string name="show_back">واپس</string>
+    <string name="show_nav_overview">جائزہ</string>
+    <string name="show_nav_seasons">سیزن</string>
+    <string name="show_nav_cast">اداکار</string>
+    <string name="show_nav_similar">ملتے جلتے</string>
+    <string name="show_favorite_add">پسندیدہ بنائیں</string>
+    <string name="show_favorite_remove">پسندیدہ سے ہٹائیں</string>
+    <string name="show_similar_title">ملتے جلتے شوز</string>
     <string name="home_brand">CASTIVIO</string>
     <string name="home_empty_title">ابھی تک کچھ درآمد نہیں ہوا</string>
     <string name="home_empty_detail">آپ کے فراہم کنندہ تک رسائی ہو گئی مگر اس نے کوئی چینل، فلم یا سیریز نہیں بھیجی۔ کسی حصے سے تازہ کریں، یا کوئی اور فراہم کنندہ شامل کریں۔</string>
@@ -149,6 +171,12 @@
     <string name="movies_recent_empty_title">ابھی تک کوئی فلم نہیں دیکھی گئی</string>
     <string name="movies_recent_empty_detail">آپ جو فلمیں چلاتے ہیں وہ یہاں دکھائی دیں گی، تازہ ترین پہلے۔</string>
     <string name="movie_play">فلم چلائیں</string>
+    <string name="movie_added">%1$s کو شامل کیا گیا</string>
+    <string name="movie_plot_title">کہانی</string>
+    <string name="movie_plot_more">سب دیکھیں</string>
+    <string name="movie_plot_close">بند کریں</string>
+    <string name="movie_director">ہدایت کار:</string>
+    <string name="movie_cast">اداکار:</string>
     <string name="movie_favorite_add">پسندیدہ بنائیں</string>
     <string name="movie_favorite_remove">پسندیدہ سے ہٹائیں</string>
     <string name="hide_title">بوکے اور چینل چھپائیں</string>

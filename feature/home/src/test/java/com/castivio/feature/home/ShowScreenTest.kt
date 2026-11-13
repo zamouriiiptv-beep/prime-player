@@ -1,12 +1,18 @@
 package com.castivio.feature.home
 
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.paging.PagingData
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.domain.CatalogPager
@@ -46,6 +52,7 @@ import org.robolectric.annotation.Config
  * asked what it draws. A cut plot and the shapes the words take are the screenshot's: the test environment lays out
  * no text.
  */
+@OptIn(ExperimentalTestApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w960dp-h540dp-land")
 class ShowScreenTest {
@@ -127,24 +134,57 @@ class ShowScreenTest {
     private val opened = mutableListOf<SeriesSummary>()
     private val marks = Marks()
 
+    /** [direction] is the reader's, where a test needs the page turned round; the harness's own (left to right) where it is null. */
     private fun show(
         details: SeriesDetails? = said,
         plots: Map<String, String> = mapOf("s1e1" to "A train crash."),
         similar: List<SeriesSummary> = others,
+        direction: LayoutDirection? = null,
     ) {
         val model = ShowViewModel(Pager(seasons, similar), Answered, NoProgress, Details(details, plots), marks)
         compose.setContent {
-            CastivioTheme {
-                ShowScreen(
-                    show = SeriesSummary("show-1", "Chicago Med", null, 3, 2),
-                    onPlay = { played += it },
-                    onBack = {},
-                    onOpenShow = { opened += it },
-                    model = model,
-                )
+            CompositionLocalProvider(LocalLayoutDirection provides (direction ?: LocalLayoutDirection.current)) {
+                CastivioTheme {
+                    ShowScreen(
+                        show = SeriesSummary("show-1", "Chicago Med", null, 3, 2),
+                        onPlay = { played += it },
+                        onBack = {},
+                        onOpenShow = { opened += it },
+                        model = model,
+                    )
+                }
             }
         }
         compose.waitForIdle()
+    }
+
+    // ---------------------------------------------------------------------------------------------- the direction
+
+    /** The left of the rail's first entry and the middle of the screen, both measured from the left of the screen. */
+    private fun railAndMiddle(): Pair<Float, Float> {
+        val rail = compose.onNodeWithContentDescription("Overview").getUnclippedBoundsInRoot().left.value
+        val middle = compose.onRoot().getUnclippedBoundsInRoot().width.value / 2f
+        return rail to middle
+    }
+
+    @Test
+    fun `left to right the rail stands at the left of the page`() {
+        show(direction = LayoutDirection.Ltr)
+
+        val (rail, middle) = railAndMiddle()
+        assertTrue("the rail begins at $rail, the middle is at $middle", rail < middle)
+    }
+
+    /**
+     * The page used to be drawn left to right in every language, as the film's was. It follows the reader's direction
+     * now: in Arabic, Persian and Urdu the rail -- the way back and the parts of the page -- stands at the right.
+     */
+    @Test
+    fun `right to left the rail stands at the right of the page`() {
+        show(direction = LayoutDirection.Rtl)
+
+        val (rail, middle) = railAndMiddle()
+        assertTrue("the rail begins at $rail, the middle is at $middle", rail > middle)
     }
 
     // ----------------------------------------------------------------------------------------------- the rail

@@ -14,9 +14,31 @@
     <string name="browse_empty_section_detail">Dine øvrige sektioner er upåvirkede. Ser det forkert ud, så opdatér — en import, der stadig kører, fylder sektionerne én ad gangen.</string>
     <string name="browse_empty_action">Opdatér</string>
     <string name="show_season">Sæson %1$d</string>
+    <string name="show_preparing">Din udbyder forbereder afsnittene…</string>
     <string name="show_no_episodes_title">Ingen afsnit endnu</string>
     <string name="show_no_episodes_detail">Din udbyder viser denne titel, men har ikke sendt afsnittene. De dukker som regel op efter næste opdatering.</string>
+    <string name="show_play">Afspil</string>
+    <string name="show_play_episode">Afspil %1$s</string>
+    <string name="show_continue">Fortsæt %1$s</string>
+    <string name="show_failed_title">Afsnittene kunne ikke indlæses</string>
+    <string name="show_failed_detail">Tjek denne enheds forbindelse, og prøv igen.</string>
+    <string name="show_retry">Prøv igen</string>
+    <plurals name="show_seasons">
+        <item quantity="one">%d sæson</item>
+        <item quantity="other">%d sæsoner</item>
+    </plurals>
+    <plurals name="show_episodes">
+        <item quantity="one">%d afsnit</item>
+        <item quantity="other">%d afsnit</item>
+    </plurals>
     <string name="show_back">Tilbage</string>
+    <string name="show_nav_overview">Oversigt</string>
+    <string name="show_nav_seasons">Sæsoner</string>
+    <string name="show_nav_cast">Medvirkende</string>
+    <string name="show_nav_similar">Lignende</string>
+    <string name="show_favorite_add">Føj til favoritter</string>
+    <string name="show_favorite_remove">Fjern fra favoritter</string>
+    <string name="show_similar_title">Lignende serier</string>
     <string name="home_brand">CASTIVIO</string>
     <string name="home_empty_title">Intet importeret endnu</string>
     <string name="home_empty_detail">Din udbyder svarede, men sendte hverken kanaler, film eller serier. Opdatér fra en sektion, eller tilføj en anden udbyder.</string>
@@ -149,6 +171,12 @@
     <string name="movies_recent_empty_title">Du har ikke set nogen film endnu</string>
     <string name="movies_recent_empty_detail">De film, du afspiller, vises her med de senest afspillede først.</string>
     <string name="movie_play">Afspil film</string>
+    <string name="movie_added">Tilføjet %1$s</string>
+    <string name="movie_plot_title">Handling</string>
+    <string name="movie_plot_more">Vis alle</string>
+    <string name="movie_plot_close">Luk</string>
+    <string name="movie_director">Instruktør:</string>
+    <string name="movie_cast">Medvirkende:</string>
     <string name="movie_favorite_add">Føj til favoritter</string>
     <string name="movie_favorite_remove">Fjern fra favoritter</string>
     <string name="hide_title">Skjul buketter og kanaler</string>

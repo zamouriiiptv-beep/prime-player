@@ -14,9 +14,31 @@
     <string name="browse_empty_section_detail">Seksionet e tjera nuk preken. Nëse kjo duket gabim, rifreskoni — importimi që po vazhdon i mbush seksionet një nga një.</string>
     <string name="browse_empty_action">Rifresko</string>
     <string name="show_season">Sezoni %1$d</string>
+    <string name="show_preparing">Ofruesi juaj po përgatit episodet…</string>
     <string name="show_no_episodes_title">Ende pa episode</string>
     <string name="show_no_episodes_detail">Ofruesi juaj e rendit këtë titull, por nuk i ka dërguar episodet. Zakonisht shfaqen pas rifreskimit të radhës.</string>
+    <string name="show_play">Luaj</string>
+    <string name="show_play_episode">Luaj %1$s</string>
+    <string name="show_continue">Vazhdo %1$s</string>
+    <string name="show_failed_title">Episodet nuk mund të ngarkoheshin</string>
+    <string name="show_failed_detail">Kontrolloni lidhjen e kësaj pajisjeje dhe provoni përsëri.</string>
+    <string name="show_retry">Provo sërish</string>
+    <plurals name="show_seasons">
+        <item quantity="one">%d sezon</item>
+        <item quantity="other">%d sezone</item>
+    </plurals>
+    <plurals name="show_episodes">
+        <item quantity="one">%d episod</item>
+        <item quantity="other">%d episode</item>
+    </plurals>
     <string name="show_back">Prapa</string>
+    <string name="show_nav_overview">Përmbledhje</string>
+    <string name="show_nav_seasons">Sezonet</string>
+    <string name="show_nav_cast">Aktorët</string>
+    <string name="show_nav_similar">Të ngjashme</string>
+    <string name="show_favorite_add">Shto te të parapëlqyerat</string>
+    <string name="show_favorite_remove">Hiq nga të parapëlqyerat</string>
+    <string name="show_similar_title">Seriale të ngjashme</string>
     <string name="home_brand">CASTIVIO</string>
     <string name="home_empty_title">Ende s\'është importuar asgjë</string>
     <string name="home_empty_detail">Ofruesi juaj u arrit, por nuk dërgoi kanale, filma apo seriale. Rifreskoni nga një seksion, ose shtoni një ofrues tjetër.</string>
@@ -149,6 +171,12 @@
     <string name="movies_recent_empty_title">Ende nuk keni parë asnjë film</string>
     <string name="movies_recent_empty_detail">Këtu shfaqen filmat që luani, më të fundit të parët.</string>
     <string name="movie_play">Luaj filmin</string>
+    <string name="movie_added">Shtuar më %1$s</string>
+    <string name="movie_plot_title">Subjekti</string>
+    <string name="movie_plot_more">Shfaq të gjitha</string>
+    <string name="movie_plot_close">Mbyll</string>
+    <string name="movie_director">Regjisor:</string>
+    <string name="movie_cast">Aktorët:</string>
     <string name="movie_favorite_add">Shto te të parapëlqyerat</string>
     <string name="movie_favorite_remove">Hiq nga të parapëlqyerat</string>
     <string name="hide_title">Fshih paketat dhe kanalet</string>

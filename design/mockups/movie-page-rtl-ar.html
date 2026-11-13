@@ -1,0 +1,187 @@
+<!doctype html>
+<!--
+  A film's page in Arabic, as it is meant to be drawn: every label in the language, and the page following the language's
+  direction. Drawn before code, on the owner's own request for a preview of items 1 and 2 of his notes on this screen.
+
+  The owner's screenshot (Ben-Hur, a handset 833x385) is the case. Two things in it were wrong beside the cast line, which
+  movie-cast-more-ar.html drew (item 1):
+
+    2a. THE LABELS. Four of the page's own words were English in the Arabic interface -- "Plot", "Added 10/04/2023",
+        "Director:", "Cast:" -- because they were never translated (movie_plot_title, movie_added, movie_director and
+        movie_cast exist in no language but English); "Show all" and "Close" exist in Arabic alone. They are Arabic here:
+        القصة / أُضيف في ... / المخرج: / الممثلون:. What is not ours stays as the provider sent it: the film's name, the
+        category, the genres, the plot and the people's names. The running time keeps its figure and Latin letters (3h 42m),
+        as the board's clock does in every language.
+    2b. THE DIRECTION. The page was drawn left to right in every language. In Arabic it is mirrored: the poster at the
+        start (the right), the text column beside it, the way back at the end of the name's row (the left; its arrow
+        follows the direction, as in any app: right in Arabic, left in the other languages -- the owner's choice), the facts bar, the buttons and the rating row each beginning at the right, the link to the whole
+        of a text at the left end of its row with its arrow pointing left. The same for every right-to-left language.
+
+  Text that is not Arabic is not turned round to suit the page. A provider's English words keep their own direction and
+  are set against the start edge, the right, so the page has one edge: the name, the plot and the names after a label
+  begin there. Each person's name stands as a unit and the names are separated by the language's comma, so a list reads
+  from the label outwards, first name first, and where it is cut the cut is at the far end, next to the link.
+
+  Geometry is the earlier pages' (movie-plot.html, movie-cast-more-ar.html), which is Dialog.kt's. The film's data is the
+  provider's own (the names after the cut are examples). Colours are Color.kt tokens.
+
+    ?frame=<name>      one frame at its device size: page, dialog
+    ?frame=sheet       both stacked with their captions, for review
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>Film page in Arabic</title>
+<style>
+:root{
+  --ground:#111327; --panel:#20223A; --edge:rgba(172,180,214,.10); --edgeSoft:rgba(255,255,255,.08);
+  --glass:rgba(255,255,255,.06); --glassBorder:rgba(255,255,255,.14);
+  --azure:#4C9BFF; --azureDeep:#2F6FE0; --ring:#6FB2FF; --gold:#F5C518; --ink:#D6D3E8; --strong:#FFFFFF;
+  --muted:#8C8CA8; --scrim:rgba(5,4,14,.72); --elevated:#20223A;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#05040E;color:var(--strong);font-family:Inter,"Noto Sans Arabic","DejaVu Sans",sans-serif}
+body.sheet{padding:22px;width:max-content;direction:ltr}
+svg{display:block;flex:none}
+.cap{direction:rtl;text-align:right;width:833px;font:15px/1.6 "Noto Sans Arabic",Inter,sans-serif;color:#a4a4c0;margin:20px 0 10px}
+.cap b{color:#fff}
+
+.screen{position:relative;overflow:hidden;direction:rtl;
+  background:radial-gradient(120% 90% at 15% 0%,#1B1F3F 0%,rgba(27,31,63,0) 60%),linear-gradient(200deg,#13152D,var(--ground))}
+
+/* ---------- the page: the poster at the start, the text column beside it ---------- */
+.page{position:absolute;inset:0;display:flex;gap:28px;padding:17px 40px}
+.poster{flex:none;border-radius:10px;border:1px solid var(--edgeSoft);overflow:hidden;
+  background:linear-gradient(170deg,#e6c970 0%,#c99d3c 45%,#8a6422 100%);position:relative;direction:ltr}
+.poster b{position:absolute;left:0;right:0;top:12%;text-align:center;font:900 34px/0.95 Inter,sans-serif;color:#d9dde6;
+  letter-spacing:-1px;text-shadow:0 2px 0 #4a4f5c,0 0 10px rgba(0,0,0,.35)}
+.poster .wy{position:absolute;left:0;right:0;bottom:17%;text-align:center;font:italic 900 13px/1 Inter,sans-serif;color:#5b3d0c}
+.info{flex:1;min-width:0;display:flex;flex-direction:column}
+/* the provider's own words keep their direction and are set against the start edge */
+.prov{direction:ltr;text-align:right}
+.trow{display:flex;align-items:center;gap:8px}
+.name{flex:1;font-weight:700;font-size:25px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.back{flex:none;width:40px;height:40px;border-radius:10px;background:var(--glass);border:1px solid var(--glassBorder);
+  display:flex;align-items:center;justify-content:center}
+.back svg{width:20px;height:20px;fill:var(--azure)}
+.facts{margin-top:8px;height:32px;border-radius:16px;background:var(--glass);border:1px solid var(--edgeSoft);
+  display:flex;align-items:center;padding:0 14px;font-size:11.5px;white-space:nowrap;overflow:hidden}
+.facts i{flex:none;width:1px;height:16px;background:var(--glassBorder);margin:0 10px}
+.facts svg{width:15px;height:15px;fill:var(--ink);margin-inline-end:6px}
+.facts span{display:flex;align-items:center;flex:none}
+.facts span:last-child{flex:0 1 auto;min-width:0}
+.facts em{font-style:normal;min-width:0;overflow:hidden;text-overflow:ellipsis;unicode-bidi:plaintext}
+.btns{margin-top:12px;display:flex;gap:10px}
+.btn{height:50px;border-radius:12px;display:flex;align-items:center;gap:8px;padding:0 26px;font:600 15px "Noto Sans Arabic",Inter,sans-serif}
+.btn svg{width:20px;height:20px}
+.btn.p{background:linear-gradient(180deg,#4C9BFF,#2F6FE0);color:#fff} .btn.p svg{fill:#fff}
+.btn.s{background:var(--glass);border:1px solid var(--glassBorder);color:var(--ink)} .btn.s svg{fill:var(--ink)}
+.rrow{margin-top:12px;display:flex;gap:10px;align-items:center}
+.imdb{display:flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:15px;border:1.5px solid var(--gold);
+  background:rgba(245,197,24,.12);font-weight:700;font-size:14px;direction:rtl}
+.imdb u{text-decoration:none;background:var(--gold);color:#0B0B14;border-radius:4px;padding:1px 5px;font-weight:900}
+.imdb svg{width:15px;height:15px;fill:var(--gold)}
+.added{height:30px;display:flex;align-items:center;gap:6px;padding:0 12px;border-radius:15px;background:var(--glass);border:1px solid var(--edgeSoft);
+  font:13px "Noto Sans Arabic",Inter,sans-serif;color:var(--ink)}
+.added svg{width:15px;height:15px;fill:var(--ink)}
+.hrow{margin-top:10px;display:flex;align-items:center;justify-content:space-between;height:18px}
+.hrow h3{font:700 13.5px "Noto Sans Arabic",Inter,sans-serif}
+.more{flex:none;display:flex;align-items:center;gap:2px;font:700 12.5px "Noto Sans Arabic",Inter,sans-serif;color:var(--azure);
+  border-radius:6px;padding:0 6px 0 4px;height:18px}
+.more svg{width:16px;height:16px;fill:var(--azure)}
+.plot{margin-top:8px;font-size:12.5px;line-height:18.3px;color:var(--ink);display:-webkit-box;-webkit-box-orient:vertical;
+  -webkit-line-clamp:3;overflow:hidden}
+.cred{margin-top:9px;font:12.5px/18px "Noto Sans Arabic",Inter,sans-serif;color:var(--ink);display:flex;gap:8px;white-space:nowrap;align-items:flex-start}
+.cred .t{min-width:0;flex:1;overflow:hidden}
+.cred b{color:#fff;font-weight:700}
+.cred svg{width:16px;height:16px;fill:#fff;margin-top:1px}
+.cred .more{align-self:center}
+
+.dim{position:absolute;inset:0;background:var(--scrim)}
+
+/* ---------- the dialog: the application's own, which follows the language ---------- */
+.stagebox{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.panel{position:relative;background:var(--elevated);border:1px solid var(--edgeSoft);display:flex;flex-direction:column;overflow:hidden;direction:rtl}
+.ttl{font-weight:700;color:var(--strong);line-height:1.44;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.txt{position:relative;overflow:hidden;color:var(--ink);font-family:"Noto Sans Arabic",Inter,sans-serif}
+.txt b{color:#fff}
+.close{align-self:flex-end;background:var(--glass);border:1px solid var(--glassBorder);border-radius:12px;color:var(--strong);
+  font:600 14px "Noto Sans Arabic",Inter,sans-serif;display:flex;align-items:center;padding:0 26px}
+.close.ring{border-color:var(--ring);box-shadow:0 0 0 2px rgba(111,178,255,.45);background:rgba(76,155,255,.20)}
+</style>
+</head>
+<body>
+<script>
+const I={
+  back:'<svg viewBox="0 0 24 24"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>', /* pointing right in Arabic, left in the other languages: it follows the direction */
+  play:'<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>',
+  heart:'<svg viewBox="0 0 24 24"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3zm-4.4 15.55-.1.1-.1-.1C7.14 14.24 4 11.39 4 8.5 4 6.5 5.5 5 7.5 5c1.54 0 3.04.99 3.57 2.36h1.87C13.46 5.99 14.96 5 16.5 5c2 0 3.5 1.5 3.5 3.5 0 2.89-3.14 5.74-7.9 10.05z"/></svg>',
+  star:'<svg viewBox="0 0 24 24"><path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>',
+  chevL:'<svg viewBox="0 0 24 24"><path d="M14 6l1.41 1.41L10.83 12l4.58 4.59L14 18l-6-6z"/></svg>',
+  person:'<svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>',
+  groups:'<svg viewBox="0 0 24 24"><path d="M12 12.75c1.63 0 3.07.39 4.24.9 1.08.48 1.76 1.56 1.76 2.73V18H6v-1.61c0-1.18.68-2.26 1.76-2.73 1.17-.52 2.61-.91 4.24-.91zM4 13c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm1.13 1.1c-.37-.06-.74-.1-1.13-.1-.99 0-1.93.21-2.78.58C.48 14.9 0 15.62 0 16.43V18h4.5v-1.61c0-.83.23-1.61.63-2.29zM20 13c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm4 3.43c0-.81-.48-1.53-1.22-1.85-.85-.37-1.79-.58-2.78-.58-.39 0-.76.04-1.13.1.4.68.63 1.46.63 2.29V18H24v-1.57zM12 6c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3z"/></svg>',
+  cal:'<svg viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 16H5V9h14v11z"/></svg>',
+  clock:'<svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>',
+  cat:'<svg viewBox="0 0 24 24"><path d="M12 2 6.5 11h11zM17.5 13a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9zM3 13.5h8v8H3z"/></svg>',
+  mask:'<svg viewBox="0 0 24 24"><path d="M2 5c3-1 6-1 9 0v6a4.5 4.5 0 0 1-9 0zm11 1c3-1 6-1 9 0v6a4.5 4.5 0 0 1-9 0z"/></svg>'
+};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+/* The provider's own words are the screenshot's; the names and the plot after its cut are examples. */
+const FILM='EN - Ben-Hur (1959)';
+const PLOT='In 25 AD, Judah Ben-Hur, a Jew in ancient Judea, opposes the occupying Roman empire. Falsely accused by a Roman childhood friend-turned-overlord of trying to kill the Roman governor, he is put into slavery and his mother and sister are taken away as prisoners. Three years later, he is saved by a Roman admiral and returns to Judea to take his revenge, in a chariot race that the whole city comes to watch.';
+const PLOT_CUT='In 25 AD, Judah Ben-Hur, a Jew in ancient Judea, opposes the occupying Roman empire. Falsely accused by a Roman childhood friend-turned-overlord of trying to kill the Roman governor, he is put into slavery and his mother and sister…';
+const NAMES=['Charlton Heston','Haya Harareet','Stephen Boyd','Martha Scott','Cathy O\'Donnell','Jack Hawkins','Hugh Griffith','Sam Jaffe','Finlay Currie','Frank Thring','Terence Longdon','André Morell'];
+/* each person a unit, the names parted by the language's comma: they read from the label outwards, first name first */
+const list=(a)=>a.map(n=>`<bdi dir="ltr">${n.replace(/ /g,'\u00A0')}</bdi>`).join('، ');
+const L={plot:'القصة',more:'عرض الكل',close:'إغلاق',play:'تشغيل الفيلم',fav:'إضافة إلى المفضلة',dir:'المخرج:',cast:'الممثلون:',added:'أُضيف في'};
+const moreLink=(ring)=>`<div class="more">${L.more}${I.chevL}</div>`;
+
+function page(w,h,o){
+  const ph=h-34, pw=Math.round(ph*2/3);
+  return `<div class="page">
+    <div class="poster" style="width:${pw}px;height:${ph}px"><b>BEN<br>HUR</b><div class="wy">WILLIAM WYLER</div></div>
+    <div class="info">
+      <div class="trow"><div class="name prov">${FILM}</div><div class="back">${I.back}</div></div>
+      <div class="facts"><span>${I.cat}<em>|EN| BIBLICAL/RELIGIOUS</em></span><i></i><span>${I.cal}<bdi dir="ltr">1959</bdi></span><i></i><span>${I.clock}<bdi dir="ltr">3h 42m</bdi></span><i></i><span>${I.mask}<em>Action | Drama | History</em></span></div>
+      <div class="btns"><div class="btn p">${I.play}${L.play}</div><div class="btn s">${I.heart}${L.fav}</div></div>
+      <div class="rrow"><div class="imdb"><u>IMDb</u>7.9${I.star}</div><div class="added">${I.cal}${L.added} <bdi dir="ltr">10/04/2023</bdi></div></div>
+      <div class="hrow"><h3>${L.plot}</h3>${moreLink()}</div>
+      <div class="plot prov">${PLOT_CUT}</div>
+      <div style="flex:1 1 0;min-height:2px"></div>
+      <div class="cred">${I.person}<span class="t"><b>${L.dir}</b> ${list(['William Wyler'])}</span></div>
+      <div class="cred">${I.groups}<span class="t"><b>${L.cast}</b> ${list(NAMES.slice(0,3))}…</span>${moreLink()}</div>
+    </div></div>`;
+}
+
+/* Dialog.kt's shares: its text is as tall as it is, up to five lines on a handset */
+function dialog(w,h){
+  const pw=Math.min(clamp(w*746.7/1280,400,560),w), pad=clamp(w*42.7/1280,20,36);
+  const rad=clamp(h*40/720,20,32), ttl=clamp(h*24/720,15,20), body=14, lh=body*1.5;
+  const names=list(NAMES.concat(['Mino Doro','Liana Orfei','Ralph Truman','Duncan Lamont']));
+  return `<div class="panel" style="width:${pw}px;border-radius:${rad}px;padding:${pad}px;gap:14px;max-height:${Math.round(h*.72)}px">
+    <div class="ttl prov" style="font-size:${ttl}px">${FILM}</div>
+    <div class="txt" style="font-size:${body}px;line-height:${lh}px"><b>${L.cast}</b> ${names}</div>
+    <div class="close ring" style="height:48px">${L.close}</div></div>`;
+}
+
+const FR={
+  page:[833,385,()=>page(833,385)],
+  dialog:[833,385,()=>page(833,385)+'<div class="dim"></div><div class="stagebox">'+dialog(833,385)+'</div>']
+};
+const CAP={
+  page:'<b>الصفحة بالعربية:</b> من اليمين إلى اليسار، وكل التسميات بالعربية، وفي سطر الممثلين «عرض الكل» (التعديل 1). يبقى بلغة المزوّد: اسم الفيلم والتصنيف والأنواع والحبكة وأسماء الأشخاص.',
+  dialog:'<b>بعد الضغط على «عرض الكل» في سطر الممثلين.</b>'
+};
+const q=new URLSearchParams(location.search), f=q.get('frame')||'sheet';
+function draw(name){
+  const [w,h,html]=FR[name];
+  return `<div class="screen" style="width:${w}px;height:${h}px">${html()}</div>`;
+}
+if(f==='sheet'){
+  document.body.className='sheet';
+  document.body.innerHTML=['page','dialog'].map(n=>`<div class="cap">${CAP[n]}</div>${draw(n)}`).join('');
+}else document.body.innerHTML=draw(f);
+</script>
+</body>
+</html>

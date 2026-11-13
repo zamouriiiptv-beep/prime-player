@@ -14,9 +14,33 @@
     <string name="browse_empty_section_detail">Остали одељци нису погођени. Ако ово изгледа погрешно, освежите — увоз који је у току пуни одељке један по један.</string>
     <string name="browse_empty_action">Освежи</string>
     <string name="show_season">%1$d. сезона</string>
+    <string name="show_preparing">Ваш добављач припрема епизоде…</string>
     <string name="show_no_episodes_title">Још нема епизода</string>
     <string name="show_no_episodes_detail">Ваш добављач приказује овај наслов, али није послао његове епизоде. Обично се појаве после следећег освежавања.</string>
+    <string name="show_play">Покрени</string>
+    <string name="show_play_episode">Покрени %1$s</string>
+    <string name="show_continue">Настави %1$s</string>
+    <string name="show_failed_title">Епизоде није било могуће учитати</string>
+    <string name="show_failed_detail">Проверите везу овог уређаја, па покушајте поново.</string>
+    <string name="show_retry">Покушај поново</string>
+    <plurals name="show_seasons">
+        <item quantity="one">%d сезона</item>
+        <item quantity="few">%d сезоне</item>
+        <item quantity="other">%d сезона</item>
+    </plurals>
+    <plurals name="show_episodes">
+        <item quantity="one">%d епизода</item>
+        <item quantity="few">%d епизоде</item>
+        <item quantity="other">%d епизода</item>
+    </plurals>
     <string name="show_back">Назад</string>
+    <string name="show_nav_overview">Преглед</string>
+    <string name="show_nav_seasons">Сезоне</string>
+    <string name="show_nav_cast">Глумци</string>
+    <string name="show_nav_similar">Слично</string>
+    <string name="show_favorite_add">Додај у омиљено</string>
+    <string name="show_favorite_remove">Уклони из омиљених</string>
+    <string name="show_similar_title">Сличне серије</string>
     <string name="home_brand">CASTIVIO</string>
     <string name="home_empty_title">Још ништа није увезено</string>
     <string name="home_empty_detail">Ваш добављач је одговорио, али није послао канале, филмове ни серије. Освежите из неког одељка или додајте другог добављача.</string>
@@ -149,6 +173,12 @@
     <string name="movies_recent_empty_title">Још нисте гледали ниједан филм</string>
     <string name="movies_recent_empty_detail">Овде се приказују филмови које покренете, најновији први.</string>
     <string name="movie_play">Покрени филм</string>
+    <string name="movie_added">Додато %1$s</string>
+    <string name="movie_plot_title">Радња</string>
+    <string name="movie_plot_more">Прикажи све</string>
+    <string name="movie_plot_close">Затвори</string>
+    <string name="movie_director">Режисер:</string>
+    <string name="movie_cast">Глумци:</string>
     <string name="movie_favorite_add">Додај у омиљено</string>
     <string name="movie_favorite_remove">Уклони из омиљених</string>
     <string name="hide_title">Сакриј пакете и канале</string>

@@ -14,9 +14,29 @@
     <string name="browse_empty_section_detail">其他板块不受影响。如果看起来不对，请刷新——正在进行的导入会逐个填充板块。</string>
     <string name="browse_empty_action">刷新</string>
     <string name="show_season">第 %1$d 季</string>
+    <string name="show_preparing">你的服务商正在准备剧集…</string>
     <string name="show_no_episodes_title">暂无剧集</string>
     <string name="show_no_episodes_detail">你的服务商列出了这部作品，却没有发送剧集。通常会在下次刷新后出现。</string>
+    <string name="show_play">播放</string>
+    <string name="show_play_episode">播放 %1$s</string>
+    <string name="show_continue">继续 %1$s</string>
+    <string name="show_failed_title">无法加载剧集</string>
+    <string name="show_failed_detail">请检查本设备的网络连接，然后重试。</string>
+    <string name="show_retry">重试</string>
+    <plurals name="show_seasons">
+        <item quantity="other">%d 季</item>
+    </plurals>
+    <plurals name="show_episodes">
+        <item quantity="other">%d 集</item>
+    </plurals>
     <string name="show_back">返回</string>
+    <string name="show_nav_overview">概览</string>
+    <string name="show_nav_seasons">各季</string>
+    <string name="show_nav_cast">演员</string>
+    <string name="show_nav_similar">类似</string>
+    <string name="show_favorite_add">加入收藏</string>
+    <string name="show_favorite_remove">取消收藏</string>
+    <string name="show_similar_title">类似剧集</string>
     <string name="home_brand">CASTIVIO</string>
     <string name="home_empty_title">尚未导入任何内容</string>
     <string name="home_empty_detail">已连上你的服务商，但没有收到频道、电影或剧集。请从某个板块刷新，或添加另一个服务商。</string>
@@ -149,6 +169,12 @@
     <string name="movies_recent_empty_title">还没有观看过的电影</string>
     <string name="movies_recent_empty_detail">你播放过的电影会显示在这里，最近播放的排在最前。</string>
     <string name="movie_play">播放电影</string>
+    <string name="movie_added">添加于 %1$s</string>
+    <string name="movie_plot_title">剧情</string>
+    <string name="movie_plot_more">查看全部</string>
+    <string name="movie_plot_close">关闭</string>
+    <string name="movie_director">导演：</string>
+    <string name="movie_cast">演员：</string>
     <string name="movie_favorite_add">加入收藏</string>
     <string name="movie_favorite_remove">取消收藏</string>
     <string name="hide_title">隐藏分组和频道</string>

@@ -14,9 +14,31 @@
     <string name="browse_empty_section_detail">Deine übrigen Bereiche sind nicht betroffen. Falls das falsch aussieht, aktualisiere: Ein laufender Import füllt die Bereiche nacheinander.</string>
     <string name="browse_empty_action">Aktualisieren</string>
     <string name="show_season">Staffel %1$d</string>
+    <string name="show_preparing">Dein Anbieter bereitet die Folgen vor…</string>
     <string name="show_no_episodes_title">Noch keine Folgen</string>
     <string name="show_no_episodes_detail">Dein Anbieter führt diesen Titel, hat aber keine Folgen gesendet. Sie erscheinen meist nach der nächsten Aktualisierung.</string>
+    <string name="show_play">Abspielen</string>
+    <string name="show_play_episode">%1$s abspielen</string>
+    <string name="show_continue">%1$s fortsetzen</string>
+    <string name="show_failed_title">Die Folgen konnten nicht geladen werden</string>
+    <string name="show_failed_detail">Prüfe die Verbindung dieses Geräts und versuche es erneut.</string>
+    <string name="show_retry">Erneut versuchen</string>
+    <plurals name="show_seasons">
+        <item quantity="one">%d Staffel</item>
+        <item quantity="other">%d Staffeln</item>
+    </plurals>
+    <plurals name="show_episodes">
+        <item quantity="one">%d Folge</item>
+        <item quantity="other">%d Folgen</item>
+    </plurals>
     <string name="show_back">Zurück</string>
+    <string name="show_nav_overview">Übersicht</string>
+    <string name="show_nav_seasons">Staffeln</string>
+    <string name="show_nav_cast">Besetzung</string>
+    <string name="show_nav_similar">Ähnlich</string>
+    <string name="show_favorite_add">Zu Favoriten hinzufügen</string>
+    <string name="show_favorite_remove">Aus Favoriten entfernen</string>
+    <string name="show_similar_title">Ähnliche Serien</string>
     <string name="home_brand">CASTIVIO</string>
     <string name="home_empty_title">Noch nichts importiert</string>
     <string name="home_empty_detail">Dein Anbieter war erreichbar, hat aber keine Sender, Filme oder Serien gesendet. Aktualisiere aus einem Bereich oder füge einen anderen Anbieter hinzu.</string>
@@ -149,6 +171,12 @@
     <string name="movies_recent_empty_title">Noch keine Filme gesehen</string>
     <string name="movies_recent_empty_detail">Hier erscheinen die Filme, die du abspielst – die zuletzt gesehenen zuerst.</string>
     <string name="movie_play">Film abspielen</string>
+    <string name="movie_added">Hinzugefügt am %1$s</string>
+    <string name="movie_plot_title">Handlung</string>
+    <string name="movie_plot_more">Alle anzeigen</string>
+    <string name="movie_plot_close">Schließen</string>
+    <string name="movie_director">Regie:</string>
+    <string name="movie_cast">Besetzung:</string>
     <string name="movie_favorite_add">Zu Favoriten hinzufügen</string>
     <string name="movie_favorite_remove">Aus Favoriten entfernen</string>
     <string name="hide_title">Bouquets und Sender ausblenden</string>

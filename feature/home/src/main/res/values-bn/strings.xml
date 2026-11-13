@@ -14,9 +14,31 @@
     <string name="browse_empty_section_detail">বাকি বিভাগগুলোতে কোনো প্রভাব পড়েনি। ভুল মনে হলে রিফ্রেশ করুন — চলতে থাকা আমদানি বিভাগগুলো একে একে ভরে।</string>
     <string name="browse_empty_action">রিফ্রেশ</string>
     <string name="show_season">সিজন %1$d</string>
+    <string name="show_preparing">আপনার সরবরাহকারী পর্বগুলো প্রস্তুত করছে…</string>
     <string name="show_no_episodes_title">এখনও কোনো পর্ব নেই</string>
     <string name="show_no_episodes_detail">আপনার সরবরাহকারী এই অনুষ্ঠানটি দেখাচ্ছে, কিন্তু এর পর্বগুলো পাঠায়নি। সাধারণত পরের রিফ্রেশের পরে দেখা যায়।</string>
+    <string name="show_play">চালান</string>
+    <string name="show_play_episode">%1$s চালান</string>
+    <string name="show_continue">%1$s চালিয়ে যান</string>
+    <string name="show_failed_title">পর্বগুলো লোড করা যায়নি</string>
+    <string name="show_failed_detail">এই ডিভাইসের সংযোগ যাচাই করুন, তারপর আবার চেষ্টা করুন।</string>
+    <string name="show_retry">আবার চেষ্টা করুন</string>
+    <plurals name="show_seasons">
+        <item quantity="one">%dটি সিজন</item>
+        <item quantity="other">%dটি সিজন</item>
+    </plurals>
+    <plurals name="show_episodes">
+        <item quantity="one">%dটি পর্ব</item>
+        <item quantity="other">%dটি পর্ব</item>
+    </plurals>
     <string name="show_back">ফিরুন</string>
+    <string name="show_nav_overview">সংক্ষিপ্ত বিবরণ</string>
+    <string name="show_nav_seasons">সিজন</string>
+    <string name="show_nav_cast">অভিনয়শিল্পী</string>
+    <string name="show_nav_similar">অনুরূপ</string>
+    <string name="show_favorite_add">প্রিয় করুন</string>
+    <string name="show_favorite_remove">প্রিয় থেকে সরান</string>
+    <string name="show_similar_title">অনুরূপ অনুষ্ঠান</string>
     <string name="home_brand">CASTIVIO</string>
     <string name="home_empty_title">এখনও কিছু আমদানি হয়নি</string>
     <string name="home_empty_detail">আপনার সরবরাহকারীর সঙ্গে যোগাযোগ হয়েছে, কিন্তু কোনো চ্যানেল, সিনেমা বা সিরিজ আসেনি। কোনো একটি বিভাগ থেকে রিফ্রেশ করুন, অথবা অন্য সরবরাহকারী যোগ করুন।</string>
@@ -149,6 +171,12 @@
     <string name="movies_recent_empty_title">এখনও কোনো সিনেমা দেখা হয়নি</string>
     <string name="movies_recent_empty_detail">আপনি যে সিনেমাগুলো চালান সেগুলো এখানে দেখাবে, সবচেয়ে সাম্প্রতিকটি প্রথমে।</string>
     <string name="movie_play">সিনেমা চালান</string>
+    <string name="movie_added">%1$s তারিখে যোগ করা হয়েছে</string>
+    <string name="movie_plot_title">কাহিনি</string>
+    <string name="movie_plot_more">সব দেখুন</string>
+    <string name="movie_plot_close">বন্ধ করুন</string>
+    <string name="movie_director">পরিচালক:</string>
+    <string name="movie_cast">অভিনয়শিল্পী:</string>
     <string name="movie_favorite_add">প্রিয় করুন</string>
     <string name="movie_favorite_remove">প্রিয় থেকে সরান</string>
     <string name="hide_title">বুকেট ও চ্যানেল লুকান</string>

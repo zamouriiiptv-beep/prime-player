@@ -14,9 +14,29 @@
     <string name="browse_empty_section_detail">Các mục khác không bị ảnh hưởng. Nếu thấy không đúng, hãy làm mới — quá trình nhập đang chạy sẽ lấp đầy từng mục một.</string>
     <string name="browse_empty_action">Làm mới</string>
     <string name="show_season">Mùa %1$d</string>
+    <string name="show_preparing">Nhà cung cấp của bạn đang chuẩn bị các tập…</string>
     <string name="show_no_episodes_title">Chưa có tập nào</string>
     <string name="show_no_episodes_detail">Nhà cung cấp của bạn có liệt kê chương trình này nhưng chưa gửi các tập. Chúng thường xuất hiện sau lần làm mới kế tiếp.</string>
+    <string name="show_play">Phát</string>
+    <string name="show_play_episode">Phát %1$s</string>
+    <string name="show_continue">Tiếp tục %1$s</string>
+    <string name="show_failed_title">Không thể tải các tập</string>
+    <string name="show_failed_detail">Hãy kiểm tra kết nối của thiết bị này rồi thử lại.</string>
+    <string name="show_retry">Thử lại</string>
+    <plurals name="show_seasons">
+        <item quantity="other">%d mùa</item>
+    </plurals>
+    <plurals name="show_episodes">
+        <item quantity="other">%d tập</item>
+    </plurals>
     <string name="show_back">Quay lại</string>
+    <string name="show_nav_overview">Tổng quan</string>
+    <string name="show_nav_seasons">Các mùa</string>
+    <string name="show_nav_cast">Diễn viên</string>
+    <string name="show_nav_similar">Tương tự</string>
+    <string name="show_favorite_add">Thêm vào yêu thích</string>
+    <string name="show_favorite_remove">Xóa khỏi yêu thích</string>
+    <string name="show_similar_title">Chương trình tương tự</string>
     <string name="home_brand">CASTIVIO</string>
     <string name="home_empty_title">Chưa nhập nội dung nào</string>
     <string name="home_empty_detail">Đã kết nối được nhà cung cấp nhưng không nhận được kênh, phim lẻ hay phim bộ. Hãy làm mới từ một mục, hoặc thêm nhà cung cấp khác.</string>
@@ -149,6 +169,12 @@
     <string name="movies_recent_empty_title">Bạn chưa xem phim nào</string>
     <string name="movies_recent_empty_detail">Các phim bạn phát sẽ hiện ở đây, phim xem gần nhất ở trên cùng.</string>
     <string name="movie_play">Phát phim</string>
+    <string name="movie_added">Đã thêm vào %1$s</string>
+    <string name="movie_plot_title">Nội dung</string>
+    <string name="movie_plot_more">Xem tất cả</string>
+    <string name="movie_plot_close">Đóng</string>
+    <string name="movie_director">Đạo diễn:</string>
+    <string name="movie_cast">Diễn viên:</string>
     <string name="movie_favorite_add">Thêm vào yêu thích</string>
     <string name="movie_favorite_remove">Xóa khỏi yêu thích</string>
     <string name="hide_title">Ẩn gói và kênh</string>

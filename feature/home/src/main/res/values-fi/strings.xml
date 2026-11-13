@@ -14,9 +14,31 @@
     <string name="browse_empty_section_detail">Muut osiot eivät muuttuneet. Jos tämä näyttää väärältä, päivitä — käynnissä oleva tuonti täyttää osiot yksi kerrallaan.</string>
     <string name="browse_empty_action">Päivitä</string>
     <string name="show_season">Kausi %1$d</string>
+    <string name="show_preparing">Palveluntarjoajasi valmistelee jaksoja…</string>
     <string name="show_no_episodes_title">Ei vielä jaksoja</string>
     <string name="show_no_episodes_detail">Palveluntarjoajasi listaa tämän ohjelman mutta ei ole lähettänyt sen jaksoja. Ne ilmestyvät yleensä seuraavan päivityksen jälkeen.</string>
+    <string name="show_play">Toista</string>
+    <string name="show_play_episode">Toista %1$s</string>
+    <string name="show_continue">Jatka: %1$s</string>
+    <string name="show_failed_title">Jaksoja ei voitu ladata</string>
+    <string name="show_failed_detail">Tarkista tämän laitteen yhteys ja yritä uudelleen.</string>
+    <string name="show_retry">Yritä uudelleen</string>
+    <plurals name="show_seasons">
+        <item quantity="one">%d kausi</item>
+        <item quantity="other">%d kautta</item>
+    </plurals>
+    <plurals name="show_episodes">
+        <item quantity="one">%d jakso</item>
+        <item quantity="other">%d jaksoa</item>
+    </plurals>
     <string name="show_back">Takaisin</string>
+    <string name="show_nav_overview">Yleiskatsaus</string>
+    <string name="show_nav_seasons">Kaudet</string>
+    <string name="show_nav_cast">Näyttelijät</string>
+    <string name="show_nav_similar">Samankaltaiset</string>
+    <string name="show_favorite_add">Lisää suosikkeihin</string>
+    <string name="show_favorite_remove">Poista suosikeista</string>
+    <string name="show_similar_title">Samankaltaiset sarjat</string>
     <string name="home_brand">CASTIVIO</string>
     <string name="home_empty_title">Mitään ei ole vielä tuotu</string>
     <string name="home_empty_detail">Palveluntarjoajaasi saatiin yhteys, mutta se ei lähettänyt kanavia, elokuvia eikä sarjoja. Päivitä jostakin osiosta tai lisää toinen palveluntarjoaja.</string>
@@ -149,6 +171,12 @@
     <string name="movies_recent_empty_title">Et ole vielä katsonut elokuvia</string>
     <string name="movies_recent_empty_detail">Toistamasi elokuvat näkyvät tässä, viimeksi katsotut ensin.</string>
     <string name="movie_play">Toista elokuva</string>
+    <string name="movie_added">Lisätty %1$s</string>
+    <string name="movie_plot_title">Juoni</string>
+    <string name="movie_plot_more">Näytä kaikki</string>
+    <string name="movie_plot_close">Sulje</string>
+    <string name="movie_director">Ohjaaja:</string>
+    <string name="movie_cast">Näyttelijät:</string>
     <string name="movie_favorite_add">Lisää suosikkeihin</string>
     <string name="movie_favorite_remove">Poista suosikeista</string>
     <string name="hide_title">Piilota paketit ja kanavat</string>

@@ -14,9 +14,31 @@
     <string name="browse_empty_section_detail">Οι υπόλοιπες ενότητες δεν επηρεάζονται. Αν αυτό φαίνεται λάθος, ανανεώστε — μια εισαγωγή που τρέχει ακόμη γεμίζει τις ενότητες μία-μία.</string>
     <string name="browse_empty_action">Ανανέωση</string>
     <string name="show_season">Σεζόν %1$d</string>
+    <string name="show_preparing">Ο πάροχός σας προετοιμάζει τα επεισόδια…</string>
     <string name="show_no_episodes_title">Δεν υπάρχουν επεισόδια ακόμη</string>
     <string name="show_no_episodes_detail">Ο πάροχός σας εμφανίζει αυτόν τον τίτλο αλλά δεν έστειλε τα επεισόδιά του. Συνήθως εμφανίζονται μετά την επόμενη ανανέωση.</string>
+    <string name="show_play">Αναπαραγωγή</string>
+    <string name="show_play_episode">Αναπαραγωγή %1$s</string>
+    <string name="show_continue">Συνέχιση %1$s</string>
+    <string name="show_failed_title">Δεν ήταν δυνατή η φόρτωση των επεισοδίων</string>
+    <string name="show_failed_detail">Ελέγξτε τη σύνδεση αυτής της συσκευής και δοκιμάστε ξανά.</string>
+    <string name="show_retry">Δοκιμάστε ξανά</string>
+    <plurals name="show_seasons">
+        <item quantity="one">%d σεζόν</item>
+        <item quantity="other">%d σεζόν</item>
+    </plurals>
+    <plurals name="show_episodes">
+        <item quantity="one">%d επεισόδιο</item>
+        <item quantity="other">%d επεισόδια</item>
+    </plurals>
     <string name="show_back">Πίσω</string>
+    <string name="show_nav_overview">Επισκόπηση</string>
+    <string name="show_nav_seasons">Σεζόν</string>
+    <string name="show_nav_cast">Ηθοποιοί</string>
+    <string name="show_nav_similar">Παρόμοια</string>
+    <string name="show_favorite_add">Προσθήκη στα αγαπημένα</string>
+    <string name="show_favorite_remove">Αφαίρεση από τα αγαπημένα</string>
+    <string name="show_similar_title">Παρόμοιες σειρές</string>
     <string name="home_brand">CASTIVIO</string>
     <string name="home_empty_title">Δεν έχει εισαχθεί τίποτα ακόμη</string>
     <string name="home_empty_detail">Ο πάροχός σας απάντησε αλλά δεν έστειλε κανάλια, ταινίες ή σειρές. Ανανεώστε από κάποια ενότητα ή προσθέστε άλλον πάροχο.</string>
@@ -149,6 +171,12 @@
     <string name="movies_recent_empty_title">Δεν έχετε δει ταινίες ακόμη</string>
     <string name="movies_recent_empty_detail">Εδώ εμφανίζονται οι ταινίες που αναπαράγετε, με τις πιο πρόσφατες πρώτες.</string>
     <string name="movie_play">Αναπαραγωγή ταινίας</string>
+    <string name="movie_added">Προστέθηκε στις %1$s</string>
+    <string name="movie_plot_title">Υπόθεση</string>
+    <string name="movie_plot_more">Εμφάνιση όλων</string>
+    <string name="movie_plot_close">Κλείσιμο</string>
+    <string name="movie_director">Σκηνοθεσία:</string>
+    <string name="movie_cast">Ηθοποιοί:</string>
     <string name="movie_favorite_add">Προσθήκη στα αγαπημένα</string>
     <string name="movie_favorite_remove">Αφαίρεση από τα αγαπημένα</string>
     <string name="hide_title">Απόκρυψη πακέτων και καναλιών</string>

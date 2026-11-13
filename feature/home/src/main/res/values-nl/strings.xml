@@ -14,9 +14,31 @@
     <string name="browse_empty_section_detail">Je andere secties zijn niet geraakt. Ziet dit er verkeerd uit, ververs dan: een lopende import vult de secties één voor één.</string>
     <string name="browse_empty_action">Verversen</string>
     <string name="show_season">Seizoen %1$d</string>
+    <string name="show_preparing">Je provider bereidt de afleveringen voor…</string>
     <string name="show_no_episodes_title">Nog geen afleveringen</string>
     <string name="show_no_episodes_detail">Je provider vermeldt dit programma maar heeft de afleveringen niet gestuurd. Meestal verschijnen ze na de volgende verversing.</string>
+    <string name="show_play">Afspelen</string>
+    <string name="show_play_episode">%1$s afspelen</string>
+    <string name="show_continue">%1$s hervatten</string>
+    <string name="show_failed_title">De afleveringen konden niet worden geladen</string>
+    <string name="show_failed_detail">Controleer de verbinding van dit apparaat en probeer het opnieuw.</string>
+    <string name="show_retry">Opnieuw proberen</string>
+    <plurals name="show_seasons">
+        <item quantity="one">%d seizoen</item>
+        <item quantity="other">%d seizoenen</item>
+    </plurals>
+    <plurals name="show_episodes">
+        <item quantity="one">%d aflevering</item>
+        <item quantity="other">%d afleveringen</item>
+    </plurals>
     <string name="show_back">Terug</string>
+    <string name="show_nav_overview">Overzicht</string>
+    <string name="show_nav_seasons">Seizoenen</string>
+    <string name="show_nav_cast">Cast</string>
+    <string name="show_nav_similar">Vergelijkbaar</string>
+    <string name="show_favorite_add">Toevoegen aan favorieten</string>
+    <string name="show_favorite_remove">Verwijderen uit favorieten</string>
+    <string name="show_similar_title">Vergelijkbare series</string>
     <string name="home_brand">CASTIVIO</string>
     <string name="home_empty_title">Nog niets geïmporteerd</string>
     <string name="home_empty_detail">Je provider was bereikbaar maar stuurde geen zenders, films of series. Ververs vanuit een sectie, of voeg een andere provider toe.</string>
@@ -149,6 +171,12 @@
     <string name="movies_recent_empty_title">Nog geen films bekeken</string>
     <string name="movies_recent_empty_detail">Hier verschijnen de films die je afspeelt, de laatst bekeken eerst.</string>
     <string name="movie_play">Film afspelen</string>
+    <string name="movie_added">Toegevoegd op %1$s</string>
+    <string name="movie_plot_title">Verhaal</string>
+    <string name="movie_plot_more">Alles tonen</string>
+    <string name="movie_plot_close">Sluiten</string>
+    <string name="movie_director">Regie:</string>
+    <string name="movie_cast">Cast:</string>
     <string name="movie_favorite_add">Toevoegen aan favorieten</string>
     <string name="movie_favorite_remove">Verwijderen uit favorieten</string>
     <string name="hide_title">Boeketten en zenders verbergen</string>

@@ -14,9 +14,29 @@
     <string name="browse_empty_section_detail">ส่วนอื่นไม่ได้รับผลกระทบ หากดูแล้วไม่ถูกต้อง ให้รีเฟรช — การนำเข้าที่ยังทำงานอยู่จะเติมทีละส่วน</string>
     <string name="browse_empty_action">รีเฟรช</string>
     <string name="show_season">ซีซัน %1$d</string>
+    <string name="show_preparing">ผู้ให้บริการของคุณกำลังเตรียมตอน…</string>
     <string name="show_no_episodes_title">ยังไม่มีตอน</string>
     <string name="show_no_episodes_detail">ผู้ให้บริการของคุณแสดงรายการนี้ไว้แต่ยังไม่ได้ส่งตอนมา โดยปกติจะปรากฏหลังการรีเฟรชครั้งถัดไป</string>
+    <string name="show_play">เล่น</string>
+    <string name="show_play_episode">เล่น %1$s</string>
+    <string name="show_continue">เล่น %1$s ต่อ</string>
+    <string name="show_failed_title">ไม่สามารถโหลดตอนได้</string>
+    <string name="show_failed_detail">ตรวจสอบการเชื่อมต่อของอุปกรณ์นี้ แล้วลองอีกครั้ง</string>
+    <string name="show_retry">ลองอีกครั้ง</string>
+    <plurals name="show_seasons">
+        <item quantity="other">%d ซีซัน</item>
+    </plurals>
+    <plurals name="show_episodes">
+        <item quantity="other">%d ตอน</item>
+    </plurals>
     <string name="show_back">ย้อนกลับ</string>
+    <string name="show_nav_overview">ภาพรวม</string>
+    <string name="show_nav_seasons">ซีซัน</string>
+    <string name="show_nav_cast">นักแสดง</string>
+    <string name="show_nav_similar">คล้ายกัน</string>
+    <string name="show_favorite_add">เพิ่มรายการโปรด</string>
+    <string name="show_favorite_remove">ลบออกจากรายการโปรด</string>
+    <string name="show_similar_title">ซีรีส์ที่คล้ายกัน</string>
     <string name="home_brand">CASTIVIO</string>
     <string name="home_empty_title">ยังไม่ได้นำเข้าอะไรเลย</string>
     <string name="home_empty_detail">ติดต่อผู้ให้บริการของคุณได้ แต่ไม่ได้รับช่อง ภาพยนตร์ หรือซีรีส์ ลองรีเฟรชจากส่วนใดส่วนหนึ่ง หรือเพิ่มผู้ให้บริการรายอื่น</string>
@@ -149,6 +169,12 @@
     <string name="movies_recent_empty_title">ยังไม่มีภาพยนตร์ที่ดู</string>
     <string name="movies_recent_empty_detail">ภาพยนตร์ที่คุณเล่นจะแสดงที่นี่ โดยเรื่องล่าสุดจะอยู่ก่อน</string>
     <string name="movie_play">เล่นภาพยนตร์</string>
+    <string name="movie_added">เพิ่มเมื่อ %1$s</string>
+    <string name="movie_plot_title">เรื่องย่อ</string>
+    <string name="movie_plot_more">ดูทั้งหมด</string>
+    <string name="movie_plot_close">ปิด</string>
+    <string name="movie_director">ผู้กำกับ:</string>
+    <string name="movie_cast">นักแสดง:</string>
     <string name="movie_favorite_add">เพิ่มรายการโปรด</string>
     <string name="movie_favorite_remove">ลบออกจากรายการโปรด</string>
     <string name="hide_title">ซ่อนแพ็กเกจและช่อง</string>

@@ -14,9 +14,31 @@
     <string name="browse_empty_section_detail">बाकी खंडों पर कोई असर नहीं पड़ा। अगर यह गलत लगे तो रीफ़्रेश करें — चल रहा आयात खंडों को एक-एक करके भरता है।</string>
     <string name="browse_empty_action">रीफ़्रेश</string>
     <string name="show_season">सीज़न %1$d</string>
+    <string name="show_preparing">आपका प्रदाता एपिसोड तैयार कर रहा है…</string>
     <string name="show_no_episodes_title">अभी कोई एपिसोड नहीं</string>
     <string name="show_no_episodes_detail">आपका प्रदाता यह शो दिखाता है, पर उसके एपिसोड नहीं भेजे हैं। ये आमतौर पर अगले रीफ़्रेश के बाद दिखते हैं।</string>
+    <string name="show_play">चलाएँ</string>
+    <string name="show_play_episode">%1$s चलाएँ</string>
+    <string name="show_continue">%1$s जारी रखें</string>
+    <string name="show_failed_title">एपिसोड लोड नहीं हो सके</string>
+    <string name="show_failed_detail">इस डिवाइस का कनेक्शन जाँचें, फिर दोबारा कोशिश करें।</string>
+    <string name="show_retry">फिर कोशिश करें</string>
+    <plurals name="show_seasons">
+        <item quantity="one">%d सीज़न</item>
+        <item quantity="other">%d सीज़न</item>
+    </plurals>
+    <plurals name="show_episodes">
+        <item quantity="one">%d एपिसोड</item>
+        <item quantity="other">%d एपिसोड</item>
+    </plurals>
     <string name="show_back">वापस</string>
+    <string name="show_nav_overview">अवलोकन</string>
+    <string name="show_nav_seasons">सीज़न</string>
+    <string name="show_nav_cast">कलाकार</string>
+    <string name="show_nav_similar">मिलते-जुलते</string>
+    <string name="show_favorite_add">पसंदीदा में जोड़ें</string>
+    <string name="show_favorite_remove">पसंदीदा से हटाएँ</string>
+    <string name="show_similar_title">मिलते-जुलते शो</string>
     <string name="home_brand">CASTIVIO</string>
     <string name="home_empty_title">अभी तक कुछ भी आयात नहीं हुआ</string>
     <string name="home_empty_detail">आपके प्रदाता से संपर्क हो गया, पर उसने कोई चैनल, फ़िल्म या सीरीज़ नहीं भेजी। किसी खंड से रीफ़्रेश करें, या कोई दूसरा प्रदाता जोड़ें।</string>
@@ -149,6 +171,12 @@
     <string name="movies_recent_empty_title">अभी तक कोई फ़िल्म नहीं देखी गई</string>
     <string name="movies_recent_empty_detail">आप जो फ़िल्में चलाते हैं वे यहाँ दिखेंगी, सबसे हाल की सबसे पहले।</string>
     <string name="movie_play">फ़िल्म चलाएँ</string>
+    <string name="movie_added">%1$s को जोड़ा गया</string>
+    <string name="movie_plot_title">कहानी</string>
+    <string name="movie_plot_more">सभी देखें</string>
+    <string name="movie_plot_close">बंद करें</string>
+    <string name="movie_director">निर्देशक:</string>
+    <string name="movie_cast">कलाकार:</string>
     <string name="movie_favorite_add">पसंदीदा में जोड़ें</string>
     <string name="movie_favorite_remove">पसंदीदा से हटाएँ</string>
     <string name="hide_title">बुके और चैनल छिपाएँ</string>

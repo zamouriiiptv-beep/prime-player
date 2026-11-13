@@ -11,8 +11,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.castivio.core.design.theme.CastivioTheme
@@ -28,14 +31,15 @@ import com.castivio.core.design.theme.CastivioTheme
  * Nothing is drawn while the picture is on its way, or when it failed: the page's own ground is under it, so a
  * backdrop that never arrives leaves the page as it would have been, and no stand-in claims to be the show's.
  *
- * Laid out left to right, as the page that uses it is, because the words in it are the provider's: the start edge it
- * fades towards is the left one.
+ * It follows the page's direction, as the page does: the start edge it fades towards is the left one in English and the
+ * right one in Arabic, where the poster and the words stand.
  */
 @Composable
 fun ShowBackdrop(url: String, modifier: Modifier = Modifier) {
     var failed by remember(url) { mutableStateOf(false) }
     if (failed) return
     val ground = CastivioTheme.colors.background
+    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     Box(modifier) {
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current).data(url).crossfade(false).build(),
@@ -49,6 +53,8 @@ fun ShowBackdrop(url: String, modifier: Modifier = Modifier) {
         Box(
             Modifier
                 .fillMaxSize()
+                // The gradient runs from the left edge, so where the start edge is the right one it is turned round.
+                .then(if (rtl) Modifier.graphicsLayer(scaleX = -1f) else Modifier)
                 .background(
                     Brush.horizontalGradient(
                         0f to ground,

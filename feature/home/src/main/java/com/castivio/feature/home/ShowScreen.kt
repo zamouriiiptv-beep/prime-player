@@ -45,7 +45,6 @@ import androidx.compose.material.icons.rounded.VideoLibrary
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -61,13 +60,11 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -85,6 +82,7 @@ import com.castivio.core.design.components.castivioBodyStyle
 import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.castivioTitleStyle
 import com.castivio.core.design.components.ltrToken
+import com.castivio.core.design.components.startEdgeAlign
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Sizing
@@ -115,7 +113,10 @@ import kotlinx.coroutines.launch
  * plot and the episodes' plots will be; once it has, only what came is drawn, and a section with nothing in it is not
  * in the rail.
  *
- * Drawn left to right whatever the language, as the film's page is, because the words in it are the provider's.
+ * It follows the language's direction, as the film's page does: in Arabic the rail stands at the right, the poster and the
+ * words begin at the right, and every row begins where the language does. The provider's own words -- the show's and the
+ * episodes' names, the plot, the people -- are not the page's language and are not turned round: each keeps its order and is
+ * set against the start edge ([startEdgeAlign]), and the figures are left-to-right tokens.
  */
 @Composable
 fun ShowScreen(
@@ -185,83 +186,81 @@ fun ShowScreen(
         // The wall's metrics, for the poster cards of the similar shows: the same card, the same sizes.
         val board = channelsMetricsFor(tv = tv, width = maxWidth, height = maxHeight)
 
-        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-            Row(
-                Modifier.fillMaxSize().castivioStage(m.frame),
-                horizontalArrangement = Arrangement.spacedBy(m.paneGap),
+        Row(
+            Modifier.fillMaxSize().castivioStage(m.frame),
+            horizontalArrangement = Arrangement.spacedBy(m.paneGap),
+        ) {
+            ShowRail(
+                sections = sections.map { it.section },
+                lit = lit,
+                tv = tv,
+                m = m,
+                onBack = onBack,
+                onSection = { section ->
+                    val at = sections.firstOrNull { it.section == section } ?: return@ShowRail
+                    scope.launch { listState.animateScrollToItem(at.index) }
+                },
+                modifier = Modifier.width(railWidth).fillMaxHeight(),
+            )
+            LazyColumn(
+                Modifier.weight(1f).fillMaxHeight(),
+                state = listState,
+                verticalArrangement = Arrangement.spacedBy(m.rowGap),
+                contentPadding = PaddingValues(bottom = m.listBottom),
             ) {
-                ShowRail(
-                    sections = sections.map { it.section },
-                    lit = lit,
-                    tv = tv,
-                    m = m,
-                    onBack = onBack,
-                    onSection = { section ->
-                        val at = sections.firstOrNull { it.section == section } ?: return@ShowRail
-                        scope.launch { listState.animateScrollToItem(at.index) }
-                    },
-                    modifier = Modifier.width(railWidth).fillMaxHeight(),
-                )
-                LazyColumn(
-                    Modifier.weight(1f).fillMaxHeight(),
-                    state = listState,
-                    verticalArrangement = Arrangement.spacedBy(m.rowGap),
-                    contentPadding = PaddingValues(bottom = m.listBottom),
-                ) {
-                    item(key = "top") {
-                        ShowTop(
-                            show = show,
-                            state = state,
+                item(key = "top") {
+                    ShowTop(
+                        show = show,
+                        state = state,
+                        m = m,
+                        tv = tv,
+                        posterHeight = posterHeight,
+                        playFocus = playFocus,
+                        onPlay = { target?.let { start(it.episode) } },
+                        onFavorite = model::toggleFavorite,
+                        onMorePlot = { plotOpen = true },
+                    )
+                }
+                state.times?.takeIf { instrumented }?.let { cost ->
+                    item(key = "times") { RequestTimesLine(cost, m) }
+                }
+                if (state.seasons.isEmpty()) {
+                    item(key = "placeholder") {
+                        EpisodesPlaceholder(
+                            load = state.load,
+                            preparing = state.preparing,
+                            failure = state.failure,
                             m = m,
-                            tv = tv,
-                            posterHeight = posterHeight,
-                            playFocus = playFocus,
-                            onPlay = { target?.let { start(it.episode) } },
-                            onFavorite = model::toggleFavorite,
-                            onMorePlot = { plotOpen = true },
+                            onRetry = model::retry,
+                            onBack = onBack,
+                            modifier = Modifier.fillMaxWidth(),
                         )
                     }
-                    state.times?.takeIf { instrumented }?.let { cost ->
-                        item(key = "times") { RequestTimesLine(cost, m) }
+                } else {
+                    item(key = "seasons") { SeasonChips(state.seasons, season, m, tv) { picked = it } }
+                    items(season?.episodes.orEmpty(), key = { it.id }) { episode ->
+                        EpisodeRow(
+                            episode = episode,
+                            mark = state.marks[episode.id] ?: EpisodeMark.None,
+                            plot = state.plots[episode.id],
+                            // The plots come with the same reply as the rest: until it is in, a bar stands there.
+                            waiting = state.asking && state.plots.isEmpty(),
+                            m = m,
+                            onStart = start,
+                        )
                     }
-                    if (state.seasons.isEmpty()) {
-                        item(key = "placeholder") {
-                            EpisodesPlaceholder(
-                                load = state.load,
-                                preparing = state.preparing,
-                                failure = state.failure,
-                                m = m,
-                                onRetry = model::retry,
-                                onBack = onBack,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
-                    } else {
-                        item(key = "seasons") { SeasonChips(state.seasons, season, m, tv) { picked = it } }
-                        items(season?.episodes.orEmpty(), key = { it.id }) { episode ->
-                            EpisodeRow(
-                                episode = episode,
-                                mark = state.marks[episode.id] ?: EpisodeMark.None,
-                                plot = state.plots[episode.id],
-                                // The plots come with the same reply as the rest: until it is in, a bar stands there.
-                                waiting = state.asking && state.plots.isEmpty(),
-                                m = m,
-                                onStart = start,
-                            )
-                        }
-                    }
-                    details?.cast?.takeIf { it.isNotEmpty() }?.let { cast ->
-                        item(key = "cast") { CastSection(cast, m) }
-                    }
-                    if (state.similar.isNotEmpty()) {
-                        item(key = "similar") { SimilarSection(state.similar, m, board, surfaceHeight, onOpenShow) }
-                    }
+                }
+                details?.cast?.takeIf { it.isNotEmpty() }?.let { cast ->
+                    item(key = "cast") { CastSection(cast, m) }
+                }
+                if (state.similar.isNotEmpty()) {
+                    item(key = "similar") { SimilarSection(state.similar, m, board, surfaceHeight, onOpenShow) }
                 }
             }
         }
 
-        // Outside the block above, which draws the page left to right: the dialog is the application's own, and
-        // follows its language -- the plot inside it takes the direction of its words.
+        // The dialog is the application's own, and follows its language as the page does -- the plot inside it takes the
+        // direction of its words and is set against the start edge.
         if (plotOpen) {
             CastivioNoticeDialog(
                 title = show.title,
@@ -425,6 +424,7 @@ private fun ShowTop(
                     color = colors.onBackground,
                     maxLines = SHOW_TITLE_LINES,
                     overflow = TextOverflow.Ellipsis,
+                    textAlign = startEdgeAlign(show.title),
                 )
                 ShowFacts(state, waiting, m)
                 val plot = details?.plot
@@ -435,6 +435,7 @@ private fun ShowTop(
                         color = colors.onBackgroundVariant,
                         maxLines = if (tv) PLOT_LINES_TV else PLOT_LINES,
                         overflow = TextOverflow.Ellipsis,
+                        textAlign = startEdgeAlign(plot),
                         onTextLayout = { plotCut = it.hasVisualOverflow },
                         modifier = if (plotCut) {
                             Modifier.focusProperties { canFocus = false }.clickable(
@@ -733,6 +734,7 @@ private fun EpisodeRow(
                 color = colors.onBackground,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                textAlign = startEdgeAlign(episode.title),
             )
             when {
                 plot != null -> Text(
@@ -741,6 +743,7 @@ private fun EpisodeRow(
                     color = colors.onBackgroundVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    textAlign = startEdgeAlign(plot),
                 )
                 waiting -> Bar(Modifier.fillMaxWidth(PLOT_BAR_SECOND).height(m.frame.fsBody))
             }

@@ -14,9 +14,33 @@
     <string name="browse_empty_section_detail">Le altre sezioni non sono interessate. Se ti sembra un errore, aggiorna: un’importazione in corso riempie le sezioni una alla volta.</string>
     <string name="browse_empty_action">Aggiorna</string>
     <string name="show_season">Stagione %1$d</string>
+    <string name="show_preparing">Il tuo fornitore sta preparando gli episodi…</string>
     <string name="show_no_episodes_title">Ancora nessun episodio</string>
     <string name="show_no_episodes_detail">Il tuo fornitore elenca questo titolo ma non ne ha inviato gli episodi. Di solito compaiono dopo il prossimo aggiornamento.</string>
+    <string name="show_play">Riproduci</string>
+    <string name="show_play_episode">Riproduci %1$s</string>
+    <string name="show_continue">Continua %1$s</string>
+    <string name="show_failed_title">Impossibile caricare gli episodi</string>
+    <string name="show_failed_detail">Controlla la connessione di questo dispositivo e riprova.</string>
+    <string name="show_retry">Riprova</string>
+    <plurals name="show_seasons">
+        <item quantity="one">%d stagione</item>
+        <item quantity="many">%d stagioni</item>
+        <item quantity="other">%d stagioni</item>
+    </plurals>
+    <plurals name="show_episodes">
+        <item quantity="one">%d episodio</item>
+        <item quantity="many">%d episodi</item>
+        <item quantity="other">%d episodi</item>
+    </plurals>
     <string name="show_back">Indietro</string>
+    <string name="show_nav_overview">Panoramica</string>
+    <string name="show_nav_seasons">Stagioni</string>
+    <string name="show_nav_cast">Cast</string>
+    <string name="show_nav_similar">Simili</string>
+    <string name="show_favorite_add">Aggiungi ai preferiti</string>
+    <string name="show_favorite_remove">Rimuovi dai preferiti</string>
+    <string name="show_similar_title">Serie simili</string>
     <string name="home_brand">CASTIVIO</string>
     <string name="home_empty_title">Non è stato ancora importato nulla</string>
     <string name="home_empty_detail">Il tuo fornitore ha risposto ma non ha inviato canali, film o serie. Aggiorna da una sezione, oppure aggiungi un altro fornitore.</string>
@@ -149,6 +173,12 @@
     <string name="movies_recent_empty_title">Nessun film guardato finora</string>
     <string name="movies_recent_empty_detail">Qui compaiono i film che avvii, dal più recente.</string>
     <string name="movie_play">Riproduci film</string>
+    <string name="movie_added">Aggiunto il %1$s</string>
+    <string name="movie_plot_title">Trama</string>
+    <string name="movie_plot_more">Mostra tutto</string>
+    <string name="movie_plot_close">Chiudi</string>
+    <string name="movie_director">Regia:</string>
+    <string name="movie_cast">Cast:</string>
     <string name="movie_favorite_add">Aggiungi ai preferiti</string>
     <string name="movie_favorite_remove">Rimuovi dai preferiti</string>
     <string name="hide_title">Nascondi bouquet e canali</string>

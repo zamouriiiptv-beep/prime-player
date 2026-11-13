@@ -14,9 +14,29 @@
     <string name="browse_empty_section_detail">其他區塊不受影響。如果看起來不對，請重新整理——仍在進行的匯入會逐一填滿各區塊。</string>
     <string name="browse_empty_action">重新整理</string>
     <string name="show_season">第 %1$d 季</string>
+    <string name="show_preparing">你的供應商正在準備劇集…</string>
     <string name="show_no_episodes_title">尚無劇集</string>
     <string name="show_no_episodes_detail">你的供應商列出了這部作品，卻沒有傳送劇集。通常會在下次重新整理後出現。</string>
+    <string name="show_play">播放</string>
+    <string name="show_play_episode">播放 %1$s</string>
+    <string name="show_continue">繼續 %1$s</string>
+    <string name="show_failed_title">無法載入劇集</string>
+    <string name="show_failed_detail">請檢查這部裝置的網路連線，然後重試。</string>
+    <string name="show_retry">再試一次</string>
+    <plurals name="show_seasons">
+        <item quantity="other">%d 季</item>
+    </plurals>
+    <plurals name="show_episodes">
+        <item quantity="other">%d 集</item>
+    </plurals>
     <string name="show_back">返回</string>
+    <string name="show_nav_overview">總覽</string>
+    <string name="show_nav_seasons">各季</string>
+    <string name="show_nav_cast">演員</string>
+    <string name="show_nav_similar">類似</string>
+    <string name="show_favorite_add">加入最愛</string>
+    <string name="show_favorite_remove">移除最愛</string>
+    <string name="show_similar_title">類似劇集</string>
     <string name="home_brand">CASTIVIO</string>
     <string name="home_empty_title">尚未匯入任何內容</string>
     <string name="home_empty_detail">已連上你的供應商，但沒有收到頻道、電影或影集。請從某個區塊重新整理，或新增另一個供應商。</string>
@@ -149,6 +169,12 @@
     <string name="movies_recent_empty_title">尚未觀看任何電影</string>
     <string name="movies_recent_empty_detail">你播放過的電影會顯示在這裡，最近播放的排在最前。</string>
     <string name="movie_play">播放電影</string>
+    <string name="movie_added">新增於 %1$s</string>
+    <string name="movie_plot_title">劇情</string>
+    <string name="movie_plot_more">顯示全部</string>
+    <string name="movie_plot_close">關閉</string>
+    <string name="movie_director">導演：</string>
+    <string name="movie_cast">演員：</string>
     <string name="movie_favorite_add">加入最愛</string>
     <string name="movie_favorite_remove">移除最愛</string>
     <string name="hide_title">隱藏分組和頻道</string>

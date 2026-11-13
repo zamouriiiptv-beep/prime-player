@@ -1,11 +1,16 @@
 package com.castivio.feature.home
 
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.domain.FavoritesRepository
@@ -36,6 +41,7 @@ import org.robolectric.annotation.Config
  * about the film and nothing it did not, a Play that hands the player exactly this film, and a favourite
  * that is shown from the press.
  */
+@OptIn(ExperimentalTestApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w960dp-h540dp-land")
 class MovieScreenTest {
@@ -74,7 +80,13 @@ class MovieScreenTest {
     private val played = mutableListOf<CatalogSelection>()
     private var backs = 0
 
-    private fun show(movie: Movie = dune, store: Store = Store(), details: MovieDetailsRepository = NoDetails) {
+    /** [direction] is the reader's, where a test needs the page turned round; the harness's own (left to right) where it is null. */
+    private fun show(
+        movie: Movie = dune,
+        store: Store = Store(),
+        details: MovieDetailsRepository = NoDetails,
+        direction: LayoutDirection? = null,
+    ) {
         val loads = SectionLoads(
             CoroutineScope(SupervisorJob() + Dispatchers.Unconfined),
             flowOf(null),
@@ -83,15 +95,17 @@ class MovieScreenTest {
         )
         val holder = BrowseViewModel(FakeCatalogue(listOf(action)), FakePager(), loads, FakeSources(), FakeOrder())
         compose.setContent {
-            CastivioTheme {
-                MovieScreen(
-                    movie = movie,
-                    onPlay = { played += it },
-                    onBack = { backs++ },
-                    model = holder,
-                    favorites = ChannelFavoritesViewModel(store),
-                    detailsModel = MovieDetailsViewModel(details),
-                )
+            CompositionLocalProvider(LocalLayoutDirection provides (direction ?: LocalLayoutDirection.current)) {
+                CastivioTheme {
+                    MovieScreen(
+                        movie = movie,
+                        onPlay = { played += it },
+                        onBack = { backs++ },
+                        model = holder,
+                        favorites = ChannelFavoritesViewModel(store),
+                        detailsModel = MovieDetailsViewModel(details),
+                    )
+                }
             }
         }
         compose.waitForIdle()
@@ -222,6 +236,56 @@ class MovieScreenTest {
         }
 
         compose.onNodeWithText("Show all").assertIsDisplayed()
+    }
+
+    // ---------------------------------------------------------------------------------------- the direction
+
+    /** Where each part of the page begins, measured from the left of the screen: the name, the way back and the two buttons. */
+    private fun lefts() = mapOf(
+        "name" to compose.onNodeWithText("Dune: Part Two").getUnclippedBoundsInRoot().left.value,
+        "back" to compose.onNodeWithContentDescription("Back").getUnclippedBoundsInRoot().left.value,
+        "play" to compose.onNodeWithText("Play movie").getUnclippedBoundsInRoot().left.value,
+        "favourite" to compose.onNodeWithText("Add to favourites").getUnclippedBoundsInRoot().left.value,
+    )
+
+    @Test
+    fun `left to right the name begins at the left, the way back ends its row, and Play is the first button`() {
+        show(direction = LayoutDirection.Ltr)
+
+        val at = lefts()
+        assertTrue("the way back is to the right of the name's start: $at", at.getValue("back") > at.getValue("name"))
+        assertTrue("Play comes before the favourite, from the left: $at", at.getValue("play") < at.getValue("favourite"))
+    }
+
+    /**
+     * The page used to be drawn left to right in every language, inside a direction of its own. It follows the reader's now:
+     * turned round, the name begins at the right and the way back ends its row at the left, and Play -- the first button --
+     * is the one furthest to the right. Under the old forced direction every one of these would have read as left to right.
+     */
+    @Test
+    fun `right to left the page is turned round, the way back at the left and Play the furthest to the right`() {
+        show(direction = LayoutDirection.Rtl)
+
+        val at = lefts()
+        assertTrue("the way back is to the left of the name's start: $at", at.getValue("back") < at.getValue("name"))
+        assertTrue("Play comes before the favourite, from the right: $at", at.getValue("play") > at.getValue("favourite"))
+    }
+
+    @Test
+    fun `right to left a director and a cast that fit are listed from the label outwards, each name whole`() {
+        show(
+            details = WithCredits(director = "Denis Villeneuve", cast = listOf("Timothée Chalamet", "Zendaya")),
+            direction = LayoutDirection.Rtl,
+        )
+
+        // Each name is a unit the line breaks only between -- its spaces do not break -- parted by the language's comma:
+        // see `creditNames`.
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithText("Denis\u00A0Villeneuve", substring = true).fetchSemanticsNodes().isNotEmpty()
+        }
+
+        compose.onNodeWithText("Timothée\u00A0Chalamet", substring = true).assertIsDisplayed()
+        assertTrue(compose.onAllNodesWithText("Show all").fetchSemanticsNodes().isEmpty())
     }
 
     /** A provider that gives a director and a cast and nothing else. */

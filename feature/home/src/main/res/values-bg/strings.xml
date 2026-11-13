@@ -14,9 +14,31 @@
     <string name="browse_empty_section_detail">Останалите раздели не са засегнати. Ако това изглежда грешно, опреснете — текущото внасяне запълва разделите един по един.</string>
     <string name="browse_empty_action">Опресняване</string>
     <string name="show_season">Сезон %1$d</string>
+    <string name="show_preparing">Вашият доставчик подготвя епизодите…</string>
     <string name="show_no_episodes_title">Още няма епизоди</string>
     <string name="show_no_episodes_detail">Вашият доставчик показва това заглавие, но не е изпратил епизодите му. Обикновено се появяват след следващото опресняване.</string>
+    <string name="show_play">Пускане</string>
+    <string name="show_play_episode">Пускане на %1$s</string>
+    <string name="show_continue">Продължаване на %1$s</string>
+    <string name="show_failed_title">Епизодите не можаха да бъдат заредени</string>
+    <string name="show_failed_detail">Проверете връзката на това устройство и опитайте отново.</string>
+    <string name="show_retry">Опитайте пак</string>
+    <plurals name="show_seasons">
+        <item quantity="one">%d сезон</item>
+        <item quantity="other">%d сезона</item>
+    </plurals>
+    <plurals name="show_episodes">
+        <item quantity="one">%d епизод</item>
+        <item quantity="other">%d епизода</item>
+    </plurals>
     <string name="show_back">Назад</string>
+    <string name="show_nav_overview">Общ преглед</string>
+    <string name="show_nav_seasons">Сезони</string>
+    <string name="show_nav_cast">Актьори</string>
+    <string name="show_nav_similar">Подобни</string>
+    <string name="show_favorite_add">Към любими</string>
+    <string name="show_favorite_remove">Премахване от любими</string>
+    <string name="show_similar_title">Подобни сериали</string>
     <string name="home_brand">CASTIVIO</string>
     <string name="home_empty_title">Още нищо не е внесено</string>
     <string name="home_empty_detail">Връзката с вашия доставчик успя, но той не изпрати канали, филми или сериали. Опреснете от някой раздел или добавете друг доставчик.</string>
@@ -149,6 +171,12 @@
     <string name="movies_recent_empty_title">Още няма гледани филми</string>
     <string name="movies_recent_empty_detail">Тук ще се показват филмите, които пускате, като последно пуснатите са първи.</string>
     <string name="movie_play">Пускане на филма</string>
+    <string name="movie_added">Добавено на %1$s</string>
+    <string name="movie_plot_title">Сюжет</string>
+    <string name="movie_plot_more">Показване на всички</string>
+    <string name="movie_plot_close">Затваряне</string>
+    <string name="movie_director">Режисьор:</string>
+    <string name="movie_cast">Актьори:</string>
     <string name="movie_favorite_add">Към любими</string>
     <string name="movie_favorite_remove">Премахване от любими</string>
     <string name="hide_title">Скриване на пакети и канали</string>

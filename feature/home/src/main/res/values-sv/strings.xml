@@ -14,9 +14,31 @@
     <string name="browse_empty_section_detail">Dina övriga avsnitt påverkas inte. Ser det fel ut, uppdatera — en import som fortfarande pågår fyller avsnitten ett i taget.</string>
     <string name="browse_empty_action">Uppdatera</string>
     <string name="show_season">Säsong %1$d</string>
+    <string name="show_preparing">Din leverantör förbereder avsnitten…</string>
     <string name="show_no_episodes_title">Inga avsnitt än</string>
     <string name="show_no_episodes_detail">Din leverantör visar den här titeln men har inte skickat avsnitten. De brukar dyka upp efter nästa uppdatering.</string>
+    <string name="show_play">Spela upp</string>
+    <string name="show_play_episode">Spela upp %1$s</string>
+    <string name="show_continue">Fortsätt %1$s</string>
+    <string name="show_failed_title">Avsnitten kunde inte läsas in</string>
+    <string name="show_failed_detail">Kontrollera enhetens anslutning och försök igen.</string>
+    <string name="show_retry">Försök igen</string>
+    <plurals name="show_seasons">
+        <item quantity="one">%d säsong</item>
+        <item quantity="other">%d säsonger</item>
+    </plurals>
+    <plurals name="show_episodes">
+        <item quantity="one">%d avsnitt</item>
+        <item quantity="other">%d avsnitt</item>
+    </plurals>
     <string name="show_back">Tillbaka</string>
+    <string name="show_nav_overview">Översikt</string>
+    <string name="show_nav_seasons">Säsonger</string>
+    <string name="show_nav_cast">Medverkande</string>
+    <string name="show_nav_similar">Liknande</string>
+    <string name="show_favorite_add">Lägg till i favoriter</string>
+    <string name="show_favorite_remove">Ta bort från favoriter</string>
+    <string name="show_similar_title">Liknande serier</string>
     <string name="home_brand">CASTIVIO</string>
     <string name="home_empty_title">Inget importerat än</string>
     <string name="home_empty_detail">Din leverantör svarade men skickade varken kanaler, filmer eller serier. Uppdatera från en sektion, eller lägg till en annan leverantör.</string>
@@ -149,6 +171,12 @@
     <string name="movies_recent_empty_title">Du har inte sett några filmer än</string>
     <string name="movies_recent_empty_detail">Filmerna du spelar upp visas här, de senast sedda först.</string>
     <string name="movie_play">Spela upp film</string>
+    <string name="movie_added">Tillagd %1$s</string>
+    <string name="movie_plot_title">Handling</string>
+    <string name="movie_plot_more">Visa alla</string>
+    <string name="movie_plot_close">Stäng</string>
+    <string name="movie_director">Regi:</string>
+    <string name="movie_cast">Medverkande:</string>
     <string name="movie_favorite_add">Lägg till i favoriter</string>
     <string name="movie_favorite_remove">Ta bort från favoriter</string>
     <string name="hide_title">Dölj buketter och kanaler</string>

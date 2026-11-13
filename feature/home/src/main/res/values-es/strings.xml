@@ -14,9 +14,33 @@
     <string name="browse_empty_section_detail">Tus demás secciones no se ven afectadas. Si esto parece un error, actualiza: una importación en curso llena las secciones de una en una.</string>
     <string name="browse_empty_action">Actualizar</string>
     <string name="show_season">Temporada %1$d</string>
+    <string name="show_preparing">Tu proveedor está preparando los episodios…</string>
     <string name="show_no_episodes_title">Aún no hay episodios</string>
     <string name="show_no_episodes_detail">Tu proveedor incluye esta serie pero no ha enviado sus episodios. Suele aparecer tras la siguiente actualización.</string>
+    <string name="show_play">Reproducir</string>
+    <string name="show_play_episode">Reproducir %1$s</string>
+    <string name="show_continue">Continuar %1$s</string>
+    <string name="show_failed_title">No se han podido cargar los episodios</string>
+    <string name="show_failed_detail">Revisa la conexión de este dispositivo y vuelve a intentarlo.</string>
+    <string name="show_retry">Reintentar</string>
+    <plurals name="show_seasons">
+        <item quantity="one">%d temporada</item>
+        <item quantity="many">%d temporadas</item>
+        <item quantity="other">%d temporadas</item>
+    </plurals>
+    <plurals name="show_episodes">
+        <item quantity="one">%d episodio</item>
+        <item quantity="many">%d episodios</item>
+        <item quantity="other">%d episodios</item>
+    </plurals>
     <string name="show_back">Atrás</string>
+    <string name="show_nav_overview">Resumen</string>
+    <string name="show_nav_seasons">Temporadas</string>
+    <string name="show_nav_cast">Reparto</string>
+    <string name="show_nav_similar">Similares</string>
+    <string name="show_favorite_add">Añadir a favoritos</string>
+    <string name="show_favorite_remove">Quitar de favoritos</string>
+    <string name="show_similar_title">Series similares</string>
     <string name="home_brand">CASTIVIO</string>
     <string name="home_empty_title">Todavía no se ha importado nada</string>
     <string name="home_empty_detail">Se ha contactado con tu proveedor, pero no ha enviado canales, películas ni series. Actualiza desde una sección, o añade otro proveedor.</string>
@@ -149,6 +173,12 @@
     <string name="movies_recent_empty_title">Aún no has visto ninguna película</string>
     <string name="movies_recent_empty_detail">Aquí aparecerán las películas que reproduzcas, primero las más recientes.</string>
     <string name="movie_play">Reproducir película</string>
+    <string name="movie_added">Añadido el %1$s</string>
+    <string name="movie_plot_title">Argumento</string>
+    <string name="movie_plot_more">Ver todo</string>
+    <string name="movie_plot_close">Cerrar</string>
+    <string name="movie_director">Dirección:</string>
+    <string name="movie_cast">Reparto:</string>
     <string name="movie_favorite_add">Añadir a favoritos</string>
     <string name="movie_favorite_remove">Quitar de favoritos</string>
     <string name="hide_title">Ocultar paquetes y canales</string>

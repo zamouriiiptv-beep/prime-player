@@ -14,9 +14,31 @@
     <string name="browse_empty_section_detail">Hindi naapektuhan ang ibang seksyon. Kung mukhang mali ito, i-refresh — isa-isang pinupuno ng tumatakbong import ang mga seksyon.</string>
     <string name="browse_empty_action">I-refresh</string>
     <string name="show_season">Season %1$d</string>
+    <string name="show_preparing">Inihahanda ng provider mo ang mga episode…</string>
     <string name="show_no_episodes_title">Wala pang episode</string>
     <string name="show_no_episodes_detail">Nakalista sa provider mo ang palabas na ito pero hindi pa niya naipapadala ang mga episode. Karaniwang lumalabas ang mga ito pagkatapos ng susunod na refresh.</string>
+    <string name="show_play">I-play</string>
+    <string name="show_play_episode">I-play ang %1$s</string>
+    <string name="show_continue">Ipagpatuloy ang %1$s</string>
+    <string name="show_failed_title">Hindi ma-load ang mga episode</string>
+    <string name="show_failed_detail">Suriin ang koneksyon ng device na ito, saka subukang muli.</string>
+    <string name="show_retry">Subukan ulit</string>
+    <plurals name="show_seasons">
+        <item quantity="one">%d season</item>
+        <item quantity="other">%d season</item>
+    </plurals>
+    <plurals name="show_episodes">
+        <item quantity="one">%d episode</item>
+        <item quantity="other">%d episode</item>
+    </plurals>
     <string name="show_back">Bumalik</string>
+    <string name="show_nav_overview">Pangkalahatang-ideya</string>
+    <string name="show_nav_seasons">Mga Season</string>
+    <string name="show_nav_cast">Mga Artista</string>
+    <string name="show_nav_similar">Katulad</string>
+    <string name="show_favorite_add">Idagdag sa mga paborito</string>
+    <string name="show_favorite_remove">Alisin sa mga paborito</string>
+    <string name="show_similar_title">Mga katulad na palabas</string>
     <string name="home_brand">CASTIVIO</string>
     <string name="home_empty_title">Wala pang na-import</string>
     <string name="home_empty_detail">Naabot ang provider mo pero walang naipadalang channel, pelikula, o serye. Mag-refresh mula sa isang seksyon, o magdagdag ng ibang provider.</string>
@@ -149,6 +171,12 @@
     <string name="movies_recent_empty_title">Wala pang napanood na pelikula</string>
     <string name="movies_recent_empty_detail">Lalabas dito ang mga pelikulang pinapanood mo, ang pinakahuli muna.</string>
     <string name="movie_play">I-play ang pelikula</string>
+    <string name="movie_added">Idinagdag noong %1$s</string>
+    <string name="movie_plot_title">Kuwento</string>
+    <string name="movie_plot_more">Ipakita lahat</string>
+    <string name="movie_plot_close">Isara</string>
+    <string name="movie_director">Direktor:</string>
+    <string name="movie_cast">Mga artista:</string>
     <string name="movie_favorite_add">Idagdag sa mga paborito</string>
     <string name="movie_favorite_remove">Alisin sa mga paborito</string>
     <string name="hide_title">Itago ang mga bouquet at channel</string>

@@ -14,9 +14,31 @@
     <string name="browse_empty_section_detail">Diğer bölümleriniz etkilenmedi. Bu yanlış görünüyorsa yenileyin — sürmekte olan bir içe aktarma bölümleri teker teker doldurur.</string>
     <string name="browse_empty_action">Yenile</string>
     <string name="show_season">%1$d. Sezon</string>
+    <string name="show_preparing">Sağlayıcınız bölümleri hazırlıyor…</string>
     <string name="show_no_episodes_title">Henüz bölüm yok</string>
     <string name="show_no_episodes_detail">Sağlayıcınız bu yapımı listeliyor ama bölümlerini göndermemiş. Genellikle bir sonraki yenilemeden sonra görünür.</string>
+    <string name="show_play">Oynat</string>
+    <string name="show_play_episode">%1$s oynat</string>
+    <string name="show_continue">%1$s devam et</string>
+    <string name="show_failed_title">Bölümler yüklenemedi</string>
+    <string name="show_failed_detail">Bu cihazın bağlantısını kontrol edip yeniden deneyin.</string>
+    <string name="show_retry">Yeniden dene</string>
+    <plurals name="show_seasons">
+        <item quantity="one">%d sezon</item>
+        <item quantity="other">%d sezon</item>
+    </plurals>
+    <plurals name="show_episodes">
+        <item quantity="one">%d bölüm</item>
+        <item quantity="other">%d bölüm</item>
+    </plurals>
     <string name="show_back">Geri</string>
+    <string name="show_nav_overview">Genel bakış</string>
+    <string name="show_nav_seasons">Sezonlar</string>
+    <string name="show_nav_cast">Oyuncular</string>
+    <string name="show_nav_similar">Benzer</string>
+    <string name="show_favorite_add">Favorilere ekle</string>
+    <string name="show_favorite_remove">Favorilerden kaldır</string>
+    <string name="show_similar_title">Benzer diziler</string>
     <string name="home_brand">CASTIVIO</string>
     <string name="home_empty_title">Henüz hiçbir şey aktarılmadı</string>
     <string name="home_empty_detail">Sağlayıcınıza ulaşıldı ama kanal, film ya da dizi göndermedi. Bir bölümden yenileyin ya da başka bir sağlayıcı ekleyin.</string>
@@ -149,6 +171,12 @@
     <string name="movies_recent_empty_title">Henüz izlenen film yok</string>
     <string name="movies_recent_empty_detail">Oynattığınız filmler burada görünür; en son izlenen en üstte.</string>
     <string name="movie_play">Filmi oynat</string>
+    <string name="movie_added">%1$s tarihinde eklendi</string>
+    <string name="movie_plot_title">Konu</string>
+    <string name="movie_plot_more">Tümünü göster</string>
+    <string name="movie_plot_close">Kapat</string>
+    <string name="movie_director">Yönetmen:</string>
+    <string name="movie_cast">Oyuncular:</string>
     <string name="movie_favorite_add">Favorilere ekle</string>
     <string name="movie_favorite_remove">Favorilerden kaldır</string>
     <string name="hide_title">Paketleri ve kanalları gizle</string>

@@ -14,9 +14,33 @@
     <string name="browse_empty_section_detail">Celelalte secțiuni nu sunt afectate. Dacă pare greșit, reîmprospătați — importul aflat în curs umple secțiunile una câte una.</string>
     <string name="browse_empty_action">Reîmprospătare</string>
     <string name="show_season">Sezonul %1$d</string>
+    <string name="show_preparing">Furnizorul dvs. pregătește episoadele…</string>
     <string name="show_no_episodes_title">Încă niciun episod</string>
     <string name="show_no_episodes_detail">Furnizorul dvs. afișează acest titlu, dar nu i-a trimis episoadele. De obicei apar după următoarea reîmprospătare.</string>
+    <string name="show_play">Redă</string>
+    <string name="show_play_episode">Redă %1$s</string>
+    <string name="show_continue">Continuă %1$s</string>
+    <string name="show_failed_title">Episoadele nu au putut fi încărcate</string>
+    <string name="show_failed_detail">Verificați conexiunea acestui dispozitiv, apoi încercați din nou.</string>
+    <string name="show_retry">Încercați din nou</string>
+    <plurals name="show_seasons">
+        <item quantity="one">%d sezon</item>
+        <item quantity="few">%d sezoane</item>
+        <item quantity="other">%d de sezoane</item>
+    </plurals>
+    <plurals name="show_episodes">
+        <item quantity="one">%d episod</item>
+        <item quantity="few">%d episoade</item>
+        <item quantity="other">%d de episoade</item>
+    </plurals>
     <string name="show_back">Înapoi</string>
+    <string name="show_nav_overview">Prezentare generală</string>
+    <string name="show_nav_seasons">Sezoane</string>
+    <string name="show_nav_cast">Distribuție</string>
+    <string name="show_nav_similar">Similare</string>
+    <string name="show_favorite_add">Adaugă la favorite</string>
+    <string name="show_favorite_remove">Elimină din favorite</string>
+    <string name="show_similar_title">Seriale similare</string>
     <string name="home_brand">CASTIVIO</string>
     <string name="home_empty_title">Nu s-a importat încă nimic</string>
     <string name="home_empty_detail">Furnizorul dvs. a răspuns, dar nu a trimis canale, filme sau seriale. Reîmprospătați dintr-o secțiune sau adăugați alt furnizor.</string>
@@ -149,6 +173,12 @@
     <string name="movies_recent_empty_title">Încă nu ați vizionat niciun film</string>
     <string name="movies_recent_empty_detail">Aici apar filmele pe care le redați, cele mai recente primele.</string>
     <string name="movie_play">Redă filmul</string>
+    <string name="movie_added">Adăugat pe %1$s</string>
+    <string name="movie_plot_title">Rezumat</string>
+    <string name="movie_plot_more">Afișează tot</string>
+    <string name="movie_plot_close">Închide</string>
+    <string name="movie_director">Regia:</string>
+    <string name="movie_cast">Distribuția:</string>
     <string name="movie_favorite_add">Adaugă la favorite</string>
     <string name="movie_favorite_remove">Elimină din favorite</string>
     <string name="hide_title">Ascunde pachete și canale</string>

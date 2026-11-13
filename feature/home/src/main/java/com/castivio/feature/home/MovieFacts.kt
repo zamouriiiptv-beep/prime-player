@@ -1,6 +1,7 @@
 package com.castivio.feature.home
 
 import androidx.compose.ui.unit.Dp
+import com.castivio.core.design.components.ltrIsolate
 import com.castivio.domain.Movie
 import com.castivio.domain.MovieDetails
 import java.text.SimpleDateFormat
@@ -53,6 +54,24 @@ internal fun Movie.withDetails(details: MovieDetails?): Movie {
 
 /** A provider's rating as one decimal, `8.1`: the figure IMDb itself shows. */
 internal fun ratingText(rating: Double): String = String.format(Locale.ROOT, "%.1f", rating)
+
+/** The comma a right-to-left language parts a list with: Arabic, Persian and Urdu write the same one. */
+private const val RTL_COMMA = "\u060C "
+
+/** A space that does not break a line, so a person's name is not split across two. */
+private const val NO_BREAK_SPACE = '\u00A0'
+
+/**
+ * The names of a credit line as one text.
+ *
+ * Left to right they are as the provider sent them, parted by a comma and a space. Right to left each name stands as a unit --
+ * isolated, with its spaces unbreakable, so a Latin name keeps its own order and a narrow line does not split it -- and the
+ * names are parted by the language's comma: the list then reads from its label outwards, first name first, and where the line
+ * is cut the cut is at its far end, beside the link. Without that the names, being one run of left-to-right letters, would read
+ * from the far end in, and the cut would take the last of them from beside the label.
+ */
+internal fun creditNames(names: List<String>, rtl: Boolean): String =
+    if (rtl) names.joinToString(RTL_COMMA) { ltrIsolate(it.replace(' ', NO_BREAK_SPACE)) } else names.joinToString(", ")
 
 /**
  * How many lines a credit line -- the director, the cast -- may take on the film's page.

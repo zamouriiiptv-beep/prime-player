@@ -149,6 +149,27 @@ class MovieFactsTest {
         assertEquals("7.0", ratingText(7.0))
     }
 
+    // ------------------------------------------------------------------------- the names of a credit line
+
+    @Test
+    fun `left to right the names are as the provider sent them`() {
+        assertEquals("Charlton Heston, Haya Harareet", creditNames(listOf("Charlton Heston", "Haya Harareet"), rtl = false))
+        assertEquals("", creditNames(emptyList(), rtl = false))
+    }
+
+    @Test
+    fun `right to left each name stands as a unit and the names are parted by the language's comma`() {
+        val text = creditNames(listOf("Charlton Heston", "Haya Harareet"), rtl = true)
+
+        // Each name isolated, its space unbreakable; the Arabic comma and a space between.
+        assertEquals("\u2066Charlton\u00A0Heston\u2069\u060C \u2066Haya\u00A0Harareet\u2069", text)
+    }
+
+    @Test
+    fun `one name right to left is one isolated unit with no comma`() {
+        assertEquals("\u2066William\u00A0Wyler\u2069", creditNames(listOf("William Wyler"), rtl = true))
+    }
+
     // ------------------------------------------------------------------------- the credit lines
 
     @Test

@@ -37,7 +37,6 @@ import androidx.compose.material.icons.rounded.TheaterComedy
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -83,6 +82,7 @@ import com.castivio.core.design.components.castivioBodyStyle
 import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.castivioTitleStyle
 import com.castivio.core.design.components.ltrToken
+import com.castivio.core.design.components.startEdgeAlign
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.castivioBackdrop
@@ -112,6 +112,14 @@ import com.castivio.domain.Movie
  * line each and are cut the same way. A text that was cut offers "Show all" -- at the end of the plot's heading,
  * at the end of a credit's line -- which opens the whole of it in a small dialog; one that fits offers nothing.
  * Only a surface too narrow to put the poster beside the text stacks them, and scrolls: there nothing is cut.
+ *
+ * ## The direction
+ *
+ * The page follows the language's: in Arabic the poster stands at the right, the text beside it begins at the right, the
+ * way back is at the left and its arrow points right, and every row begins where the language does. The provider's words
+ * -- the name, the category, the genres, the plot, the people's names -- are not the page's language and are not turned
+ * round: each keeps its own order and is set against the start edge ([startEdgeAlign]), a person's name stands as a unit
+ * in a list, and the figures (the year, the running time, the day it was added) are left-to-right tokens.
  *
  * ## The favourite
  *
@@ -153,9 +161,12 @@ fun MovieScreen(
     val selection = remember(movie) { movie.asSelection() }
     val playFocus = remember { FocusRequester() }
     LaunchedEffect(movie.id) { runCatching { playFocus.requestFocus() } }
+    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val director = known?.director
+    val directorNames = remember(director) { director.orEmpty().split(',').map { it.trim() }.filter { it.isNotEmpty() } }
+    val directorText = remember(directorNames, rtl) { creditNames(directorNames, rtl) }
     val cast = known?.cast.orEmpty()
-    val castText = remember(cast) { cast.joinToString(", ") }
+    val castText = remember(cast, rtl) { creditNames(cast, rtl) }
     // The page's long texts, whole: the plot has a link at the end of its heading, and the director and the cast one at
     // the end of their lines, and one small dialog holds whichever was pressed -- offered only where the page had to cut it.
     var plotCut by remember(known?.plot) { mutableStateOf(false) }
@@ -195,236 +206,236 @@ fun MovieScreen(
         val m = catalogMetricsFor(tv = CastivioTheme.device.isTv, width = maxWidth, height = maxHeight)
         val side = maxWidth >= SIDE_BY_SIDE
 
-        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-            val shown = movie.withDetails(known)
-            val category = movie.groupId?.let { state.categoryNames[it] }
+        val shown = movie.withDetails(known)
+        val category = movie.groupId?.let { state.categoryNames[it] }
 
-            val info: @Composable (Modifier, Boolean, (@Composable () -> Unit)?) -> Unit = { infoModifier, fit, titleEnd ->
-                val iconSize = m.frame.fsBody * ICON_OF_BODY
-                val bodyStyle = castivioBodyStyle(m.frame.fsBody)
-                val genres = shown.genres.filter { it.isNotBlank() }.joinToString(" | ")
-                val year = shown.year?.takeIf { it > 0 }?.toString()
-                val duration = movieDuration(shown.durationMinutes)
+        val info: @Composable (Modifier, Boolean, (@Composable () -> Unit)?) -> Unit = { infoModifier, fit, titleEnd ->
+            val iconSize = m.frame.fsBody * ICON_OF_BODY
+            val bodyStyle = castivioBodyStyle(m.frame.fsBody)
+            val genres = shown.genres.filter { it.isNotBlank() }.joinToString(" | ")
+            val year = shown.year?.takeIf { it > 0 }?.toString()
+            val duration = movieDuration(shown.durationMinutes)
 
-                // Everything above the plot: the name, the facts in one bar, the two buttons, the rating and
-                // the day the film was added, and the plot's heading. A row is drawn only where there is
-                // something to put in it, and a fact the provider did not send is no part of it.
-                val top: @Composable () -> Unit = {
-                    Column(verticalArrangement = Arrangement.spacedBy(m.bandGap)) {
-                        // The name, and at the end of the same row the way back when the poster stands beside the
-                        // page: in the corner it is the top of the page, and under no other row. The way back is
-                        // smaller than a touch target on a handset (see `back`) so that the row is little taller
-                        // than the name, and a gap of one row's width keeps it off the facts bar below -- the bar
-                        // had touched it, and the gap is paid for by the height the smaller button gives back.
-                        Column(verticalArrangement = Arrangement.spacedBy(if (titleEnd != null) m.rowGap else m.bandGap)) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(m.rowGap),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    text = movie.title,
-                                    style = castivioTitleStyle(m.frame.fsTitle),
-                                    color = colors.onBackground,
-                                    maxLines = PAGE_TITLE_LINES,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                titleEnd?.invoke()
-                            }
-                            FactsBar(category, year?.let(::ltrToken), duration?.let(::ltrToken), genres, iconSize, m)
-                        }
+            // Everything above the plot: the name, the facts in one bar, the two buttons, the rating and
+            // the day the film was added, and the plot's heading. A row is drawn only where there is
+            // something to put in it, and a fact the provider did not send is no part of it.
+            val top: @Composable () -> Unit = {
+                Column(verticalArrangement = Arrangement.spacedBy(m.bandGap)) {
+                    // The name, and at the end of the same row the way back when the poster stands beside the
+                    // page: in the corner it is the top of the page, and under no other row. The way back is
+                    // smaller than a touch target on a handset (see `back`) so that the row is little taller
+                    // than the name, and a gap of one row's width keeps it off the facts bar below -- the bar
+                    // had touched it, and the gap is paid for by the height the smaller button gives back.
+                    Column(verticalArrangement = Arrangement.spacedBy(if (titleEnd != null) m.rowGap else m.bandGap)) {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(m.rowGap),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            CastivioButton(
-                                text = stringResource(R.string.movie_play),
-                                onClick = { selection?.let(onPlay) },
-                                weight = ButtonWeight.Primary,
-                                icon = Icons.Rounded.PlayArrow,
-                                enabled = selection != null,
-                                modifier = Modifier.focusRequester(playFocus),
+                            Text(
+                                text = movie.title,
+                                style = castivioTitleStyle(m.frame.fsTitle),
+                                color = colors.onBackground,
+                                maxLines = PAGE_TITLE_LINES,
+                                overflow = TextOverflow.Ellipsis,
+                                textAlign = startEdgeAlign(movie.title),
+                                modifier = Modifier.weight(1f),
                             )
-                            CastivioButton(
-                                text = stringResource(
-                                    if (favorite) R.string.movie_favorite_remove else R.string.movie_favorite_add,
-                                ),
-                                onClick = { favorites.flip(movie.id) },
-                                weight = ButtonWeight.Secondary,
-                                icon = if (favorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                            )
+                            titleEnd?.invoke()
                         }
-                        val rating = known?.rating
-                        val added = known?.addedEpochSeconds
-                        if (rating != null || added != null) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(m.rowGap),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                rating?.let {
-                                    RatingBadge(
-                                        rating = ratingText(it),
-                                        labelStyle = castivioChipStyle(m.frame.fsChip),
-                                        iconSize = iconSize,
-                                        padH = m.entryPadH,
-                                        padV = m.entryPadV,
-                                    )
-                                }
-                                added?.let {
-                                    Fact(
-                                        text = stringResource(R.string.movie_added, addedDateText(it)),
-                                        m = m,
-                                        icon = Icons.Rounded.CalendarMonth,
-                                        iconSize = iconSize,
-                                    )
-                                }
-                            }
-                        }
-                        if (known?.plot != null) {
-                            // The end of this row is empty, so the link to the whole plot costs the page no height.
-                            Row(
-                                Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.movie_plot_title),
-                                    style = castivioChipStyle(m.frame.fsLabel).copy(fontWeight = FontWeight.Bold),
-                                    color = colors.onBackground,
-                                )
-                                if (plotCut) PlotMore(m, onClick = { whole = WholeText.Plot }, modifier = Modifier.focusRequester(moreFocus))
-                            }
-                        }
+                        FactsBar(category, year?.let(::ltrToken), duration?.let(::ltrToken), genres, iconSize, m)
                     }
-                }
-
-                // The plot takes the lines the height has left, and is cut with an ellipsis where it runs on:
-                // the page does not scroll. On a surface too narrow to sit beside the poster it is whole.
-                // Where it was cut, a press on it opens the whole plot, as the link in the heading does; the
-                // press is for a thumb, and the remote reaches the link, so the plot itself takes no focus.
-                val plot: (@Composable (Int) -> Unit)? = known?.plot?.let { text ->
-                    { lines ->
-                        val more = stringResource(R.string.movie_plot_more)
-                        Text(
-                            text = text,
-                            style = bodyStyle,
-                            color = colors.onBackgroundVariant,
-                            maxLines = lines,
-                            overflow = TextOverflow.Ellipsis,
-                            onTextLayout = { plotCut = it.hasVisualOverflow },
-                            modifier = if (plotCut) {
-                                Modifier.focusProperties { canFocus = false }.clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null,
-                                    onClickLabel = more,
-                                    onClick = { whole = WholeText.Plot },
-                                )
-                            } else {
-                                Modifier
-                            },
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(m.rowGap),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        CastivioButton(
+                            text = stringResource(R.string.movie_play),
+                            onClick = { selection?.let(onPlay) },
+                            weight = ButtonWeight.Primary,
+                            icon = Icons.Rounded.PlayArrow,
+                            enabled = selection != null,
+                            modifier = Modifier.focusRequester(playFocus),
+                        )
+                        CastivioButton(
+                            text = stringResource(
+                                if (favorite) R.string.movie_favorite_remove else R.string.movie_favorite_add,
+                            ),
+                            onClick = { favorites.flip(movie.id) },
+                            weight = ButtonWeight.Secondary,
+                            icon = if (favorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
                         )
                     }
-                }
-
-                // A line takes one line where the page is fitted to its height, and is cut with an ellipsis, with a link at
-                // its end to the whole of it; where the page scrolls anyway the names are all there, on as many lines as
-                // they need.
-                val bottom: (@Composable () -> Unit)? = if (director != null || cast.isNotEmpty()) {
-                    {
-                        Column(verticalArrangement = Arrangement.spacedBy(m.rowGap)) {
-                            director?.let {
-                                Credit(
-                                    Icons.Rounded.Person, stringResource(R.string.movie_director), it,
-                                    creditLines(fit, DIRECTOR_LINES), iconSize, bodyStyle, m,
-                                    onShowAll = { whole = WholeText.Director }, linkFocus = directorFocus,
+                    val rating = known?.rating
+                    val added = known?.addedEpochSeconds
+                    if (rating != null || added != null) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(m.rowGap),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            rating?.let {
+                                RatingBadge(
+                                    rating = ratingText(it),
+                                    labelStyle = castivioChipStyle(m.frame.fsChip),
+                                    iconSize = iconSize,
+                                    padH = m.entryPadH,
+                                    padV = m.entryPadV,
                                 )
                             }
-                            if (cast.isNotEmpty()) {
-                                Credit(
-                                    Icons.Rounded.Groups, stringResource(R.string.movie_cast), castText,
-                                    creditLines(fit, CAST_LINES), iconSize, bodyStyle, m,
-                                    onShowAll = { whole = WholeText.Cast }, linkFocus = castFocus,
+                            added?.let {
+                                Fact(
+                                    text = stringResource(R.string.movie_added, ltrToken(addedDateText(it))),
+                                    m = m,
+                                    icon = Icons.Rounded.CalendarMonth,
+                                    iconSize = iconSize,
                                 )
                             }
                         }
                     }
-                } else {
-                    null
-                }
-
-                if (fit) {
-                    val lineHeight = with(LocalDensity.current) { bodyStyle.lineHeight.toPx() }
-                    FitInfo(infoModifier, m.bandGap, lineHeight, top, plot, bottom)
-                } else {
-                    Column(infoModifier, verticalArrangement = Arrangement.spacedBy(m.bandGap)) {
-                        top()
-                        plot?.invoke(Int.MAX_VALUE)
-                        bottom?.invoke()
+                    if (known?.plot != null) {
+                        // The end of this row is empty, so the link to the whole plot costs the page no height.
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = stringResource(R.string.movie_plot_title),
+                                style = castivioChipStyle(m.frame.fsLabel).copy(fontWeight = FontWeight.Bold),
+                                color = colors.onBackground,
+                            )
+                            if (plotCut) PlotMore(m, onClick = { whole = WholeText.Plot }, modifier = Modifier.focusRequester(moreFocus))
+                        }
                     }
                 }
             }
 
-            // The way back sits in the top corner opposite the poster, as the reference has it: at the end of
-            // the name's row beside the poster, and in the page's corner when the page is a column.
-            val tv = CastivioTheme.device.isTv
-            val back: @Composable (Modifier) -> Unit = { backModifier ->
-                CastivioIconButton(
-                    icon = Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = stringResource(R.string.show_back),
-                    onClick = onBack,
-                    // A handset's button is smaller than its 48dp floor, by the owner's leave: the way back is also
-                    // the hardware Back, and the page is not a place a thumb has to find it. A television keeps
-                    // the remote's floor.
-                    modifier = if (tv) backModifier else backModifier.size(BACK_SIZE),
-                )
+            // The plot takes the lines the height has left, and is cut with an ellipsis where it runs on:
+            // the page does not scroll. On a surface too narrow to sit beside the poster it is whole.
+            // Where it was cut, a press on it opens the whole plot, as the link in the heading does; the
+            // press is for a thumb, and the remote reaches the link, so the plot itself takes no focus.
+            val plot: (@Composable (Int) -> Unit)? = known?.plot?.let { text ->
+                { lines ->
+                    val more = stringResource(R.string.movie_plot_more)
+                    Text(
+                        text = text,
+                        style = bodyStyle,
+                        color = colors.onBackgroundVariant,
+                        maxLines = lines,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = startEdgeAlign(text),
+                        onTextLayout = { plotCut = it.hasVisualOverflow },
+                        modifier = if (plotCut) {
+                            Modifier.focusProperties { canFocus = false }.clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClickLabel = more,
+                                onClick = { whole = WholeText.Plot },
+                            )
+                        } else {
+                            Modifier
+                        },
+                    )
+                }
             }
 
-            if (side) {
-                Box(Modifier.fillMaxSize().castivioStage(m.frame)) {
-                Row(
-                    Modifier.fillMaxSize(),
-                    horizontalArrangement = Arrangement.spacedBy(m.paneGap),
-                ) {
-                    PagePoster(
-                        url = movie.artworkUrl,
-                        cost = costLine,
-                        costStyle = castivioChipStyle(m.frame.fsLabel),
-                        modifier = Modifier.fillMaxHeight()
-                            .aspectRatio(CATALOG_POSTER_ASPECT, matchHeightConstraintsFirst = true),
-                    )
-                    info(Modifier.weight(1f).fillMaxHeight(), true, { back(Modifier) })
-                }
+            // A line takes one line where the page is fitted to its height, and is cut with an ellipsis, with a link at
+            // its end to the whole of it; where the page scrolls anyway the names are all there, on as many lines as
+            // they need.
+            val bottom: (@Composable () -> Unit)? = if (directorNames.isNotEmpty() || cast.isNotEmpty()) {
+                {
+                    Column(verticalArrangement = Arrangement.spacedBy(m.rowGap)) {
+                        if (directorNames.isNotEmpty()) {
+                            Credit(
+                                Icons.Rounded.Person, stringResource(R.string.movie_director), directorText,
+                                creditLines(fit, DIRECTOR_LINES), iconSize, bodyStyle, m,
+                                onShowAll = { whole = WholeText.Director }, linkFocus = directorFocus,
+                            )
+                        }
+                        if (cast.isNotEmpty()) {
+                            Credit(
+                                Icons.Rounded.Groups, stringResource(R.string.movie_cast), castText,
+                                creditLines(fit, CAST_LINES), iconSize, bodyStyle, m,
+                                onShowAll = { whole = WholeText.Cast }, linkFocus = castFocus,
+                            )
+                        }
+                    }
                 }
             } else {
-                // A narrow surface stacks them, the poster first and at a width that leaves the buttons
-                // on the screen with it; the page scrolls where the name is long.
-                Box(Modifier.fillMaxSize().castivioStage(m.frame)) {
-                Column(
-                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(m.bandGap),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    PagePoster(
-                        url = movie.artworkUrl,
-                        cost = costLine,
-                        costStyle = castivioChipStyle(m.frame.fsLabel),
-                        modifier = Modifier.fillMaxWidth(STACKED_POSTER).aspectRatio(CATALOG_POSTER_ASPECT),
-                    )
-                    info(Modifier.fillMaxWidth(), false, null)
-                }
-                back(Modifier.align(Alignment.TopEnd).padding(m.paneGap))
+                null
+            }
+
+            if (fit) {
+                val lineHeight = with(LocalDensity.current) { bodyStyle.lineHeight.toPx() }
+                FitInfo(infoModifier, m.bandGap, lineHeight, top, plot, bottom)
+            } else {
+                Column(infoModifier, verticalArrangement = Arrangement.spacedBy(m.bandGap)) {
+                    top()
+                    plot?.invoke(Int.MAX_VALUE)
+                    bottom?.invoke()
                 }
             }
         }
 
-        // Outside the block above, which draws the page left to right: the dialog is the application's own, and
-        // follows its language -- the plot inside it takes the direction of its words.
+        // The way back sits in the top corner opposite the poster, as the reference has it: at the end of
+        // the name's row beside the poster, and in the page's corner when the page is a column.
+        val tv = CastivioTheme.device.isTv
+        val back: @Composable (Modifier) -> Unit = { backModifier ->
+            CastivioIconButton(
+                icon = Icons.AutoMirrored.Rounded.ArrowBack,
+                contentDescription = stringResource(R.string.show_back),
+                onClick = onBack,
+                // A handset's button is smaller than its 48dp floor, by the owner's leave: the way back is also
+                // the hardware Back, and the page is not a place a thumb has to find it. A television keeps
+                // the remote's floor.
+                modifier = if (tv) backModifier else backModifier.size(BACK_SIZE),
+            )
+        }
+
+        if (side) {
+            Box(Modifier.fillMaxSize().castivioStage(m.frame)) {
+            Row(
+                Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.spacedBy(m.paneGap),
+            ) {
+                PagePoster(
+                    url = movie.artworkUrl,
+                    cost = costLine,
+                    costStyle = castivioChipStyle(m.frame.fsLabel),
+                    modifier = Modifier.fillMaxHeight()
+                        .aspectRatio(CATALOG_POSTER_ASPECT, matchHeightConstraintsFirst = true),
+                )
+                info(Modifier.weight(1f).fillMaxHeight(), true, { back(Modifier) })
+            }
+            }
+        } else {
+            // A narrow surface stacks them, the poster first and at a width that leaves the buttons
+            // on the screen with it; the page scrolls where the name is long.
+            Box(Modifier.fillMaxSize().castivioStage(m.frame)) {
+            Column(
+                Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(m.bandGap),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                PagePoster(
+                    url = movie.artworkUrl,
+                    cost = costLine,
+                    costStyle = castivioChipStyle(m.frame.fsLabel),
+                    modifier = Modifier.fillMaxWidth(STACKED_POSTER).aspectRatio(CATALOG_POSTER_ASPECT),
+                )
+                info(Modifier.fillMaxWidth(), false, null)
+            }
+            back(Modifier.align(Alignment.TopEnd).padding(m.paneGap))
+            }
+        }
+
+        // The dialog is the application's own, and follows its language as the page does -- the plot inside it takes the
+        // direction of its words and is set against the start edge.
         whole?.let { open ->
             CastivioNoticeDialog(
                 title = movie.title,
                 body = when (open) {
                     WholeText.Plot -> AnnotatedString(known?.plot.orEmpty())
-                    WholeText.Director -> creditText(stringResource(R.string.movie_director), director.orEmpty())
+                    WholeText.Director -> creditText(stringResource(R.string.movie_director), directorText)
                     WholeText.Cast -> creditText(stringResource(R.string.movie_cast), castText)
                 },
                 closeLabel = stringResource(R.string.movie_plot_close),

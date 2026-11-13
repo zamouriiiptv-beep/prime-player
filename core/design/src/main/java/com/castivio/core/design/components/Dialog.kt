@@ -286,6 +286,9 @@ fun CastivioNoticeDialog(
             text = body,
             style = CastivioType.bodySmall,
             color = colors.onBackgroundVariant,
+            // The body may be the provider's -- a film's plot -- and run the other way from the language: set against
+            // the panel's start edge either way, its words in their own order.
+            textAlign = startEdgeAlign(body.text),
             modifier = Modifier
                 .weight(1f, fill = false)
                 .verticalScroll(rememberScrollState())
@@ -532,6 +535,9 @@ internal fun DialogPanel(
                             lineHeight = (m.title.value * TITLE_LEADING).sp,
                         ),
                     color = colors.onBackground,
+                    // A film's name is the provider's words and may run the other way from the language: set against
+                    // the panel's start edge either way. For the application's own words this is `Start`, as it was.
+                    textAlign = startEdgeAlign(title),
                     modifier = Modifier.semantics { heading() },
                 )
                 content(tight)

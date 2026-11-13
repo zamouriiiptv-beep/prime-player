@@ -14,9 +14,29 @@
     <string name="browse_empty_section_detail">Bagian lain tidak terpengaruh. Jika ini terlihat keliru, segarkan — impor yang masih berjalan mengisi bagian satu per satu.</string>
     <string name="browse_empty_action">Segarkan</string>
     <string name="show_season">Musim %1$d</string>
+    <string name="show_preparing">Penyedia Anda sedang menyiapkan episode…</string>
     <string name="show_no_episodes_title">Belum ada episode</string>
     <string name="show_no_episodes_detail">Penyedia Anda mencantumkan tayangan ini tetapi belum mengirim episodenya. Biasanya muncul setelah penyegaran berikutnya.</string>
+    <string name="show_play">Putar</string>
+    <string name="show_play_episode">Putar %1$s</string>
+    <string name="show_continue">Lanjutkan %1$s</string>
+    <string name="show_failed_title">Episode tidak dapat dimuat</string>
+    <string name="show_failed_detail">Periksa koneksi perangkat ini, lalu coba lagi.</string>
+    <string name="show_retry">Coba lagi</string>
+    <plurals name="show_seasons">
+        <item quantity="other">%d musim</item>
+    </plurals>
+    <plurals name="show_episodes">
+        <item quantity="other">%d episode</item>
+    </plurals>
     <string name="show_back">Kembali</string>
+    <string name="show_nav_overview">Ikhtisar</string>
+    <string name="show_nav_seasons">Musim</string>
+    <string name="show_nav_cast">Pemeran</string>
+    <string name="show_nav_similar">Serupa</string>
+    <string name="show_favorite_add">Tambahkan ke favorit</string>
+    <string name="show_favorite_remove">Hapus dari favorit</string>
+    <string name="show_similar_title">Tayangan serupa</string>
     <string name="home_brand">CASTIVIO</string>
     <string name="home_empty_title">Belum ada yang diimpor</string>
     <string name="home_empty_detail">Penyedia Anda berhasil dihubungi tetapi tidak mengirim saluran, film, atau serial. Segarkan dari salah satu bagian, atau tambahkan penyedia lain.</string>
@@ -149,6 +169,12 @@
     <string name="movies_recent_empty_title">Belum ada film yang ditonton</string>
     <string name="movies_recent_empty_detail">Film yang Anda putar akan muncul di sini, yang terbaru lebih dulu.</string>
     <string name="movie_play">Putar film</string>
+    <string name="movie_added">Ditambahkan pada %1$s</string>
+    <string name="movie_plot_title">Sinopsis</string>
+    <string name="movie_plot_more">Lihat semua</string>
+    <string name="movie_plot_close">Tutup</string>
+    <string name="movie_director">Sutradara:</string>
+    <string name="movie_cast">Pemeran:</string>
     <string name="movie_favorite_add">Tambahkan ke favorit</string>
     <string name="movie_favorite_remove">Hapus dari favorit</string>
     <string name="hide_title">Sembunyikan buket dan saluran</string>

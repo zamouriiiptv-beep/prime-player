@@ -14,9 +14,31 @@
     <string name="browse_empty_section_detail">بخش‌های دیگر دست‌نخورده‌اند. اگر نادرست به نظر می‌رسد تازه‌سازی کنید — واردسازی در حال اجرا بخش‌ها را یکی‌یکی پر می‌کند.</string>
     <string name="browse_empty_action">تازه‌سازی</string>
     <string name="show_season">فصل %1$d</string>
+    <string name="show_preparing">ارائه‌دهندهٔ شما در حال آماده‌سازی قسمت‌هاست…</string>
     <string name="show_no_episodes_title">هنوز قسمتی نیست</string>
     <string name="show_no_episodes_detail">ارائه‌دهندهٔ شما این اثر را فهرست کرده اما قسمت‌هایش را نفرستاده است. معمولاً پس از تازه‌سازی بعدی نمایان می‌شود.</string>
+    <string name="show_play">پخش</string>
+    <string name="show_play_episode">پخش %1$s</string>
+    <string name="show_continue">ادامهٔ %1$s</string>
+    <string name="show_failed_title">بارگذاری قسمت‌ها ممکن نشد</string>
+    <string name="show_failed_detail">اتصال این دستگاه را بررسی کنید و دوباره تلاش کنید.</string>
+    <string name="show_retry">تلاش دوباره</string>
+    <plurals name="show_seasons">
+        <item quantity="one">%d فصل</item>
+        <item quantity="other">%d فصل</item>
+    </plurals>
+    <plurals name="show_episodes">
+        <item quantity="one">%d قسمت</item>
+        <item quantity="other">%d قسمت</item>
+    </plurals>
     <string name="show_back">بازگشت</string>
+    <string name="show_nav_overview">نمای کلی</string>
+    <string name="show_nav_seasons">فصل‌ها</string>
+    <string name="show_nav_cast">بازیگران</string>
+    <string name="show_nav_similar">مشابه</string>
+    <string name="show_favorite_add">افزودن به برگزیده‌ها</string>
+    <string name="show_favorite_remove">حذف از برگزیده‌ها</string>
+    <string name="show_similar_title">سریال‌های مشابه</string>
     <string name="home_brand">CASTIVIO</string>
     <string name="home_empty_title">هنوز چیزی وارد نشده است</string>
     <string name="home_empty_detail">به ارائه‌دهندهٔ شما دسترسی پیدا شد اما هیچ کانال، فیلم یا سریالی نفرستاد. از یکی از بخش‌ها تازه‌سازی کنید، یا ارائه‌دهندهٔ دیگری بیفزایید.</string>
@@ -149,6 +171,12 @@
     <string name="movies_recent_empty_title">هنوز فیلمی تماشا نکرده‌اید</string>
     <string name="movies_recent_empty_detail">فیلم‌هایی که پخش می‌کنید اینجا نمایش داده می‌شوند، جدیدترین در ابتدا.</string>
     <string name="movie_play">پخش فیلم</string>
+    <string name="movie_added">افزوده‌شده در %1$s</string>
+    <string name="movie_plot_title">داستان</string>
+    <string name="movie_plot_more">نمایش همه</string>
+    <string name="movie_plot_close">بستن</string>
+    <string name="movie_director">کارگردان:</string>
+    <string name="movie_cast">بازیگران:</string>
     <string name="movie_favorite_add">افزودن به برگزیده‌ها</string>
     <string name="movie_favorite_remove">حذف از برگزیده‌ها</string>
     <string name="hide_title">پنهان کردن بسته‌ها و کانال‌ها</string>
