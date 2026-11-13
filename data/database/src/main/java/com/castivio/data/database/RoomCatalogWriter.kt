@@ -366,6 +366,8 @@ class RoomCatalogWriter(
         statement.bindString(19, item.id)
         statement.bindLong(20, now)
         statement.bindNullable(21, item.catchUpHours)
+        // A film's rating, from the list row. `clearBindings` left the slot null, and a row with none says so.
+        item.rating?.let { statement.bindDouble(22, it) }
         statement.executeInsert()
         val details = item.details
         val providerRef = item.providerRef
@@ -955,10 +957,10 @@ class RoomCatalogWriter(
                 id, source_id, kind, title, sort_title, search_text, stream_url,
                 artwork_url, group_id, epg_channel_id, provider_ref, provider_order,
                 duration_seconds, series_id, series_title, season_number,
-                episode_number, generation, added_at, catch_up_hours
+                episode_number, generation, added_at, catch_up_hours, rating
             ) VALUES (
                 ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                COALESCE((SELECT added_at FROM media WHERE id = ?), ?), ?
+                COALESCE((SELECT added_at FROM media WHERE id = ?), ?), ?, ?
             )
         """
 

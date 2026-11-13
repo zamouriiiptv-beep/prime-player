@@ -54,6 +54,16 @@ internal fun Movie.withDetails(details: MovieDetails?): Movie {
 /** A provider's rating as one decimal, `8.1`: the figure IMDb itself shows. */
 internal fun ratingText(rating: Double): String = String.format(Locale.ROOT, "%.1f", rating)
 
+/**
+ * The rating a film's poster shows, as its page shows it, or null when there is none to draw.
+ *
+ * The same figure and the same digits as the page's badge -- [ratingText] -- from the rating the provider's list gave.
+ * A film with none, with zero, or with anything that is not a number above zero has no rating, and its poster draws
+ * nothing: no `0.0`, no `N/A`, and no number that was not in the data.
+ */
+internal fun posterRating(movie: Movie): String? =
+    movie.rating?.takeIf { it.isFinite() && it > 0 }?.let(::ratingText)
+
 /** A day a film was added on, `24/10/2026`, from the provider's time in seconds. */
 internal fun addedDateText(epochSeconds: Long): String =
     SimpleDateFormat("dd/MM/yyyy", Locale.ROOT).format(Date(epochSeconds * MILLIS_PER_SECOND))

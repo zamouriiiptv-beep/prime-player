@@ -94,8 +94,8 @@ fun RatingStar(
     }
 }
 
-/** IMDb's gold. */
-private val RatingGold = Color(0xFFF5C518)
+/** IMDb's gold: the badge's, the star beside a figure in a row of facts, and the star on a poster's rating. */
+internal val RatingGold = Color(0xFFF5C518)
 
 /** The ink on the gold mark: near black, as a rating's mark is. */
 private val RatingInk = Color(0xFF0B0B14)

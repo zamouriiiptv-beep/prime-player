@@ -34,6 +34,9 @@ internal fun MediaEntity.toDomain(): MediaItem = when (kindOrLive()) {
         groupId = groupId,
         sourceId = sourceId,
         providerRef = providerRef,
+        // Zero is "none" in a provider's list and is stored as null on the way in; a value that is not above
+        // zero is read as none here too, so a row written by anything else cannot draw a zero on a poster.
+        rating = rating?.takeIf { it.isFinite() && it > 0 },
     )
 
     MediaKind.SERIES -> Episode(
@@ -92,6 +95,7 @@ internal fun CatalogItem.toEntity(generation: Long, now: Long): MediaEntity = Me
     generation = generation,
     addedAt = now,
     catchUpHours = catchUpHours,
+    rating = rating,
 )
 
 /**

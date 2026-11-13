@@ -263,6 +263,8 @@ class StalkerImportEngine(
         durationSeconds = durationSeconds,
         epgChannelId = null,
         details = details,
+        // A portal's list row is also its details, so the rating its page shows is the one the poster shows.
+        rating = details?.rating,
     )
 
     private fun StalkerChannel.asItem(sourceId: String, url: String, order: Int) = CatalogItem(

@@ -139,6 +139,18 @@ data class MediaEntity(
      */
     @ColumnInfo(name = "catch_up_hours")
     val catchUpHours: Int? = null,
+
+    /**
+     * The provider's rating out of ten for a film, as its list gave it, or null when it gave none or gave zero.
+     *
+     * Written by the import from the list row it already walks, and read by the films' wall, which draws it on the
+     * poster: so the wall shows a rating without asking the provider about each film. Null for every row written
+     * before it existed and for every row that is not a film; a migration adds the column and leaves the rows as
+     * they were -- see `CastivioMigrations.ADD_RATING`. Stored as the provider's number and not as text, so what is
+     * shown is formatted at the screen and never parsed back.
+     */
+    @ColumnInfo(name = "rating")
+    val rating: Double? = null,
 )
 
 /**

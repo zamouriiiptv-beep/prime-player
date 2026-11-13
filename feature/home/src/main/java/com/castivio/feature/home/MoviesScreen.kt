@@ -32,6 +32,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -293,8 +294,8 @@ private fun MoviesPane(
 }
 
 /**
- * The posters: the provider's picture on each card, the title under it, and the running time on its lower
- * edge when the provider gave one. A press opens the film's page.
+ * The posters: the provider's picture on each card, the title under it, the running time on its lower
+ * edge and the rating on its upper one, each when the provider gave one. A press opens the film's page.
  */
 @Composable
 private fun MovieWall(
@@ -338,6 +339,9 @@ private fun MovieWall(
                     captionStyle = castivioBodyStyle(m.frame.fsBody),
                     artworkUrl = movie.artworkUrl,
                     tag = movieDuration(movie.durationMinutes)?.let(::ltrToken),
+                    // The figure the film's page shows, on the poster's top-end corner: the card draws nothing for
+                    // a film that has none. Formatted once per film, not on every recomposition of its card.
+                    rating = remember(movie.rating) { posterRating(movie) },
                     posterHeight = poster,
                     titleLines = TITLE_LINES,
                     titleHeight = titleStep * LABEL_LINE * TITLE_LINES,

@@ -95,6 +95,30 @@ class XtreamImportEngineTest {
         assertEquals(MediaKind.MOVIE, writer.items.single().kind)
     }
 
+    /** What the wall draws on a poster is written with the row, so no film is asked about to show it. */
+    @Test
+    fun `a film's rating from its list row reaches the writer, and a row without one carries none`() {
+        val writer = RecordingWriter()
+        val api = FakeApi(
+            vodCategories = listOf("5" to "Movies"),
+            vodStreams = mapOf(
+                "5" to listOf(
+                    stream("51", "Dune", rating = "8.1"),
+                    stream("52", "Cats", rating = "0"),
+                    stream("53", "Unrated"),
+                ),
+            ),
+        )
+
+        XtreamImportEngine(writer).importCatalogue("src", api, kinds = setOf(MediaKind.MOVIE))
+
+        val ratings = writer.items.associate { it.title to it.rating }
+        assertEquals(3, ratings.size)
+        assertEquals(8.1, ratings["Dune"]!!, 0.0001)
+        assertNull("zero is no rating", ratings["Cats"])
+        assertNull(ratings["Unrated"])
+    }
+
     /**
      * Xtream has no radio endpoint — stations arrive in live categories, and the
      * category name is the only signal there is. Asked for together, as a whole
@@ -685,10 +709,11 @@ class XtreamImportEngineTest {
     /** Any instant; only its constancy matters. */
     private val FROZEN_MS = 1_700_000_000_000L
 
-    private fun stream(id: String, name: String, extension: String? = null): String =
+    private fun stream(id: String, name: String, extension: String? = null, rating: String? = null): String =
         """{"num":0,"name":"$name","stream_id":"$id","stream_icon":"http://cdn/$id.png",""" +
             """"epg_channel_id":"epg.$id","category_id":"1"""" +
-            (extension?.let { ""","container_extension":"$it"""" } ?: "") + "}"
+            (extension?.let { ""","container_extension":"$it"""" } ?: "") +
+            (rating?.let { ""","rating":"$it"""" } ?: "") + "}"
 
     private class TrackedReader(content: String) : Reader() {
         private val delegate = StringReader(content)

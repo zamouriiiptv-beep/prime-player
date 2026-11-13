@@ -3,10 +3,16 @@ package com.castivio.core.design.components
 import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -16,8 +22,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.layout.padding
@@ -206,11 +214,12 @@ fun PosterFrame(url: String?, seed: Int, modifier: Modifier = Modifier) {
 }
 
 /**
- * One short fact on a poster's lower edge: a running time, a rating.
+ * One short fact on a poster's lower edge: a running time.
  *
  * Over a picture of any brightness, so it carries its own dim ground -- the scrim, held back a
  * little from black -- and nothing else. Drawn where the card says to, and not at all when the
- * provider shipped no fact to put in it.
+ * provider shipped no fact to put in it. A rating is not one of these: it has its own mark,
+ * [PosterRating], on the same ground.
  */
 @Composable
 internal fun PosterTag(text: String, modifier: Modifier = Modifier) {
@@ -222,11 +231,56 @@ internal fun PosterTag(text: String, modifier: Modifier = Modifier) {
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         modifier = modifier
-            .clip(RoundedCornerShape(Radius.pill))
-            .background(colors.scrim.copy(alpha = TAG_GROUND))
+            .posterMarkGround(colors.scrim)
             .padding(horizontal = 8.dp, vertical = 3.dp),
     )
 }
 
+/**
+ * A film's rating on its poster: the gold star and the figure, at the corner the card's other marks leave free.
+ *
+ * The same pill as [PosterTag] -- the same dim ground, the same 11sp label, the same inset from the poster's edge
+ * -- so a card has one kind of mark on its artwork, and the gold is the film page's own: a rating is the one
+ * thing gold means in the product, so the figure reads as the page's rating without carrying the page's whole
+ * badge, which would take two thirds of a poster's width. The star is decoration: the card says the rating in
+ * words, and a reader that met the star as well would say it twice.
+ *
+ * [rating] arrives formatted -- `7.1` -- by the caller, who owns the digits, as the film page's badge does.
+ */
+@Composable
+internal fun PosterRating(rating: String, modifier: Modifier = Modifier) {
+    val colors = CastivioTheme.colors
+    Row(
+        modifier
+            .posterMarkGround(colors.scrim)
+            .padding(start = RATING_START_PAD, end = 8.dp, top = 3.dp, bottom = 3.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(RATING_GAP),
+    ) {
+        Icon(Icons.Rounded.Star, contentDescription = null, tint = RatingGold, modifier = Modifier.size(RATING_STAR))
+        Text(
+            text = rating,
+            style = CastivioType.labelSmall,
+            color = colors.onBackground,
+            maxLines = 1,
+        )
+    }
+}
+
+/** The ground every mark on a poster stands on: a dim pill, so it reads over a picture of any brightness. */
+private fun Modifier.posterMarkGround(scrim: Color): Modifier =
+    this
+        .clip(RoundedCornerShape(Radius.pill))
+        .background(scrim.copy(alpha = TAG_GROUND))
+
 /** How dark the tag's ground is: enough to read over a white poster, and still a tint, not a plate. */
 private const val TAG_GROUND = 0.78f
+
+/** The rating's star, a little larger than the label's capital height so the gold reads at a handset's size. */
+private val RATING_STAR = 12.dp
+
+/** The star's side of the pill is padded less than the figure's: the star's own box has air in it. */
+private val RATING_START_PAD = 6.dp
+
+/** The air between the star and the figure. */
+private val RATING_GAP = 3.dp

@@ -149,6 +149,25 @@ class MovieFactsTest {
         assertEquals("7.0", ratingText(7.0))
     }
 
+    // ------------------------------------------------------------------------- the rating on a poster
+
+    @Test
+    fun `a poster shows the rating the film's page shows, in the same digits`() {
+        assertEquals(ratingText(8.1), posterRating(film().copy(rating = 8.1)))
+        assertEquals("8.1", posterRating(film().copy(rating = 8.1)))
+        assertEquals("one decimal, so a figure the provider gave at length is read as the page reads it", "7.1", posterRating(film().copy(rating = 7.123)))
+        assertEquals("a perfect ten is ten", "10.0", posterRating(film().copy(rating = 10.0)))
+    }
+
+    @Test
+    fun `a film with no rating, a zero or a figure that is not a number draws nothing`() {
+        assertNull(posterRating(film()))
+        assertNull("zero is no rating, not a rating of nought", posterRating(film().copy(rating = 0.0)))
+        assertNull(posterRating(film().copy(rating = -2.0)))
+        assertNull(posterRating(film().copy(rating = Double.NaN)))
+        assertNull(posterRating(film().copy(rating = Double.POSITIVE_INFINITY)))
+    }
+
     // --------------------------------------------------------------------------- the card's width
 
     @Test

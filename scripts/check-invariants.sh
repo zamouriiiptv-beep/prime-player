@@ -230,7 +230,8 @@ BUNDLES='feature/activation/src/main/res:strings_activation.xml
 feature/activation/src/main/res:strings_chooser.xml
 feature/activation/src/main/res:strings_form.xml
 feature/licence/src/main/res:strings_licence.xml
-app/src/main/res:strings_exit.xml'
+app/src/main/res:strings_exit.xml
+core/design/src/main/res:strings_poster.xml'
 
 # Well-formed XML, checked here rather than left to the build.
 #

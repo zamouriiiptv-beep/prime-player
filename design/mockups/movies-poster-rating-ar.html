@@ -1,0 +1,193 @@
+<!doctype html>
+<!--
+  The film's rating on its poster, on the films' wall. Drawn before code.
+
+  The owner asked for the rating the film's page shows (the IMDb badge, the figure on gold) on the poster of the wall, "choose the
+  shape you like". Three shapes, on the card's real geometry, and the states each has to survive.
+
+  What the card has (MediaCard, StateMarks, PosterArtwork -- one card for every wall):
+    top-start      the one `badge` slot: a "playing" pill, a "watched" tag, an episode's chip.
+    bottom-start   the `tag`: one short fact on a dim pill (the running time, where the provider sent it).
+    bottom edge    the history bar, 3dp, 8dp in from each side and 8dp up -- drawn under the tag.
+  The films' wall passes only the tag today (no badge, no history), so its top corners are free; the card is shared, though, and the
+  top-end corner is the one place no mark of the card's uses -- so the rating goes there, and a wall that does draw the "playing" pill
+  at top-start (about 80dp of a card's 96dp) is not asked to share the top edge with it: the pill wins and the rating is not drawn.
+
+  A  (recommended)  the gold star and the figure on the tag's own dim ground, at the top-end corner.
+     Same pill as the running time -- 11sp label, 8dp in, 24dp tall -- so the card has one kind of mark on a poster; the gold is the
+     film page's gold (a rating is the one thing gold means in the product), so the figure reads as "the same rating" without
+     carrying the page's whole badge. Readable over any poster because the ground is dim, as the tag's is.
+  B  a gold plate, near-black ink: IMDb's own mark. The loudest of the three -- two hundred thousand posters would each carry a
+     gold plate -- and the first thing the eye lands on in a wall, ahead of the poster.
+  C  the rating inside the running-time tag: "star 7.1 . 2h 21m". Nothing new on the poster, but it moves with the tag: a film with no
+     running time (most of a provider's list) has the rating where the tag would be, on top of the history bar.
+  D  (not drawn) the page's badge as it is -- IMDb mark, figure, star, ringed in gold: 64dp of a 112dp card.
+
+  Rules, the same in all three:
+    - the figure is the page's: one decimal (`8.1`), left to right whatever the language; a rating of nothing or 0 is not drawn --
+      "a fact that was not in the data is not made up to fill a card";
+    - the star is decoration; the card's spoken label gains "rated 7.1" (a sentence, in every language) and nothing else changes;
+    - nothing moves: the mark is laid over the artwork like the tag and the badge, and takes no room from the name;
+    - a focused card on a television keeps its ring and its grow; the mark grows with the card.
+
+  Data, which the drawing does not show: the list row's rating is read by nothing today -- the parser steps over it, the table has no
+  column for it, and the wall's film has no rating to hand to the card. See the foot.
+
+  Geometry is the phone's wall: a card 112dp wide, its frame 80dp tall with the poster fitted whole and the film's own colours blurred
+  and dimmed beside it, the name under in two lines. Colours are Color.kt tokens; the gold is RatingBadge's. The posters are made of
+  colour and the ratings are examples.
+
+    ?frame=<name>      one frame
+    ?frame=sheet       every frame stacked with its caption, for review
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>Movies poster rating</title>
+<style>
+:root{
+  --ground:#111327; --panel:#20223A; --glass:rgba(255,255,255,.06); --edgeSoft:rgba(255,255,255,.08);
+  --gold:#F5C518; --ink:#0B0B14; --strong:#FFFFFF; --variant:#D6D3E8; --muted:#8C8CA8;
+  --scrim:rgba(5,4,14,.78); --ring:#6FB2FF; --secondary:#B694FF; --live:#2BD9A8; --note:#9a9ab8;
+  --danger:#FF5A5A; --violet:#B694FF;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#05040E;color:var(--strong);font-family:"Noto Sans Arabic","DejaVu Sans",sans-serif}
+body.sheet{padding:22px;width:max-content;direction:ltr}
+.cap{direction:rtl;text-align:right;width:1000px;font:13px/1.5 "Noto Sans Arabic","DejaVu Sans",sans-serif;color:var(--note);margin:20px 0 9px}
+.cap b{color:#fff}
+.cap.rec b{color:var(--gold)}
+.foot{direction:rtl;text-align:right;width:1000px;font:13px/1.65 "Noto Sans Arabic","DejaVu Sans",sans-serif;color:var(--note);margin-top:26px;border-top:1px solid #2a2c4a;padding-top:14px}
+.foot b{color:#fff}
+
+/* ---- the wall, as the app draws it: left to right, cards 112dp, 8dp between ---- */
+.wall{direction:ltr;display:grid;grid-template-columns:repeat(5,112px);gap:8px 8px;padding:14px;border-radius:14px;
+  background:linear-gradient(160deg,#13152D,var(--ground));border:1px solid var(--edgeSoft);width:max-content}
+.card{width:112px;border-radius:12px;background:var(--glass);border:1px solid var(--edgeSoft);overflow:hidden;position:relative}
+.frame{position:relative;height:80px;border-radius:12px 12px 0 0;overflow:hidden;
+  background:#0d1230 repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 6px,transparent 6px 14px)}
+.frame .blur{position:absolute;inset:-14px;filter:blur(9px) brightness(.55);background:var(--art)}
+.frame .poster{position:absolute;top:0;bottom:0;left:50%;width:54px;margin-left:-27px;background:var(--art);
+  box-shadow:0 0 0 1px rgba(255,255,255,.07)}
+.frame .poster b{position:absolute;left:3px;right:3px;bottom:8px;text-align:center;font:800 7px/1.1 "DejaVu Sans",sans-serif;
+  color:#fff;letter-spacing:-.2px;text-shadow:0 1px 0 rgba(0,0,0,.45)}
+.frame.none .blur,.frame.none .poster{display:none}
+.frame.none::after{content:"";position:absolute;inset:0;
+  background:radial-gradient(70% 90% at 50% 40%,rgba(60,80,170,.55),rgba(13,18,48,0) 70%)}
+.name{font:11px/1.35 "DejaVu Sans",Roboto,sans-serif;color:var(--variant);text-align:center;padding:6px 7px 8px;height:44px}
+.name span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+/* what the card has today */
+.hist{position:absolute;left:8px;right:8px;bottom:8px;height:3px;border-radius:99px;background:rgba(255,255,255,.16)}
+.hist i{display:block;height:100%;border-radius:99px;background:var(--secondary)}
+.dim{position:absolute;inset:0;background:rgba(5,4,14,.34)}
+.tag{position:absolute;left:8px;bottom:8px;padding:3px 8px;border-radius:99px;background:var(--scrim);direction:ltr;
+  font:500 11px/18px "DejaVu Sans",sans-serif;letter-spacing:.4px;color:var(--strong);white-space:nowrap}
+.mark{position:absolute;left:8px;top:8px;padding:3px 8px;border-radius:99px;background:var(--scrim);
+  font:600 10px/16px "Noto Sans Arabic","DejaVu Sans",sans-serif;color:#fff}
+
+/* the star, wherever it is drawn */
+.star{display:inline-block;width:12px;height:12px;vertical-align:-2px;fill:var(--gold)}
+
+/* A: the tag's own pill, with the gold star, top-end */
+.ra{position:absolute;right:8px;top:8px;display:flex;align-items:center;gap:3px;padding:3px 8px 3px 6px;border-radius:99px;
+  background:var(--scrim);font:500 11px/18px "DejaVu Sans",sans-serif;letter-spacing:.4px;color:var(--strong)}
+/* B: a gold plate, near-black ink, top-end */
+.rb{position:absolute;right:8px;top:8px;display:flex;align-items:center;gap:2px;padding:2px 6px 2px 4px;border-radius:6px;
+  background:var(--gold);font:800 11px/18px "DejaVu Sans",sans-serif;color:var(--ink)}
+.rb .star{fill:var(--ink);width:11px;height:11px}
+/* C: inside the running-time tag */
+.tag.rc .star{margin-right:1px}
+.tag.rc .sep{opacity:.55;margin:0 3px}
+
+/* a television's card, grown and ringed */
+.card.focus{outline:2px solid var(--ring);outline-offset:1px;transform:scale(1.06);box-shadow:0 8px 26px rgba(0,0,0,.5)}
+
+/* the states, at twice the size */
+.row{direction:ltr;display:flex;gap:22px 26px;align-items:flex-start;flex-wrap:wrap;max-width:1000px;
+  padding:16px;border-radius:14px;background:linear-gradient(160deg,#13152D,var(--ground));border:1px solid var(--edgeSoft);width:max-content}
+.row .cell{zoom:1.7}
+.lab{font:11px/1.4 "Noto Sans Arabic","DejaVu Sans",sans-serif;color:var(--note);text-align:center;margin-top:16px;zoom:1;max-width:240px;direction:rtl}
+.col{display:flex;flex-direction:column;align-items:center}
+.ann{outline:1.5px dashed var(--danger);outline-offset:3px}
+</style>
+</head>
+<body>
+<script>
+const STAR='<svg class="star" viewBox="0 0 24 24"><path d="M12 17.27l4.15 2.51c.76.46 1.69-.22 1.49-1.08l-1.1-4.72 3.67-3.18c.67-.58.31-1.68-.57-1.75l-4.83-.41-1.89-4.46c-.34-.81-1.5-.81-1.84 0L9.19 8.63l-4.83.41c-.88.07-1.24 1.17-.57 1.75l3.67 3.18-1.1 4.72c-.2.86.73 1.54 1.49 1.08l4.15-2.5z"/></svg>';
+const FILMS=[
+ {t:'THE SUBSTANCE',g:'linear-gradient(170deg,#3b0d1a,#a3122f 48%,#14061a)',n:'EN - The Substance (2024)',r:'7.1'},
+ {t:'A REAL PAIN',g:'linear-gradient(170deg,#1f4d2b,#8a9a3a 52%,#2b1a10)',n:'EN - A Real Pain (2024)',r:'6.8'},
+ {t:'SEPTEMBER 5',g:'linear-gradient(170deg,#050505,#1b2a4a 55%,#b0252b)',n:'EN - September 5 (2024)',r:'7.0'},
+ {t:'ANORA',g:'linear-gradient(170deg,#c0396b,#f2a14b 55%,#2a1740)',n:'EN - Anora (2024)',r:'7.0'},
+ {t:'A COMPLETE UNKNOWN',g:'linear-gradient(170deg,#e8e0cf,#b9a98a 50%,#2b2a28)',n:'EN - A Complete Unknown (2024)',r:'7.2'},
+ {t:'',g:'',n:'EN - Cleopatra (1963)',r:'6.4',none:1},
+ {t:'',g:'',n:'EN - They Live (1988)',r:'7.3',none:1},
+ {t:'',g:'',n:'EN - Before Sunrise (1995)',r:'8.1',none:1},
+ {t:'BLUE VELVET',g:'linear-gradient(170deg,#0b1c5a,#1d4fd0 50%,#5a0e1a)',n:'EN - Blue Velvet (1986)',r:''},
+ {t:'MUNICH',g:'linear-gradient(170deg,#2a1d14,#c07a2a 52%,#12100c)',n:'EN - Munich (2005)',r:'7.5'},
+];
+// style: 'now' | 'A' | 'B' | 'C'
+function card(f, style, o={}){
+  const ratingMark = (style==='A') ? '<div class="ra">'+STAR+f.r+'</div>'
+                   : (style==='B') ? '<div class="rb">'+STAR+f.r+'</div>' : '';
+  const hasR = f.r && f.r!=='0' && f.r!=='0.0';
+  const dur = o.dur ? o.dur : '';
+  let tag = '';
+  if(style==='C' && hasR){ tag='<div class="tag rc">'+STAR+f.r+(dur?'<span class="sep">·</span>'+dur:'')+'</div>'; }
+  else if(dur){ tag='<div class="tag">'+dur+'</div>'; }
+  const rm = hasR && (style==='A'||style==='B') ? ratingMark : '';
+  const hist = o.hist!=null ? '<div class="hist"><i style="width:'+Math.round(o.hist*100)+'%"></i></div>' : '';
+  const dim = o.watched ? '<div class="dim"></div>' : '';
+  const hist2 = o.watched ? '<div class="hist"><i style="width:100%;background:rgba(140,140,168,.55)"></i></div>' : hist;
+  const mark = o.mark ? '<div class="mark">'+o.mark+'</div>' : '';
+  const art = f.g ? 'style="--art:'+f.g+'"' : '';
+  return '<div class="card'+(o.focus?' focus':'')+'"><div class="frame'+(f.none?' none':'')+'" '+art+'>'+
+    '<div class="blur"></div><div class="poster"><b>'+f.t+'</b></div>'+dim+hist2+mark+tag+rm+'</div>'+
+    '<div class="name"><span>'+f.n+'</span></div></div>';
+}
+function wall(style, durFor){
+  return '<div class="wall">'+FILMS.map((f,i)=>card(f,style,{dur:durFor&&durFor[i]})).join('')+'</div>';
+}
+const FRAMES={
+  now:  {cap:'<b>الآن</b> — الشبكة كما هي: بوستر واسمه. لا تقييم ولا مدة (معظم قوائم المزوّدين لا ترسل مدة الفيلم). جدار الأفلام يمرّر اليوم علامة المدة وحدها؛ وللبطاقة المشتركة شارة أعلى البداية (يُعرض الآن/شوهد/حلقة) وشريط مشاهدة على الحافة السفلية.',
+         html:()=>wall('now',{0:'2h 21m',3:'2h 18m'})},
+  a:    {rec:1,cap:'<b>الشكل أ — الموصى به.</b> نجمة ذهبية ورقم على أرضية العلامة نفسها (معتمة)، في أعلى النهاية: الركن الذي لا يستعمله شيء من علامات البطاقة. للبطاقة نوع واحد من العلامات على البوستر؛ والذهب ذهب صفحة الفيلم. الأفلام بلا تقييم (Blue Velvet هنا) لا تحمل شيئاً.',
+         html:()=>wall('A',{0:'2h 21m',3:'2h 18m'})},
+  b:    {cap:'<b>الشكل ب.</b> لوحة ذهبية بحبر داكن: علامة IMDb نفسها. الأوضح، لكن مئتا ألف بوستر بلوحة ذهبية يجعل أول ما تقع عليه العين اللوحة لا البوستر.',
+         html:()=>wall('B',{0:'2h 21m',3:'2h 18m'})},
+  c:    {cap:'<b>الشكل ج.</b> التقييم داخل علامة المدة: لا عنصر جديد، لكنه يتبع العلامة؛ وفيلم بلا مدة (الغالب) يقع تقييمه حيث تكون العلامة، وهو الركن الذي يعبره شريط المشاهدة حيث يُرسم.',
+         html:()=>wall('C',{0:'2h 21m',3:'2h 18m'})},
+  states:{cap:'<b>الحالات</b> (الشكل أ، بحجم أكبر): بلا تقييم · عشرة · مع المدة · بلا بوستر · بطاقة على التلفاز مركَّز عليها · ومعها شارة «يُعرض الآن» (لا تُرسم على جدار الأفلام اليوم). المنقّط بالأحمر ما يُضاف.',
+         html:()=>{
+    const F=FILMS;
+    const cells=[
+      [card({...F[8]},'A',{}),'بلا تقييم (أو صفر): لا شيء يُرسم'],
+      [card({...F[0],r:'10.0'},'A',{}),'عشرة: الرقم أطول بحرف ويتسع'],
+      [card(F[3],'A',{dur:'2h 18m'}),'مع المدة: العلامتان في ركنين متقابلين'],
+      [card(F[5],'A',{}),'بلا بوستر: على الخلفية السينمائية'],
+      [card(F[7],'A',{focus:1}),'التلفاز: البطاقة المركَّز عليها تكبر والعلامة معها'],
+      [card({...F[2],r:''},'A',{mark:'يُعرض الآن'}),'إن رُسمت شارة «يُعرض الآن» في البداية فلا تقييم معها'],
+    ];
+    return '<div class="row">'+cells.map(c=>'<div class="col"><div class="cell">'+c[0]+'</div><div class="lab">'+c[1]+'</div></div>').join('')+'</div>';
+  }},
+};
+const params=new URLSearchParams(location.search);
+const want=params.get('frame')||'sheet';
+if(want==='sheet'){
+  document.body.className='sheet';
+  const order=['now','a','b','c','states'];
+  document.body.innerHTML=order.map(k=>'<div class="cap'+(FRAMES[k].rec?' rec':'')+'">'+FRAMES[k].cap+'</div>'+FRAMES[k].html()).join('')+
+   '<div class="foot"><b>ما لا يُرى في الرسم — ما يحتاجه الكود:</b><br>'+
+   '١) <b>التقييم غير مخزَّن في القائمة اليوم:</b> سطر الفيلم عند Xtream يحمل حقل <code>rating</code> (نصاً مثل <code>"8.1"</code>، كما في ردّ صفحة الفيلم) لكن المحلّل يتخطّاه، وجدول <code>media</code> بلا عمود له، وليس في <code>Movie</code> ما يعطيه للبطاقة. صفحة الفيلم تسأل المزوّد (<code>get_vod_info</code>) عند فتحها وتخزّنه في <code>vod_detail</code> لمن فُتح فقط.<br>'+
+   '٢) <b>للرسم:</b> قراءة <code>rating</code> عند الاستيراد، وعمود جديد في <code>media</code> بترحيل قاعدة (حارس الترحيلات القائم)، وعدد ربط واحد إضافي لكل صف في الكاتب، و<code>Movie.rating</code>، وبارامتر واحد في <code>MediaCard</code> (البطاقة الواحدة لكل الجدران)، وجملة القارئ الصوتي. المنسّق نفسه: الرقم بعلامة عشرية واحدة كصفحة الفيلم.<br>'+
+   '٣) <b>الأفلام المحمَّلة لا تحمل تقييماً حتى التحديث التالي</b> للأفلام (نحو دقيقتين على هاتفك)؛ وبعده يظهر على الكل. أثر الاستيراد: ربط واحد إضافي لكل صف (تقدير: ميكروثانية أو اثنتان من نحو 450) وبضعة بايتات للصف.<br>'+
+   '٤) <b>المرسوم هو ما في القائمة.</b> إن خلا سطر الفيلم من تقييم أو جاء صفراً عند مزوّد ما، لم يُرسم شيء على البوستر، وبقي في صفحته ما يرسله <code>get_vod_info</code>: غياب لا تناقض.<br>'+
+   '٥) المسلسلات: سطرها يحمل <code>rating</code> أيضاً؛ لم يُطلب، وتبقى كما هي حتى تطلب.'+
+   '</div>';
+}else if(FRAMES[want]){
+  document.body.innerHTML=FRAMES[want].html();
+}
+</script>
+</body>
+</html>

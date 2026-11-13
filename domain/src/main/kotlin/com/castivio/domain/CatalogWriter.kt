@@ -181,6 +181,12 @@ data class CatalogItem(
      * catch-up" is answered by the catalogue and not by a request -- see [CatchUpGateway].
      */
     val catchUpHours: Int? = null,
+    /**
+     * The provider's rating out of ten for a film, read from the list row the import already walks, or null
+     * when the row gave none or gave zero. Written with the row so the films' wall can draw it on a poster
+     * without asking the provider for each film -- see [Movie.rating].
+     */
+    val rating: Double? = null,
 )
 
 /** What an import actually did. Reported to the writer and to diagnostics. */

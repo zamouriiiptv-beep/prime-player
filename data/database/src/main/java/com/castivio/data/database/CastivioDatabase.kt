@@ -66,7 +66,11 @@ import com.castivio.data.database.entity.VodDetailEntity
     // 10: one column added to `media`, `catch_up_hours`, the archive a provider says a channel keeps -- see
     //    `CastivioMigrations.ADD_CATCH_UP`. Nothing that was stored changed and no sync state is forgotten: the column
     //    is filled for a catalogue that is already here by `CatchUpBackfill`, once, in the background.
-    version = 10,
+    // 11: one column added to `media`, `rating`, the figure a provider's list gives a film, which the films' wall
+    //    draws on a poster -- see `CastivioMigrations.ADD_RATING`. Nothing that was stored changed and no sync
+    //    state is forgotten: a film that is already here has none until its list is read again, and the next
+    //    ordinary refresh of the films writes it with the row.
+    version = 11,
     exportSchema = true,
 )
 abstract class CastivioDatabase : RoomDatabase() {

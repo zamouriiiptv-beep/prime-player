@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- What a film's card says of its rating, spoken as part of the card's name after the title: one sentence with the figure in it, so each language orders it as it reads. -->
+    <string name="poster_rating_spoken">Hodnotenie: %1$s</string>
+</resources>

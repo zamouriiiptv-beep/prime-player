@@ -51,7 +51,7 @@ object CastivioMigrations {
     val ALL: Array<Migration>
         get() = arrayOf(
             REKEY_SOURCES, SCOPE_TO_SOURCE, KEY_SEARCH_BY_ROW, ADD_CUSTOM_ORDER, ADD_HIDDEN_ITEM, ADD_VOD_DETAIL,
-            ADD_SERIES_DETAIL, guarded(DROP_EPG_INDEX), guarded(ADD_CATCH_UP),
+            ADD_SERIES_DETAIL, guarded(DROP_EPG_INDEX), guarded(ADD_CATCH_UP), guarded(ADD_RATING),
         )
 
     /** The first version a database may be in with the sort-title index out: see [guarded]. */
@@ -343,6 +343,28 @@ object CastivioMigrations {
     private val ADD_CATCH_UP = object : Migration(9, 10) {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL("ALTER TABLE `media` ADD COLUMN `catch_up_hours` INTEGER")
+        }
+    }
+
+    /**
+     * 10 → 11: `media.rating`, the figure a provider's list gives a film, which the films' wall draws on a poster.
+     *
+     * **One nullable column, no default, no row touched, and no sync state forgotten** -- the shape of the migration
+     * before it, for the same reasons: adding a column changes the table's definition and not its rows, so it costs
+     * nothing however large the catalogue is, and a row with no value reads as null, which is "no rating to show" and
+     * draws nothing, exactly as before. `REAL`, because Room maps a `Double?` to it and checks the result against the
+     * entity: a column of another type would not open.
+     *
+     * ## How the column gets its values for a catalogue that is already here
+     *
+     * By the next ordinary refresh of the films, which writes every row with the rating its list carries -- the import
+     * writes the column with the row, as it does `catch_up_hours`. Not by forgetting the sync state, which would make
+     * the whole catalogue a cold load for a figure on a poster, and not by a backfill: the films' list is one reply the
+     * panel sends whole, and reading it again to write a column is what the refresh already does.
+     */
+    private val ADD_RATING = object : Migration(10, 11) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `media` ADD COLUMN `rating` REAL")
         }
     }
 

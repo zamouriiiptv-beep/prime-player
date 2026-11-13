@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -103,8 +104,17 @@ fun MediaCard(
      * Cropped to the card's ratio; when it is on its way or fails, the placeholder is what shows.
      */
     artworkUrl: String? = null,
-    /** One short fact on the artwork's lower edge -- a running time, a rating -- or null for none. */
+    /** One short fact on the artwork's lower edge -- a running time -- or null for none. */
     tag: String? = null,
+    /**
+     * A film's rating, formatted (`7.1`), drawn at the artwork's top-end corner as the gold star and the figure on the
+     * tag's own dim ground -- see [PosterRating] -- or null where the provider gave none, which draws nothing. The card
+     * says it in words as well, as it says its tag.
+     *
+     * Not drawn when the card has its top-start [badge]: that pill takes most of a poster's width, so the two cannot
+     * share the top edge, and what is playing or watched is the one the viewer needs. See [ratingShown].
+     */
+    rating: String? = null,
     /**
      * The poster's height, when a grid has fitted the height to the surface: the width is the cell's and
      * the ratio follows from it. Null keeps the card's own ratio, as every other caller has it.
@@ -161,6 +171,10 @@ fun MediaCard(
         Modifier.border(1.dp, border, cardShape)
     }
 
+    // What a card says in words is what it shows: a rating that is not drawn is not said.
+    val shownRating = ratingShown(rating, hasBadge = badge != null)
+    val ratingSpoken = shownRating?.let { stringResource(R.string.poster_rating_spoken, it) }
+
     // The accessible name says in words what the marks say in colour.
     val spoken = buildString {
         append(title)
@@ -174,6 +188,7 @@ fun MediaCard(
         // A blank line is kept for the card's height and says nothing: no trailing comma for a reader to pause on.
         if (!caption.isNullOrBlank()) append(", $caption")
         if (tag != null) append(", $tag")
+        if (ratingSpoken != null) append(", $ratingSpoken")
     }
 
     Column(
@@ -238,6 +253,11 @@ fun MediaCard(
             }
             if (tag != null) {
                 PosterTag(tag, Modifier.align(Alignment.BottomStart).padding(Spacing.sm))
+            }
+            // The one corner no other mark of the card uses, inset as the tag is. Laid over the artwork, so it takes
+            // no room from the name, and inside the card, so a focused card that grows takes it along.
+            if (shownRating != null) {
+                PosterRating(shownRating, Modifier.align(Alignment.TopEnd).padding(Spacing.sm))
             }
             if (overlay != null) {
                 Box(Modifier.matchParentSize().clearAndSetSemantics {}) { overlay() }
@@ -411,6 +431,17 @@ private val FOCUS_RING_WIDTH = 3.dp
  */
 internal fun backdropFadeMillis(level: MotionLevel): Int =
     if (level == MotionLevel.DISABLED) 0 else Motion.fast
+
+/**
+ * The rating a card draws, or null when it draws none.
+ *
+ * A figure the caller gave, and not blank -- an empty pill would be a mark with nothing in it -- on a card that has no
+ * top-start [badge]. The badge's pill ("playing now", "watched", an episode's chip) takes about four fifths of a
+ * poster's width at a handset's size, so it and the rating cannot share the top edge; the badge is what the viewer needs
+ * at that moment, and wins. Split out of the card so the rule is asserted without a device.
+ */
+internal fun ratingShown(rating: String?, hasBadge: Boolean): String? =
+    if (hasBadge) null else rating?.takeIf { it.isNotBlank() }
 
 private fun backdropFadeSpec(level: MotionLevel): FiniteAnimationSpec<Float> =
     backdropFadeMillis(level).let { if (it == 0) snap() else tween(it, easing = Motion.standard) }

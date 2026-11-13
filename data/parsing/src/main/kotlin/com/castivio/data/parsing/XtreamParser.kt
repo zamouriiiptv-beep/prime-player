@@ -67,6 +67,7 @@ object XtreamParser {
             var hasArchive = false
             var number: Int? = null
             var added: Long? = null
+            var rating: Double? = null
 
             scanner.readObject { field ->
                 when (field) {
@@ -81,6 +82,9 @@ object XtreamParser {
                     "tv_archive" -> hasArchive = scanner.boolean()
                     "num" -> number = scanner.int()
                     "added" -> added = scanner.long()
+                    // A film's row carries its rating, as the figure its page shows. Read by the one rule every
+                    // rating is read by; a channel's row has none, and nothing is read for it.
+                    "rating" -> rating = ratingOf(scanner.string())
                 }
             }
 
@@ -102,6 +106,7 @@ object XtreamParser {
                         catchUpHours = if (hasArchive && archiveDays > 0) archiveDays * 24 else null,
                         number = number?.takeIf { it > 0 },
                         addedEpochSeconds = added?.takeIf { it > 0 },
+                        rating = rating,
                     ),
                 )
                 count++
@@ -166,7 +171,7 @@ object XtreamParser {
             when (section) {
                 "info" -> scanner.readObject { field ->
                     when (field) {
-                        "rating" -> rating = scanner.string()?.toDoubleOrNull()?.takeIf { it > 0 }
+                        "rating" -> rating = ratingOf(scanner.string())
                         "plot", "description" -> plot = scanner.string()?.takeIf { it.isNotBlank() }
                         "director" -> director = scanner.string()?.takeIf { it.isNotBlank() }
                         "cast", "actors" -> cast = listOfNames(scanner.string())
@@ -208,6 +213,17 @@ object XtreamParser {
     /** A provider's list of names, which it sends as one comma-separated string. */
     private fun listOfNames(raw: String?): List<String> =
         raw.orEmpty().split(',').map { it.trim() }.filter { it.isNotEmpty() }
+
+    /**
+     * A provider's `rating` as a number, or null when it is not one worth showing.
+     *
+     * The one rule for every place a rating is read -- a film's list row, a film's details, a show's details -- so
+     * a poster and the page it opens can never disagree about whether a film has one. A panel sends the figure as
+     * a string (`"8.1"`), as a number, or as `""` or `"0"` for a film it knows nothing of; zero, a negative, text and
+     * a value that is not a finite number are all "none", and `NaN` and `Infinity` -- which Kotlin parses -- are
+     * not ratings.
+     */
+    private fun ratingOf(raw: String?): Double? = raw?.toDoubleOrNull()?.takeIf { it.isFinite() && it > 0 }
 
     /** `get_series` — the show list, without episodes. */
     fun parseSeries(reader: Reader, onSeries: (XtreamSeries) -> Unit): Int {
@@ -326,7 +342,7 @@ object XtreamParser {
         var backdrop: String? = null
         scanner.readObject { field ->
             when (field) {
-                "rating" -> rating = scanner.string()?.toDoubleOrNull()?.takeIf { it > 0 }
+                "rating" -> rating = ratingOf(scanner.string())
                 "plot", "description" -> plot = scanner.string()?.takeIf { it.isNotBlank() }
                 "cast", "actors" -> cast = listOfNames(scanner.string())
                 "genre" -> genres = listOfNames(scanner.string())
@@ -580,6 +596,8 @@ data class XtreamStream(
     val catchUpHours: Int?,
     val number: Int?,
     val addedEpochSeconds: Long?,
+    /** A film's rating out of ten as its list row gave it; null when the row gave none, gave zero, or is a channel's. */
+    val rating: Double?,
 )
 
 /** A film's details from `get_vod_info`. Each field is null or empty when the provider did not send it. */

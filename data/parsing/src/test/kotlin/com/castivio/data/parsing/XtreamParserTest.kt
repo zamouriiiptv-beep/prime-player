@@ -77,6 +77,48 @@ class XtreamParserTest {
         assertEquals("mkv", streams.single().containerExtension)
     }
 
+    /**
+     * The wall draws this on a poster, so what counts as a rating is decided here once: a figure above zero. A panel
+     * sends it as a string or as a number, and sends `""` or `"0"` for a film it knows nothing of -- which is no rating,
+     * not a rating of nought -- and a value Kotlin would parse as a number without it being one (`NaN`, `Infinity`).
+     */
+    @Test
+    fun `a film's list row gives its rating, and only a real one`() {
+        val json = """
+            [{"name":"Dune","stream_id":"1","rating":"8.1","rating_5based":4.05},
+             {"name":"Arrival","stream_id":"2","rating":7.5},
+             {"name":"Cats","stream_id":"3","rating":"0"},
+             {"name":"Blank","stream_id":"4","rating":""},
+             {"name":"Null","stream_id":"5","rating":null},
+             {"name":"Missing","stream_id":"6"},
+             {"name":"Words","stream_id":"7","rating":"n/a"},
+             {"name":"Infinite","stream_id":"8","rating":"Infinity"},
+             {"name":"NotANumber","stream_id":"9","rating":"NaN"},
+             {"name":"Negative","stream_id":"10","rating":"-3"}]
+        """.trimIndent()
+        val ratings = linkedMapOf<String, Double?>()
+
+        val count = XtreamParser.parseStreams(StringReader(json)) { ratings[it.name] = it.rating }
+
+        assertEquals(10, count)
+        assertEquals(8.1, ratings["Dune"]!!, 0.0001)
+        assertEquals("a number is as good as a string", 7.5, ratings["Arrival"]!!, 0.0001)
+        for (name in listOf("Cats", "Blank", "Null", "Missing", "Words", "Infinite", "NotANumber", "Negative")) {
+            assertNull("$name has no rating to show", ratings[name])
+        }
+    }
+
+    @Test
+    fun `a channel's row carries no rating, and the rest of it reads as before`() {
+        val json = """[{"num":1,"name":"Nova","stream_id":"1","category_id":"1","tv_archive":1,"tv_archive_duration":7}]"""
+        val streams = mutableListOf<XtreamStream>()
+
+        XtreamParser.parseStreams(StringReader(json)) { streams.add(it) }
+
+        assertNull(streams.single().rating)
+        assertEquals(168, streams.single().catchUpHours)
+    }
+
     @Test
     fun `series parse`() {
         val json = """

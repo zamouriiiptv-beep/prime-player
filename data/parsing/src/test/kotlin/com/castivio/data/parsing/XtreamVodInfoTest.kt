@@ -42,6 +42,21 @@ class XtreamVodInfoTest {
         assertNull(info.addedEpochSeconds)
     }
 
+    /**
+     * A poster and the page it opens read a rating by one rule -- see `XtreamParser.ratingOf` -- so they cannot
+     * disagree about whether a film has one.
+     */
+    @Test
+    fun `a rating that is not a finite number above zero is no rating, as it is on the list`() {
+        for (raw in listOf("Infinity", "NaN", "-1", "0", "0.0", "n/a", "")) {
+            val reply = """{"info":{"rating":"$raw","plot":"A story."}}"""
+
+            assertNull("'$raw' is not a rating", XtreamParser.parseVodInfo(StringReader(reply))!!.rating)
+        }
+        val real = XtreamParser.parseVodInfo(StringReader("""{"info":{"rating":7.5,"plot":"A story."}}"""))!!
+        assertEquals(7.5, real.rating!!, 0.0001)
+    }
+
     @Test
     fun `the running time as a clock wins over a duration_secs that holds minutes`() {
         val reply = """{"info":{"duration":"01:58:00","duration_secs":"118"}}"""

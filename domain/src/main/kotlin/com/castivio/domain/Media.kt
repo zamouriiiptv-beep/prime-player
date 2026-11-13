@@ -40,6 +40,15 @@ data class Movie(
     /** The source it came from and the provider's own id for it: what its details are asked for by. Null for an M3U row. */
     val sourceId: String? = null,
     val providerRef: String? = null,
+    /**
+     * The provider's rating out of ten, as its list gave it, or null when the list gave none or gave zero.
+     *
+     * What the films' wall draws on a poster. It is the figure the film's page shows, which that page reads
+     * from the provider's details: the list row carries the same field, so the wall can show it without a
+     * request per film. A rating of nothing is not a rating of zero -- zero is "no rating" in a provider's
+     * list, and is stored as null so no screen has to remember to hide it.
+     */
+    val rating: Double? = null,
 ) : MediaItem
 
 data class Series(

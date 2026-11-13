@@ -6,8 +6,10 @@ import com.castivio.domain.ImportSummary
 import com.castivio.domain.MediaGroup
 import com.castivio.domain.MediaKind
 import com.castivio.domain.CatalogWriter
+import com.castivio.domain.MovieDetails
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -249,7 +251,7 @@ class StalkerImportEngineTest {
         }
     }
 
-    private fun film(id: String, name: String, cmd: String?, seconds: Int? = null) = StalkerItem(
+    private fun film(id: String, name: String, cmd: String?, seconds: Int? = null, details: MovieDetails? = null) = StalkerItem(
         id = id,
         name = name,
         command = cmd,
@@ -258,6 +260,7 @@ class StalkerImportEngineTest {
         year = "2021",
         durationSeconds = seconds,
         episodeCount = 0,
+        details = details,
     )
 
     /**
@@ -309,6 +312,25 @@ class StalkerImportEngineTest {
         val row = writer.items.single()
         assertEquals("http://host/p/7.jpg", row.artworkUrl)
         assertEquals(9300, row.durationSeconds)
+    }
+
+    /** A portal's row is also its details, so the rating its page shows is the one its poster shows. */
+    @Test
+    fun `a film's rating from its portal row is on the row written, and a film without one has none`() {
+        val writer = Recorder()
+        val portal = Library(
+            MediaKind.MOVIE,
+            listOf(
+                film("1", "Dune", "http://h/1", details = MovieDetails(rating = 8.1)),
+                film("2", "Unrated", "http://h/2"),
+            ),
+        )
+
+        StalkerImportEngine().importKind("src", MediaKind.MOVIE, portal, writer)
+
+        val ratings = writer.items.associate { it.title to it.rating }
+        assertEquals(8.1, ratings["Dune"]!!, 0.0001)
+        assertNull(ratings["Unrated"])
     }
 
     /* --------------------------------------------------------------- create_link */

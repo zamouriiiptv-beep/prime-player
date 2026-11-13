@@ -1074,6 +1074,8 @@ class XtreamImportEngine(
         durationSeconds = null,
         // The archive the panel says the channel keeps, which is already in the list being read.
         catchUpHours = stream.catchUpHours,
+        // A film's rating, which the same row carries: what its poster shows, and its page shows too.
+        rating = stream.rating,
     )
 
     /**

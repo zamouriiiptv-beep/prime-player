@@ -84,12 +84,13 @@ class MoviesScreenTest {
         compose.waitForIdle()
     }
 
-    private fun film(id: String, title: String, minutes: Int? = null) = Movie(
+    private fun film(id: String, title: String, minutes: Int? = null, rating: Double? = null) = Movie(
         id = id,
         title = title,
         artworkUrl = null,
         streamUrl = "http://example.invalid/movie/u/p/$id.mp4",
         durationMinutes = minutes,
+        rating = rating,
     )
 
     // ----------------------------------------------------------------------------- the band and the rail
@@ -204,5 +205,34 @@ class MoviesScreenTest {
 
         // Exactly the name: no ", 0m", no ", null", nothing the provider did not send.
         compose.onNodeWithContentDescription("Untimed").assertIsDisplayed()
+    }
+
+    /**
+     * The rating on a poster is the star and the figure, and the card says it in a sentence of its own after its name
+     * and its tag, in the digits the film's page shows. The star is decoration and adds no word.
+     */
+    @Test
+    fun `a film's rating is drawn on its poster and said with its name`() {
+        show(
+            holder(
+                films = listOf(
+                    film("m1", "Dune: Part Two", minutes = 166, rating = 8.5),
+                    film("m2", "Oppenheimer", rating = 8.0),
+                ),
+            ),
+        )
+
+        compose.onNodeWithContentDescription("Dune: Part Two", substring = true).assertIsDisplayed()
+        compose.onNodeWithContentDescription("Rating: 8.5", substring = true).assertIsDisplayed()
+        compose.onNodeWithContentDescription("Oppenheimer, Rating: 8.0").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a film with no rating, or a rating of zero, says and draws none`() {
+        show(holder(films = listOf(film("m1", "Unrated"), film("m2", "Zero", rating = 0.0))))
+
+        // Exactly the name: a zero is no rating, and no "Rating: 0.0" is made of it.
+        compose.onNodeWithContentDescription("Unrated").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Zero").assertIsDisplayed()
     }
 }
