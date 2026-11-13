@@ -44,6 +44,7 @@ import androidx.compose.ui.semantics.dialog
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -246,6 +247,22 @@ fun CastivioDialog(
 fun CastivioNoticeDialog(
     title: String,
     body: String,
+    closeLabel: String,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+    maxFraction: Float = PANEL_MAX_FRACTION,
+) {
+    CastivioNoticeDialog(title, AnnotatedString(body), closeLabel, onClose, modifier, maxFraction)
+}
+
+/**
+ * The same notice with a body that carries its own marks -- a label in bold before the names it introduces, as a
+ * film's credit line has it. Everything is the plain overload's; it is that overload's body, made a string of runs.
+ */
+@Composable
+fun CastivioNoticeDialog(
+    title: String,
+    body: AnnotatedString,
     closeLabel: String,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,

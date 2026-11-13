@@ -6,6 +6,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.domain.FavoritesRepository
 import com.castivio.domain.MediaGroup
@@ -178,7 +179,56 @@ class MovieScreenTest {
     // The other half -- a plot the page has to cut offers "Show all", which opens the whole of it in a dialog --
     // is not asserted here: it depends on the text being laid out and found longer than the lines it was given,
     // and Robolectric does not lay text out (see ActivationBudgetTest), so the link would never appear in this
-    // harness. It is checked on a device, where the plot is real.
+    // harness. It is checked on a device, where the plot is real. The credit lines are cut and offer their own
+    // "Show all" by the same rule, and are checked the same way.
+
+    @Test
+    fun `a director and a cast that fit are shown whole, with no link to more`() {
+        show(details = WithCredits(director = "Denis Villeneuve", cast = listOf("Timothée Chalamet", "Zendaya")))
+
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithText("Denis Villeneuve", substring = true).fetchSemanticsNodes().isNotEmpty()
+        }
+
+        compose.onNodeWithText("Denis Villeneuve", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Timothée Chalamet, Zendaya", substring = true).assertIsDisplayed()
+        assertTrue(compose.onAllNodesWithText("Show all").fetchSemanticsNodes().isEmpty())
+    }
+
+    /**
+     * The page can carry three of these links, the plot's and the credits', and a reader that met "Show all" three times
+     * would not know which was which: the one at the end of a credit line says what it is the whole of.
+     */
+    @Test
+    fun `the link to the whole of a credit says which credit it is, and a press on it is heard`() {
+        var pressed = 0
+        compose.setContent {
+            CastivioTheme {
+                PlotMore(catalogMetricsFor(tv = false, width = 833.dp, height = 385.dp), onClick = { pressed++ }, subject = "Cast")
+            }
+        }
+
+        compose.onNodeWithContentDescription("Show all, Cast").performClick()
+
+        assertEquals(1, pressed)
+    }
+
+    @Test
+    fun `the plot's own link keeps its plain name`() {
+        compose.setContent {
+            CastivioTheme {
+                PlotMore(catalogMetricsFor(tv = false, width = 833.dp, height = 385.dp), onClick = {})
+            }
+        }
+
+        compose.onNodeWithText("Show all").assertIsDisplayed()
+    }
+
+    /** A provider that gives a director and a cast and nothing else. */
+    private class WithCredits(private val director: String, private val cast: List<String>) : MovieDetailsRepository {
+        override suspend fun details(movie: Movie, onTimes: (RequestTimes) -> Unit): MovieDetails? =
+            MovieDetails(director = director, cast = cast)
+    }
 
     /** A provider that gives a plot and nothing else. */
     private class WithPlot(private val plot: String) : MovieDetailsRepository {

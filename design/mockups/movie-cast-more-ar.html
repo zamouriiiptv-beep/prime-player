@@ -1,0 +1,272 @@
+<!doctype html>
+<!--
+  A film's cast, whole: how a cast line the page has to cut is read to the end. Drawn before code.
+
+  The film page does not scroll (UI: "one screen, no scrolling"), so the credits sit under the plot as one line each and a
+  line that runs on is cut with an ellipsis -- the cast takes ONE line, because the plot has first call on the height. A
+  provider's cast of six names or more is cut in the middle of a name ("Ja...") and nothing on the page says the rest is
+  there. The owner's screenshot (Ben-Hur, a handset 833x385) is the case drawn here.
+
+  The same two things the plot has, and only when the line is really cut (a line that fits shows neither):
+
+    1. "Show all" at the END OF THE CAST LINE ITSELF -- the credit lines have no heading row, so the link takes the line's
+       last 70dp and the names are cut a name earlier. It is the plot's own link (PlotMore: azure, bold, the chevron of the
+       language), so the page has one kind of "more". The line is as tall as before: the plot keeps its lines. A remote
+       reaches it with Down from the plot's link; a thumb presses it. The director's line is cut by the same rule and gets
+       its own link.
+    2. The plot's own dialog (CastivioNoticeDialog), with the line's text for its body: the film's name is its title, the
+       body is the label in bold and the names -- "Cast:" and all of them -- and Close takes focus, so the key that opened
+       it closes it; Back returns the remote to the link. A list longer than five lines (seven on a television) scrolls
+       inside it with the same fade and the same thin bar.
+
+  Not a scrolling area on the page, which was the other way to do it: a remote cannot scroll text that takes no focus, and
+  a box that takes it is one more stop between the buttons; one or two lines of names do not say that they are dragged;
+  and on a narrow page, which scrolls, the two scrolls fight. Scrolling belongs in the dialog, which is a place a remote
+  and a thumb already know how to scroll.
+
+  A surface too narrow to put the poster beside the page already scrolls, so there the credits are drawn whole: no cut, no
+  link.
+
+  The test build's request line ("ask 0.7 s . read 0.0 s ...") is drawn today at the page's bottom corner, over the last
+  line -- the cast -- so it looked like the cast was overlapping. It is moved onto the poster's lower edge, on the dim
+  ground the tags have; a user's build does not draw it at all.
+
+  Geometry is movie-plot.html's, which is Dialog.kt's. The film's data is the provider's own (the names after the cut are
+  examples). Colours are Color.kt tokens.
+
+    ?frame=<name>      one frame at its device size: now, page, test, dialog, tv, narrow, states
+    ?frame=sheet       every frame stacked with its caption, for review; &set=a (the page, three frames) or &set=b (the dialog,
+                       the television, the narrow page and the states) for half of it
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>Film cast</title>
+<style>
+:root{
+  --ground:#111327; --panel:#20223A; --edge:rgba(172,180,214,.10); --edgeSoft:rgba(255,255,255,.08);
+  --glass:rgba(255,255,255,.06); --glassBorder:rgba(255,255,255,.14); --violet:#9B6BFF; --violetEdge:#B694FF;
+  --azure:#4C9BFF; --azureDeep:#2F6FE0; --ring:#6FB2FF; --gold:#F5C518; --ink:#D6D3E8; --strong:#FFFFFF;
+  --muted:#8C8CA8; --scrim:rgba(5,4,14,.72); --elevated:#20223A; --danger:#FF5A5A;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#05040E;color:var(--strong);font-family:"Noto Sans Arabic","DejaVu Sans",sans-serif}
+body.sheet{padding:20px;width:max-content;direction:ltr}
+svg{display:block;flex:none}
+.cap{direction:rtl;text-align:right;width:900px;font:13px/1.6 "Noto Sans Arabic","DejaVu Sans",sans-serif;color:#9a9ab8;margin:20px 0 8px}
+.cap b{color:#fff} .cap.rec b{color:var(--gold)} .cap code{font:12px "DejaVu Sans Mono",monospace;color:#b9b9d6}
+.foot{direction:rtl;text-align:right;width:900px;font:13px/1.7 "Noto Sans Arabic","DejaVu Sans",sans-serif;color:#9a9ab8;margin-top:26px;
+  border-top:1px solid #2a2c4a;padding-top:14px}
+.foot b{color:#fff} .foot code{font:12px "DejaVu Sans Mono",monospace;color:#b9b9d6}
+
+.screen{position:relative;overflow:hidden;direction:ltr;
+  background:radial-gradient(120% 90% at 85% 0%,#1B1F3F 0%,rgba(27,31,63,0) 60%),linear-gradient(160deg,#13152D,var(--ground))}
+
+/* ---------- the film page, as the app draws it (always left to right) ---------- */
+.page{position:absolute;inset:0;display:flex;gap:28px;padding:17px 40px}
+.poster{flex:none;border-radius:10px;border:1px solid var(--edgeSoft);overflow:hidden;
+  background:linear-gradient(170deg,#e6c970 0%,#c99d3c 45%,#8a6422 100%);position:relative}
+.poster b{position:absolute;left:0;right:0;top:12%;text-align:center;font:900 34px/0.95 "DejaVu Sans",sans-serif;color:#d9dde6;
+  letter-spacing:-1px;text-shadow:0 2px 0 #4a4f5c,0 0 10px rgba(0,0,0,.35)}
+.poster .wy{position:absolute;left:0;right:0;bottom:17%;text-align:center;font:italic 900 13px/1 "DejaVu Sans",sans-serif;color:#5b3d0c}
+.info{flex:1;min-width:0;display:flex;flex-direction:column;font-family:"DejaVu Sans",Roboto,sans-serif}
+.trow{display:flex;align-items:center;gap:8px}
+.name{flex:1;font-weight:700;font-size:26px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.back{flex:none;width:40px;height:40px;border-radius:10px;background:var(--glass);border:1px solid var(--glassBorder);
+  display:flex;align-items:center;justify-content:center}
+.back svg{width:20px;height:20px;fill:var(--azure)}
+.facts{margin-top:8px;height:32px;border-radius:16px;background:var(--glass);border:1px solid var(--edgeSoft);
+  display:flex;align-items:center;padding:0 14px;font-size:11.5px;white-space:nowrap;overflow:hidden}
+.facts i{flex:none;width:1px;height:16px;background:var(--glassBorder);margin:0 10px}
+.facts svg{width:15px;height:15px;fill:var(--ink);margin-right:6px}
+.facts span{display:flex;align-items:center;flex:none}
+.facts span:last-child{flex:0 1 auto;min-width:0}
+.facts em{font-style:normal;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.btns{margin-top:12px;display:flex;gap:10px}
+.btn{height:50px;border-radius:12px;display:flex;align-items:center;gap:8px;padding:0 26px;font:600 15px "Noto Sans Arabic","DejaVu Sans";}
+.btn svg{width:20px;height:20px}
+.btn.p{background:linear-gradient(180deg,#4C9BFF,#2F6FE0);color:#fff} .btn.p svg{fill:#fff}
+.btn.s{background:var(--glass);border:1px solid var(--glassBorder);color:var(--ink)} .btn.s svg{fill:var(--ink)}
+.rrow{margin-top:12px;display:flex;gap:10px;align-items:center}
+.imdb{display:flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:15px;border:1.5px solid var(--gold);
+  background:rgba(245,197,24,.12);font-weight:700;font-size:14px}
+.imdb u{text-decoration:none;background:var(--gold);color:#0B0B14;border-radius:4px;padding:1px 5px;font-weight:900}
+.imdb svg{width:15px;height:15px;fill:var(--gold)}
+.added{height:30px;display:flex;align-items:center;padding:0 12px;border-radius:15px;background:var(--glass);border:1px solid var(--edgeSoft);
+  font-size:13px;color:var(--ink)}
+.hrow{margin-top:10px;display:flex;align-items:center;justify-content:space-between;height:18px}
+.hrow h3{font-size:13px;font-weight:700}
+.more{flex:none;display:flex;align-items:center;gap:2px;font:700 12.5px "Noto Sans Arabic","DejaVu Sans";color:var(--azure);
+  border-radius:6px;padding:0 4px 0 6px;height:18px}
+.more svg{width:16px;height:16px;fill:var(--azure)}
+.more.ring{outline:2px solid var(--ring);outline-offset:2px;background:rgba(76,155,255,.14)}
+.plot{margin-top:8px;font-size:12.5px;line-height:18.3px;color:var(--ink);display:-webkit-box;-webkit-box-orient:vertical;
+  -webkit-line-clamp:3;overflow:hidden}
+.cred{margin-top:9px;font-size:12.5px;line-height:18px;color:var(--ink);display:flex;gap:8px;white-space:nowrap;align-items:flex-start}
+.cred span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.cred b{color:#fff} .cred svg{width:16px;height:16px;fill:#fff;margin-top:1px}
+.cred .more{margin-left:auto}
+
+/* the test build's request line: over the last line today, on the poster's lower edge in the proposal */
+.devover{position:absolute;right:40px;bottom:17px;font:12px/18px "DejaVu Sans",sans-serif;color:var(--muted);white-space:nowrap}
+.devpill{position:absolute;left:7px;right:7px;bottom:7px;padding:4px 7px;border-radius:8px;background:rgba(5,4,14,.78);
+  font:10px/13px "DejaVu Sans",sans-serif;color:#b8b8d0;text-align:left;direction:ltr}
+.ann{outline:1.5px dashed var(--danger);outline-offset:3px;border-radius:4px}
+
+.dim{position:absolute;inset:0;background:var(--scrim)}
+
+/* ---------- the dialog (movie-plot.html's, Dialog.kt's) ---------- */
+.stagebox{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.panel{position:relative;background:var(--elevated);border:1px solid var(--edgeSoft);display:flex;flex-direction:column;overflow:hidden}
+.ttl{font-weight:700;color:var(--strong);line-height:1.44;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;unicode-bidi:plaintext;
+  font-family:"DejaVu Sans",Roboto,sans-serif}
+.txt{position:relative;overflow:hidden;color:var(--ink);font-family:"DejaVu Sans",Roboto,sans-serif}
+.txt p{unicode-bidi:plaintext;text-align:start}
+.txt b{color:#fff}
+.close{align-self:flex-end;background:var(--glass);border:1px solid var(--glassBorder);border-radius:12px;color:var(--strong);
+  font-weight:600;display:flex;align-items:center;padding:0 26px}
+.close.ring{border-color:var(--ring);box-shadow:0 0 0 2px rgba(111,178,255,.45);background:rgba(76,155,255,.20)}
+
+/* ---------- the narrow page and the states ---------- */
+.nstack{position:absolute;left:16px;right:16px;bottom:18px;display:flex;flex-direction:column;gap:10px;
+  font-family:"DejaVu Sans",Roboto,sans-serif;
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 46px);mask-image:linear-gradient(180deg,transparent 0,#000 46px)}
+.nstack .plot{display:block;overflow:visible;margin-top:0}
+.nstack .hrow{margin-top:0}
+.nstack .cred{white-space:normal;margin-top:0}
+.nstack .cred span{overflow:visible;text-overflow:clip}
+.states{padding:18px 22px;display:flex;flex-direction:column;gap:14px;font-family:"DejaVu Sans",Roboto,sans-serif}
+.states .line{display:flex;align-items:center;gap:18px}
+.states .lab{width:300px;font:12px/1.5 "Noto Sans Arabic","DejaVu Sans",sans-serif;color:#9a9ab8;direction:rtl;text-align:right}
+.states .cred{margin:0;width:491px}
+</style>
+</head>
+<body>
+<script>
+const I={
+  back:'<svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"/></svg>',
+  play:'<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>',
+  heart:'<svg viewBox="0 0 24 24"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3zm-4.4 15.55-.1.1-.1-.1C7.14 14.24 4 11.39 4 8.5 4 6.5 5.5 5 7.5 5c1.54 0 3.04.99 3.57 2.36h1.87C13.46 5.99 14.96 5 16.5 5c2 0 3.5 1.5 3.5 3.5 0 2.89-3.14 5.74-7.9 10.05z"/></svg>',
+  star:'<svg viewBox="0 0 24 24"><path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>',
+  chev:'<svg viewBox="0 0 24 24"><path d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>',
+  chevL:'<svg viewBox="0 0 24 24"><path d="M14 6l1.41 1.41L10.83 12l4.58 4.59L14 18l-6-6z"/></svg>',
+  person:'<svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>',
+  groups:'<svg viewBox="0 0 24 24"><path d="M12 12.75c1.63 0 3.07.39 4.24.9 1.08.48 1.76 1.56 1.76 2.73V18H6v-1.61c0-1.18.68-2.26 1.76-2.73 1.17-.52 2.61-.91 4.24-.91zM4 13c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm1.13 1.1c-.37-.06-.74-.1-1.13-.1-.99 0-1.93.21-2.78.58C.48 14.9 0 15.62 0 16.43V18h4.5v-1.61c0-.83.23-1.61.63-2.29zM20 13c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm4 3.43c0-.81-.48-1.53-1.22-1.85-.85-.37-1.79-.58-2.78-.58-.39 0-.76.04-1.13.1.4.68.63 1.46.63 2.29V18H24v-1.57zM12 6c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3z"/></svg>',
+  cal:'<svg viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 16H5V9h14v11z"/></svg>',
+  clock:'<svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>',
+  cat:'<svg viewBox="0 0 24 24"><path d="M12 2 6.5 11h11zM17.5 13a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9zM3 13.5h8v8H3z"/></svg>',
+  mask:'<svg viewBox="0 0 24 24"><path d="M2 5c3-1 6-1 9 0v6a4.5 4.5 0 0 1-9 0zm11 1c3-1 6-1 9 0v6a4.5 4.5 0 0 1-9 0z"/></svg>'
+};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+/* The provider's own words are the screenshot's; the names and the plot after its cut are examples. */
+const FILM='EN - Ben-Hur (1959)';
+const PLOT='In 25 AD, Judah Ben-Hur, a Jew in ancient Judea, opposes the occupying Roman empire. Falsely accused by a Roman childhood friend-turned-overlord of trying to kill the Roman governor, he is put into slavery and his mother and sister are taken away as prisoners. Three years later, he is saved by a Roman admiral and returns to Judea to take his revenge, in a chariot race that the whole city comes to watch.';
+const CAST='Charlton Heston, Haya Harareet, Stephen Boyd, Martha Scott, Cathy O\'Donnell, Jack Hawkins, Hugh Griffith, Sam Jaffe, Finlay Currie, Frank Thring, Terence Longdon, André Morell';
+const CASTMORE=CAST+', Mino Doro, Liana Orfei, Ralph Truman, Duncan Lamont';
+const DEV='ask 0.7 s · read 0.0 s · shown 0.9 s · try&nbsp;1';
+const DEV2='ask 0.7 s · read 0.0 s<br>shown 0.9 s · try&nbsp;1';
+
+const TEXT={
+  ar:{more:'عرض الكل',close:'إغلاق',play:'تشغيل الفيلم',fav:'إضافة إلى المفضلة'},
+  en:{more:'Show all',close:'Close',play:'Play',fav:'Add to favourites'}
+};
+function moreLink(lang,ring){return `<div class="more${ring?' ring':''}">${TEXT[lang].more}${lang==='ar'?I.chevL:I.chev}</div>`;}
+
+/* o: lines (plot), castLink, castRing, plotRing, devOver (today: over the last line), devPill (proposal: on the poster) */
+function page(w,h,lang,o){
+  const ph=h-34, pw=Math.round(ph*2/3), tvz=w>900;
+  return `<div class="page" style="padding:17px ${tvz?48:40}px;gap:${tvz?32:28}px">
+    <div class="poster" style="width:${pw}px;height:${ph}px"><b>BEN<br>HUR</b><div class="wy">WILLIAM WYLER</div>${o.devPill?`<div class="devpill">${DEV2}</div>`:''}</div>
+    <div class="info" style="${tvz?'zoom:1.12':''}">
+      <div class="trow"><div class="name">${FILM}</div><div class="back">${I.back}</div></div>
+      <div class="facts"><span>${I.cat}|EN| BIBLICAL/RELIGIOUS</span><i></i><span>${I.cal}1959</span><i></i><span>${I.clock}3h 42m</span><i></i><span>${I.mask}<em>Action | Drama | History</em></span></div>
+      <div class="btns"><div class="btn p">${I.play}${TEXT[lang].play}</div><div class="btn s">${I.heart}${TEXT[lang].fav}</div></div>
+      <div class="rrow"><div class="imdb"><u>IMDb</u>7.9${I.star}</div><div class="added">Added 10/04/2023</div></div>
+      <div class="hrow"><h3>Plot</h3>${moreLink(lang,o.plotRing)}</div>
+      <div class="plot" style="-webkit-line-clamp:${o.lines||3}">${PLOT}</div>
+      <div style="flex:1 1 0;min-height:2px"></div>
+      <div class="cred">${I.person}<span><b>Director:</b> William Wyler</span></div>
+      <div class="cred ${o.devOver?'ann':''}">${I.groups}<span><b>Cast:</b> ${CAST}</span>${o.castLink?moreLink(lang,o.castRing):''}</div>
+    </div></div>${o.devOver?`<div class="devover">${DEV}</div>`:''}`;
+}
+
+/* Dialog.kt's shares, and this dialog's own: its text is as tall as it is, up to five lines (seven on a television). */
+function dialog(w,h,tv,lang,plain,html){
+  const pw=Math.min(clamp(w*746.7/1280,400,560),w), pad=(h<320)?12:clamp(w*42.7/1280,20,36);
+  const rad=clamp(h*40/720,20,32), ttl=clamp(h*24/720,15,20), body=14*(tv?1.15:1), lh=body*1.45;
+  const key=tv?56:48, maxLines=tv?7:5;
+  const chars=Math.floor((pw-2*pad)/(body*0.53)), need=Math.ceil(plain.length/chars*1.04);
+  const shown=Math.min(need,maxLines), th=Math.round(shown*lh);
+  return `<div class="panel" style="width:${pw}px;border-radius:${rad}px;padding:${pad}px;gap:14px;max-height:${Math.round(h*.72)}px" dir="${lang==='ar'?'rtl':'ltr'}">
+    <div class="ttl" style="font-size:${ttl*(tv?1.1:1)}px">${FILM}</div>
+    <div class="txt" style="height:${th}px"><p dir="auto" style="font-size:${body}px;line-height:${lh}px">${html}</p></div>
+    <div class="close ring" style="height:${key}px;font-size:${body}px">${TEXT[lang].close}</div></div>`;
+}
+
+/* a surface too narrow for the poster beside the page: it scrolls already, so the credits are whole */
+function narrow(){
+  return `<div class="nstack">
+    <div class="rrow" style="margin-top:0"><div class="imdb"><u>IMDb</u>7.9${I.star}</div><div class="added">Added 10/04/2023</div></div>
+    <div class="hrow"><h3>Plot</h3></div>
+    <div class="plot" style="font-size:13px">${PLOT}</div>
+    <div class="cred">${I.person}<span><b>Director:</b> William Wyler</span></div>
+    <div class="cred">${I.groups}<span><b>Cast:</b> ${CASTMORE}</span></div></div>`;
+}
+
+function credRow(label,names,icon,link,lang){
+  return `<div class="cred">${icon}<span><b>${label}:</b> ${names}</span>${link||''}</div>`;
+}
+function states(){
+  const L=(t,row)=>`<div class="line"><div class="lab">${t}</div>${row}</div>`;
+  return `<div class="states">`+
+    L('السطر يتّسع: لا شيء يُضاف',credRow('Cast','Charlton Heston, Jack Hawkins, Haya Harareet',I.groups))+
+    L('السطر مقطوع: الرابط في نهايته، في حالته العادية',credRow('Cast',CAST,I.groups,moreLink('ar',false)))+
+    L('الوصول إليه بالريموت (السهم السفلي من رابط الحبكة)',credRow('Cast',CAST,I.groups,moreLink('ar',true)))+
+    L('الواجهة الإنجليزية: الرابط على نصّها وسهمه',credRow('Cast',CAST,I.groups,moreLink('en',false)))+
+    L('سطر المخرج إن قُطع: رابطه وحده، ونافذته',credRow('Director','Victor Fleming, George Cukor, Sam Wood, Mervyn LeRoy, Richard Thorpe, King Vidor',I.person,moreLink('ar',false)))+
+    `</div>`;
+}
+
+const FR={
+  now:[833,385,()=>page(833,385,'ar',{lines:3,devOver:true})],
+  page:[833,385,()=>page(833,385,'ar',{lines:3,castLink:true})],
+  test:[833,385,()=>page(833,385,'ar',{lines:3,castLink:true,devPill:true})],
+  dialog:[833,385,()=>page(833,385,'ar',{lines:3,castLink:true,castRing:true})+'<div class="dim"></div><div class="stagebox">'+
+          dialog(833,385,false,'ar','Cast: '+CASTMORE,'<b>Cast:</b> '+CASTMORE)+'</div>'],
+  tv:[960,540,()=>page(960,540,'ar',{lines:4,castLink:true,castRing:true})],
+  narrow:[360,400,()=>narrow()],
+  states:[833,215,()=>states()]
+};
+const CAP={
+  now:'<b>الآن — نسخة التجربة.</b> سطر الممثلين مقطوع بعلامة حذف في منتصف اسم، ولا يدلّ شيء على أن بقية الأسماء موجودة. والنص المتداخل في آخره (في المستطيل الأحمر) ليس من الصفحة: هو سطر قياس الطلب الخاص بنسخة التجربة (<code>ask … · read … · try 1</code>)، يُرسم في زاوية الصفحة فوق آخر سطر فيها، وهو سطر الممثلين. نسخة المستخدمين لا ترسمه.',
+  page:'<b>المقترح — نسخة المستخدمين.</b> «عرض الكل ›» في نهاية سطر الممثلين نفسه، هو رابط الحبكة بشكله ولونه، ولا يظهر إلا حين قُطعت الأسماء. السطر بارتفاعه كما كان فلا تفقد الحبكة سطراً؛ وتُقطع الأسماء قبله بما يشغله (نحو 70dp). نص الرابط هو نفسه الذي في صف الحبكة، فلا نصوص جديدة.',
+  test:'<b>المقترح — نسخة التجربة.</b> الصفحة هي صفحة المستخدمين نفسها بلا فرق في الأبعاد؛ وسطر القياس انتقل إلى حافة البوستر السفلى على أرضية معتمة، فلا يغطي نصاً ولا يأخذ من الصفحة ارتفاعاً.',
+  dialog:'<b>بعد الضغط.</b> نافذة الحبكة نفسها بلوحتها وزرها وحجمها: اسم الفيلم عنواناً، وفي الجسم «Cast:» بالخط الغليظ ثم الأسماء كلها، وزر «إغلاق» عليه التركيز فيغلقها المفتاح الذي فتحها، والرجوع يعيد الريموت إلى الرابط. إن طالت القائمة عن خمسة أسطر تتمرّر داخلها بالتلاشي والشريط الرفيع نفسهما. الأسماء بعد القطع أمثلة.',
+  tv:'<b>التلفاز 960×540.</b> الريموت يصل إلى الرابط بالسهم السفلي من رابط الحبكة، والتركيز عليه كما في الحبكة (الحلقة الزرقاء). المفتاح المركزي يفتح النافذة، وهي بخطوة التلفاز: 560dp وسبعة أسطر وزر 56dp.',
+  narrow:'<b>شاشة ضيقة لا يجاور فيها البوستر الصفحة (الصفحة مُمرَّرة إلى آخرها).</b> الصفحة تتمرّر أصلاً، فيُرسم السطران كاملين: الأسماء تلتف على أسطر، ولا قطع ولا رابط.',
+  states:'<b>الحالات</b> على عرض عمود النص في شاشة 833dp (491dp): سطر يتّسع، ومقطوع، ومُركَّز عليه بالريموت، وبالإنجليزية، وسطر المخرج إن قُطع هو أيضاً.'
+};
+const q=new URLSearchParams(location.search), f=q.get('frame')||'sheet';
+function draw(name){
+  const [w,h,html]=FR[name];
+  return `<div class="screen" style="width:${w}px;height:${h}px">${html()}</div>`;
+}
+if(f==='sheet'){
+  document.body.className='sheet';
+  const sets={a:['now','page','test'],b:['dialog','tv','narrow','states']};
+  const set=q.get('set');
+  const order=sets[set]||[...sets.a,...sets.b];
+  const foot=(set!=='a');
+  document.body.innerHTML=order.map(n=>`<div class="cap${n==='page'?' rec':''}">${CAP[n]}</div>${draw(n)}`).join('')+
+  (foot?`<div class="foot"><b>ما لا يُرى في الرسم — ما يحتاجه الكود:</b><br>
+   ١) <b>لا نصوص جديدة ولا نافذة جديدة:</b> الرابط هو <code>PlotMore</code> نفسه بنصّه «عرض الكل»، والنافذة هي <code>CastivioNoticeDialog</code> نفسها بنص السطر. التسميتان «Cast» و«Director» هما ما في السطر اليوم.<br>
+   ٢) <b>يُعرف أن السطر قُطع من تخطيطه</b> (<code>hasVisualOverflow</code>) كما تعرف الحبكة أنها قُطعت؛ فلا رابط لسطر يتّسع. النافذة والتركيز كما للحبكة: الرابط بعد رابط الحبكة، والرجوع من النافذة يعيد التركيز إليه.<br>
+   ٣) <b>الشاشة الضيقة:</b> السطران بلا حدّ للأسطر (<code>Int.MAX_VALUE</code>) في الصفحة المتمرِّرة، وبسطر واحد وعلامة حذف ورابط في الصفحة التي لا تتمرّر.<br>
+   ٤) <b>سطر القياس</b> (نسخة التجربة فقط، <code>PerformanceLog.isVisibleIn</code>): ينتقل من زاوية الصفحة إلى حافة البوستر السفلى بسطرين على أرضية معتمة، في الصفحتين، ولا يغيّر شيئاً في نسخة المستخدمين.<br>
+   ٥) <b>الاختبارات:</b> اختبار Compose أن سطراً طويلاً يُرسم له رابطه وأن سطراً قصيراً لا رابط له وأن الضغط يفتح النافذة بالأسماء كلها، واختبار أن الصفحة الضيقة لا تقطع.
+  </div>`:'');
+}else document.body.innerHTML=draw(f);
+</script>
+</body>
+</html>

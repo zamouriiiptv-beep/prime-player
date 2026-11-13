@@ -55,6 +55,15 @@ internal fun Movie.withDetails(details: MovieDetails?): Movie {
 internal fun ratingText(rating: Double): String = String.format(Locale.ROOT, "%.1f", rating)
 
 /**
+ * How many lines a credit line -- the director, the cast -- may take on the film's page.
+ *
+ * [whenFitted] where the page is fitted to its height and does not scroll, because the plot has first call on the height and
+ * a line of names that ran on is one press from being read whole; as many as the names need where the page scrolls anyway,
+ * because there is nothing to save the height for and a cut list would be cut for no reason.
+ */
+internal fun creditLines(fitted: Boolean, whenFitted: Int): Int = if (fitted) whenFitted else Int.MAX_VALUE
+
+/**
  * The rating a film's poster shows, as its page shows it, or null when there is none to draw.
  *
  * The same figure and the same digits as the page's badge -- [ratingText] -- from the rating the provider's list gave.

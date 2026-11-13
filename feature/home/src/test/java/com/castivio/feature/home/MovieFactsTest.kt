@@ -149,6 +149,15 @@ class MovieFactsTest {
         assertEquals("7.0", ratingText(7.0))
     }
 
+    // ------------------------------------------------------------------------- the credit lines
+
+    @Test
+    fun `a credit line keeps its lines where the page is fitted to its height, and takes what it needs where the page scrolls`() {
+        assertEquals(1, creditLines(fitted = true, whenFitted = 1))
+        assertEquals(2, creditLines(fitted = true, whenFitted = 2))
+        assertEquals("a page that scrolls cuts nothing", Int.MAX_VALUE, creditLines(fitted = false, whenFitted = 1))
+    }
+
     // ------------------------------------------------------------------------- the rating on a poster
 
     @Test

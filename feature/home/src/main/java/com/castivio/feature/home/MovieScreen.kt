@@ -57,6 +57,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -105,8 +108,10 @@ import com.castivio.domain.Movie
  * ## One screen, no scrolling
  *
  * Beside the poster the text column fits the height it is given: the plot takes the lines left between the
- * buttons and the credits and is cut with an ellipsis where it runs on. Only a surface too narrow to put the
- * poster beside the text stacks them, and scrolls.
+ * buttons and the credits and is cut with an ellipsis where it runs on, and the director and the cast take a
+ * line each and are cut the same way. A text that was cut offers "Show all" -- at the end of the plot's heading,
+ * at the end of a credit's line -- which opens the whole of it in a small dialog; one that fits offers nothing.
+ * Only a surface too narrow to put the poster beside the text stacks them, and scrolls: there nothing is cut.
  *
  * ## The favourite
  *
@@ -141,26 +146,41 @@ fun MovieScreen(
     val cost by detailsModel.times.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val instrumented = remember(context) { PerformanceLog.isVisibleIn(context) }
+    // The line that cost reads as, or null: a user's build has none to draw. It is drawn on the poster -- see `PagePoster`.
+    val costLine = remember(cost, instrumented) { cost?.takeIf { instrumented }?.line() }
     val favorite = movie.id in ids
     val state by model.state.collectAsStateWithLifecycle()
     val selection = remember(movie) { movie.asSelection() }
     val playFocus = remember { FocusRequester() }
     LaunchedEffect(movie.id) { runCatching { playFocus.requestFocus() } }
-    // The plot, whole: a link at the end of its heading and a small dialog, offered only where the page had to cut it.
+    val director = known?.director
+    val cast = known?.cast.orEmpty()
+    val castText = remember(cast) { cast.joinToString(", ") }
+    // The page's long texts, whole: the plot has a link at the end of its heading, and the director and the cast one at
+    // the end of their lines, and one small dialog holds whichever was pressed -- offered only where the page had to cut it.
     var plotCut by remember(known?.plot) { mutableStateOf(false) }
-    var plotOpen by remember { mutableStateOf(false) }
-    var plotClosed by remember { mutableStateOf(false) }
+    var whole by remember { mutableStateOf<WholeText?>(null) }
+    var wholeClosed by remember { mutableStateOf<WholeText?>(null) }
     val moreFocus = remember { FocusRequester() }
-    // Back closes the dialog before it leaves the page: registered after the page's own, so it is asked first.
-    BackHandler(enabled = plotOpen) {
-        plotOpen = false
-        plotClosed = true
+    val directorFocus = remember { FocusRequester() }
+    val castFocus = remember { FocusRequester() }
+    val closeWhole: () -> Unit = {
+        wholeClosed = whole
+        whole = null
     }
-    // The remote's place is the link again once the dialog is gone, and not nowhere.
-    LaunchedEffect(plotClosed) {
-        if (plotClosed) {
-            runCatching { moreFocus.requestFocus() }
-            plotClosed = false
+    // Back closes the dialog before it leaves the page: registered after the page's own, so it is asked first.
+    BackHandler(enabled = whole != null, onBack = closeWhole)
+    // The remote's place is the link the dialog was opened from once it is gone, and not nowhere.
+    LaunchedEffect(wholeClosed) {
+        val from = wholeClosed
+        if (from != null) {
+            val link = when (from) {
+                WholeText.Plot -> moreFocus
+                WholeText.Director -> directorFocus
+                WholeText.Cast -> castFocus
+            }
+            runCatching { link.requestFocus() }
+            wholeClosed = null
         }
     }
     LaunchedEffect(movie.id) { detailsModel.load(movie) }
@@ -272,7 +292,7 @@ fun MovieScreen(
                                     style = castivioChipStyle(m.frame.fsLabel).copy(fontWeight = FontWeight.Bold),
                                     color = colors.onBackground,
                                 )
-                                if (plotCut) PlotMore(m, onClick = { plotOpen = true }, modifier = Modifier.focusRequester(moreFocus))
+                                if (plotCut) PlotMore(m, onClick = { whole = WholeText.Plot }, modifier = Modifier.focusRequester(moreFocus))
                             }
                         }
                     }
@@ -297,7 +317,7 @@ fun MovieScreen(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = null,
                                     onClickLabel = more,
-                                    onClick = { plotOpen = true },
+                                    onClick = { whole = WholeText.Plot },
                                 )
                             } else {
                                 Modifier
@@ -306,18 +326,24 @@ fun MovieScreen(
                     }
                 }
 
-                val director = known?.director
-                val cast = known?.cast.orEmpty()
+                // A line takes one line where the page is fitted to its height, and is cut with an ellipsis, with a link at
+                // its end to the whole of it; where the page scrolls anyway the names are all there, on as many lines as
+                // they need.
                 val bottom: (@Composable () -> Unit)? = if (director != null || cast.isNotEmpty()) {
                     {
                         Column(verticalArrangement = Arrangement.spacedBy(m.rowGap)) {
                             director?.let {
-                                Credit(Icons.Rounded.Person, stringResource(R.string.movie_director), it, 1, iconSize, bodyStyle, m)
+                                Credit(
+                                    Icons.Rounded.Person, stringResource(R.string.movie_director), it,
+                                    creditLines(fit, DIRECTOR_LINES), iconSize, bodyStyle, m,
+                                    onShowAll = { whole = WholeText.Director }, linkFocus = directorFocus,
+                                )
                             }
                             if (cast.isNotEmpty()) {
                                 Credit(
-                                    Icons.Rounded.Groups, stringResource(R.string.movie_cast), cast.joinToString(", "),
-                                    CAST_LINES, iconSize, bodyStyle, m,
+                                    Icons.Rounded.Groups, stringResource(R.string.movie_cast), castText,
+                                    creditLines(fit, CAST_LINES), iconSize, bodyStyle, m,
+                                    onShowAll = { whole = WholeText.Cast }, linkFocus = castFocus,
                                 )
                             }
                         }
@@ -359,9 +385,10 @@ fun MovieScreen(
                     Modifier.fillMaxSize(),
                     horizontalArrangement = Arrangement.spacedBy(m.paneGap),
                 ) {
-                    PosterFrame(
+                    PagePoster(
                         url = movie.artworkUrl,
-                        seed = 0,
+                        cost = costLine,
+                        costStyle = castivioChipStyle(m.frame.fsLabel),
                         modifier = Modifier.fillMaxHeight()
                             .aspectRatio(CATALOG_POSTER_ASPECT, matchHeightConstraintsFirst = true),
                     )
@@ -377,9 +404,10 @@ fun MovieScreen(
                     verticalArrangement = Arrangement.spacedBy(m.bandGap),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    PosterFrame(
+                    PagePoster(
                         url = movie.artworkUrl,
-                        seed = 0,
+                        cost = costLine,
+                        costStyle = castivioChipStyle(m.frame.fsLabel),
                         modifier = Modifier.fillMaxWidth(STACKED_POSTER).aspectRatio(CATALOG_POSTER_ASPECT),
                     )
                     info(Modifier.fillMaxWidth(), false, null)
@@ -389,42 +417,71 @@ fun MovieScreen(
             }
         }
 
-        cost?.takeIf { instrumented }?.let { spent ->
-            Text(
-                text = spent.line(),
-                style = castivioChipStyle(m.frame.fsLabel),
-                color = colors.onBackgroundMuted,
-                maxLines = 1,
-                modifier = Modifier.align(Alignment.BottomStart).padding(m.paneGap),
-            )
-        }
-
         // Outside the block above, which draws the page left to right: the dialog is the application's own, and
         // follows its language -- the plot inside it takes the direction of its words.
-        if (plotOpen) {
+        whole?.let { open ->
             CastivioNoticeDialog(
                 title = movie.title,
-                body = known?.plot.orEmpty(),
-                closeLabel = stringResource(R.string.movie_plot_close),
-                onClose = {
-                    plotOpen = false
-                    plotClosed = true
+                body = when (open) {
+                    WholeText.Plot -> AnnotatedString(known?.plot.orEmpty())
+                    WholeText.Director -> creditText(stringResource(R.string.movie_director), director.orEmpty())
+                    WholeText.Cast -> creditText(stringResource(R.string.movie_cast), castText)
                 },
+                closeLabel = stringResource(R.string.movie_plot_close),
+                onClose = closeWhole,
                 maxFraction = PLOT_DIALOG_FRACTION,
             )
         }
     }
 }
 
+/** What the page's small dialog can hold: the plot, or a credit line the page had to cut. */
+private enum class WholeText { Plot, Director, Cast }
+
 /**
- * The link to the whole plot, at the end of its heading: the words and an arrow, in the heading's own step so the
- * row is no taller than it was. A text link and not a pill -- a pill would make the row taller than its heading and
- * take half a line from the plot -- which a remote reaches with Down from the buttons and shows with the focus ring.
+ * The film's poster, and on a debuggable build the line its request cost over its lower edge.
+ *
+ * That line used to stand in the page's own corner, over whatever was last there -- the cast -- and read as the page
+ * overlapping itself. On the poster it covers a picture and no text, takes no height, and leaves the page the size a
+ * user's has; a user's build has no line ([cost] is null) and draws the poster alone.
  */
 @Composable
-internal fun PlotMore(m: CatalogMetrics, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun PagePoster(url: String?, cost: String?, costStyle: TextStyle, modifier: Modifier = Modifier) {
+    val colors = CastivioTheme.colors
+    Box(modifier) {
+        PosterFrame(url = url, seed = 0, modifier = Modifier.fillMaxSize())
+        if (cost != null) {
+            Text(
+                text = cost,
+                style = costStyle,
+                color = colors.onBackgroundVariant,
+                maxLines = COST_LINES,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(COST_INSET)
+                    .clip(RoundedCornerShape(Radius.sm))
+                    .background(colors.scrim.copy(alpha = COST_GROUND))
+                    .padding(horizontal = COST_PAD_H, vertical = COST_PAD_V),
+            )
+        }
+    }
+}
+
+/**
+ * The link to the whole of a text the page had to cut, at the end of its line: the words and an arrow, in the heading's own
+ * step so the row is no taller than it was. A text link and not a pill -- a pill would make the row taller than its heading
+ * and take half a line from the plot -- which a remote reaches with Down from the buttons and shows with the focus ring.
+ *
+ * The plot's heading carries it, and so does each credit line the page cut: the same words and the same arrow, so the page
+ * has one kind of "more". Where there are several, [subject] says what this one is the whole of -- the label of its line --
+ * for a reader that would otherwise meet "Show all" three times and not know which.
+ */
+@Composable
+internal fun PlotMore(m: CatalogMetrics, onClick: () -> Unit, modifier: Modifier = Modifier, subject: String? = null) {
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(Radius.xs)
+    val more = stringResource(R.string.movie_plot_more)
     var focused by remember { mutableStateOf(false) }
     Row(
         modifier
@@ -436,11 +493,12 @@ internal fun PlotMore(m: CatalogMetrics, onClick: () -> Unit, modifier: Modifier
                 indication = null,
                 onClick = onClick,
             )
+            .then(if (subject != null) Modifier.semantics { contentDescription = "$more, $subject" } else Modifier)
             .padding(start = m.rowGap / 2),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = stringResource(R.string.movie_plot_more),
+            text = more,
             style = castivioChipStyle(m.frame.fsLabel).copy(fontWeight = FontWeight.Bold),
             color = colors.primary,
             maxLines = 1,
@@ -599,7 +657,29 @@ internal fun shareWidths(natural: List<Int>, shrinks: List<Boolean>, available: 
     return widths
 }
 
-/** A credit line -- the director, the cast: a mark, its label in bold, and the names after it. */
+/**
+ * A credit as the page's line and the dialog both set it: its label in bold, and the names after it.
+ */
+@Composable
+private fun creditText(label: String, names: String): AnnotatedString {
+    val ink = CastivioTheme.colors.onBackground
+    return remember(label, names, ink) {
+        buildAnnotatedString {
+            withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = ink)) { append(label) }
+            append(" ")
+            append(names)
+        }
+    }
+}
+
+/**
+ * A credit line -- the director, the cast: a mark, its label in bold, and the names after it.
+ *
+ * Cut at [lines] with an ellipsis where the page does not scroll, and where it was cut a link at the line's end to the whole
+ * of it -- the plot's own link, in the line itself because a credit has no heading row to put it in. The names are given what
+ * the link leaves, so the line is no taller than it was and the plot keeps its lines. A line that fits has no link, and one
+ * given as many lines as it needs is never cut.
+ */
 @Composable
 private fun Credit(
     icon: ImageVector,
@@ -609,21 +689,32 @@ private fun Credit(
     iconSize: Dp,
     style: TextStyle,
     m: CatalogMetrics,
+    onShowAll: () -> Unit,
+    linkFocus: FocusRequester,
 ) {
     val colors = CastivioTheme.colors
+    // Found out from the text's own layout, as the plot's is: only a line that really ran on offers more.
+    var cut by remember(names, lines) { mutableStateOf(false) }
     Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(m.rowGap)) {
         Icon(icon, null, tint = colors.onBackground, modifier = Modifier.size(iconSize))
         Text(
-            text = buildAnnotatedString {
-                withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = colors.onBackground)) { append(label) }
-                append(" ")
-                append(names)
-            },
+            text = creditText(label, names),
             style = style,
             color = colors.onBackgroundVariant,
             maxLines = lines,
             overflow = TextOverflow.Ellipsis,
+            onTextLayout = { cut = it.hasVisualOverflow },
+            modifier = Modifier.weight(1f),
         )
+        if (cut) {
+            PlotMore(
+                m,
+                onClick = onShowAll,
+                // The label as a word: the line's own carries the colon that introduces its names.
+                subject = label.trimEnd { !it.isLetterOrDigit() },
+                modifier = Modifier.align(Alignment.CenterVertically).focusRequester(linkFocus),
+            )
+        }
     }
 }
 
@@ -681,9 +772,24 @@ private const val PAGE_TITLE_LINES = 1
 
 /**
  * The cast takes one line, and a longer list is cut with an ellipsis: the plot has first call on the height, and a
- * second line of names was the line it was cut for.
+ * second line of names was the line it was cut for. The rest of the names are one press away -- see [Credit] -- and on a
+ * page that scrolls anyway they are all there: [creditLines].
  */
 private const val CAST_LINES = 1
+
+/** The director's line is held to one as the cast's is, for the same reason, and by the same rule. */
+private const val DIRECTOR_LINES = 1
+
+/** The most lines the debuggable build's request line takes over the poster: a long breakdown wraps, and is never cut short. */
+private const val COST_LINES = 4
+
+/** How far the request line stands in from the poster's edges, and the room round its words. */
+private val COST_INSET = 6.dp
+private val COST_PAD_H = 7.dp
+private val COST_PAD_V = 4.dp
+
+/** How dark the request line's ground is: the poster's tags' own, enough to read over any picture. */
+private const val COST_GROUND = 0.78f
 
 /** How much of the height the plot's dialog may take: a note a user reads and closes, not a page. */
 internal const val PLOT_DIALOG_FRACTION = 0.7f
