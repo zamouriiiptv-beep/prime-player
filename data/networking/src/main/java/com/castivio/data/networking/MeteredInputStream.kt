@@ -17,12 +17,17 @@ import java.io.InputStream
  * network (and unpacking, when the provider compressed). Round an already-decoded stream it would time the
  * decoder, which is not the question, so that one is left untimed.
  *
+ * [onProgress], when there is one, is told each time bytes pass, with how many: for the strip, which says what a reply has come
+ * to while it is still arriving. One call for each read -- not one for each byte, a reader of a byte at a time being told in
+ * a batch -- and nothing else is done with the figure here.
+ *
  * [onDone] is called at most once, with the bytes handed on and the nanoseconds spent inside reads: at the end of
  * the stream, or at [close] if the reader stopped first. A reader that is cancelled still reports what it got.
  */
 internal class MeteredInputStream(
     delegate: InputStream,
     private val timed: Boolean,
+    private val onProgress: ((Long) -> Unit)? = null,
     private val onDone: (bytes: Long, readNanos: Long) -> Unit,
 ) : FilterInputStream(delegate) {
 
@@ -34,7 +39,12 @@ internal class MeteredInputStream(
         val began = if (timed) System.nanoTime() else 0L
         val value = `in`.read()
         if (timed) readNanos += System.nanoTime() - began
-        if (value >= 0) bytes++ else report()
+        if (value >= 0) {
+            bytes++
+            onProgress?.invoke(1L)
+        } else {
+            report()
+        }
         return value
     }
 
@@ -42,7 +52,12 @@ internal class MeteredInputStream(
         val began = if (timed) System.nanoTime() else 0L
         val count = `in`.read(buffer, offset, length)
         if (timed) readNanos += System.nanoTime() - began
-        if (count > 0) bytes += count else if (count < 0) report()
+        if (count > 0) {
+            bytes += count
+            onProgress?.invoke(count.toLong())
+        } else if (count < 0) {
+            report()
+        }
         return count
     }
 
@@ -50,7 +65,10 @@ internal class MeteredInputStream(
         val began = if (timed) System.nanoTime() else 0L
         val skipped = `in`.skip(count)
         if (timed) readNanos += System.nanoTime() - began
-        if (skipped > 0) bytes += skipped
+        if (skipped > 0) {
+            bytes += skipped
+            onProgress?.invoke(skipped)
+        }
         return skipped
     }
 

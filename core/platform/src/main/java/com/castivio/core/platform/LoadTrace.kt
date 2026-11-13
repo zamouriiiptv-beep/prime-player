@@ -2,6 +2,8 @@ package com.castivio.core.platform
 
 import android.os.SystemClock
 import android.util.Log
+import com.castivio.core.common.artwork.ArtworkFigures
+import com.castivio.core.common.artwork.ArtworkMetrics
 import java.util.Locale
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -58,6 +60,9 @@ import kotlinx.coroutines.flow.map
 object LoadTrace {
 
     private const val TICK_MS = 200L
+
+    /** How often a load that is over is read again, for the pictures that go on arriving after it. */
+    private const val AFTER_TICK_MS = 1_000L
     private const val NANOS_PER_MS = 1_000_000L
     private const val BYTES_PER_MB = 1_048_576.0
 
@@ -100,6 +105,9 @@ object LoadTrace {
                 expectsScreen = press != LoadPress.FIRST_STAYS,
             )
             _sessions.value = _sessions.value + (section to session)
+            // The pictures are counted from the press, as the viewer's wait is: the strip says what the posters did for
+            // this opening and not for the one before it.
+            ArtworkMetrics.reset()
         }
     }
 
@@ -129,6 +137,7 @@ object LoadTrace {
                             expectsScreen = false,
                         )
                         )
+                    ArtworkMetrics.reset()
                 }
             }
         }
@@ -238,23 +247,46 @@ object LoadTrace {
                             val report = session.settledReport ?: PerformanceLog.current.value
                                 ?.takeIf { it.section == session.section && it.run == session.run }
                             val pulse = if (session.run != null && session.settledReport == null) PerformanceLog.pulse() else null
-                            emit(render(session, SystemClock.elapsedRealtimeNanos(), report, pulse))
+                            emit(render(session, SystemClock.elapsedRealtimeNanos(), report, pulse, picturesOf(session)))
                             delay(TICK_MS)
                         }
                     }
 
-                    else -> flowOf(render(session, session.pressedAtNanos, session.settledReport, pulse = null))
+                    // A load that is over is a reading that no longer moves -- except the pictures, which go on arriving, or
+                    // failing and being asked again, after it. So it is read again, slowly, and drawn only when it changed.
+                    else -> flow<List<StripLine>> {
+                        while (true) {
+                            emit(render(session, session.pressedAtNanos, session.settledReport, pulse = null, artwork = picturesOf(session)))
+                            delay(AFTER_TICK_MS)
+                        }
+                    }.distinctUntilChanged()
                 }
             }
+
+    /**
+     * What the pictures have done, for [session]'s strip -- or nothing, for a session that is not the last one.
+     *
+     * The tally is the application's one, counted from the last press, so it is the last session's and no other's: an
+     * older section's strip, read now, would tell of pictures it did not ask for.
+     */
+    private fun picturesOf(session: LoadSession): ArtworkFigures? =
+        if (session.id == _sessions.value.values.maxOfOrNull { it.id }) ArtworkMetrics.figures() else null
 
     /**
      * One session as the lines the strip draws and the log keeps.
      *
      * Pure: the clock, the import's report and its live figures are given, so what a line says can be checked
      * without a device. [report] is the run's -- the settled one once it is over -- and null for a session with
-     * no load; [pulse] is the live figures of a load that is still running.
+     * no load; [pulse] is the live figures of a load that is still running; [artwork] is what the pictures have done, for
+     * the session that has been counting them.
      */
-    internal fun render(session: LoadSession, nowNanos: Long, report: SectionReport?, pulse: LivePulse?): List<StripLine> {
+    internal fun render(
+        session: LoadSession,
+        nowNanos: Long,
+        report: SectionReport?,
+        pulse: LivePulse?,
+        artwork: ArtworkFigures? = null,
+    ): List<StripLine> {
         val total = if (session.running) (nowNanos - session.pressedAtNanos) / NANOS_PER_MS else session.endedMs ?: 0L
         val tone = when (session.state) {
             LoadState.RUNNING -> StripTone.RUNNING
@@ -308,6 +340,8 @@ object LoadTrace {
 
         wire(report).forEach { lines += StripLine(it, StripTone.MUTED) }
 
+        artwork?.describe()?.forEach { lines += StripLine(it, StripTone.MUTED) }
+
         work(report)?.let { lines += StripLine(it, StripTone.MUTED) }
 
         pipeline(report)?.let { lines += StripLine(it, StripTone.MUTED) }
@@ -349,7 +383,8 @@ object LoadTrace {
 
     /**
      * Records read and saved -- two figures, never one -- the provider's requests, and the size. The size is the
-     * completed calls', so it is exact only when the load has ended: until then it says it is being measured.
+     * completed calls', so it is exact only when the load has ended: until then it says what the reply that is arriving
+     * has come to so far, and says it is being measured while no byte of one has.
      */
     private fun figures(session: LoadSession, report: SectionReport?, pulse: LivePulse?): String {
         val read = pulse?.recordsRead ?: report?.recordsRead
@@ -359,7 +394,9 @@ object LoadTrace {
         val received = report?.calls?.sumOf { it.bytes }?.takeIf { it > 0 }
         val size = when {
             received != null -> megabytes(received)
-            session.running && session.loadDoneMs == null -> MEASURING
+            // Not yet complete, so not yet a size: but the reply that is arriving is being counted, and is said as far as
+            // it has come -- how much, how it travels, how fast -- until the calls are done and their own figures follow.
+            session.running && session.loadDoneMs == null -> pulse?.reply?.describe() ?: MEASURING
             else -> UNAVAILABLE
         }
         return "read ${read?.let { group(it) } ?: DASH} · saved ${group(session.saved)}" +

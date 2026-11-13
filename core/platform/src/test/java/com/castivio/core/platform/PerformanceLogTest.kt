@@ -487,4 +487,31 @@ class PerformanceLogTest {
         /** Long enough that a second reading would differ if it were taken. */
         const val SETTLE_MS = 8L
     }
+
+    // ------------------------------------------------------------------ the reply, while it comes
+
+    @Test
+    fun `a reply that is arriving is read from the counters while it comes`() {
+        assertNull("nothing has come", PerformanceLog.pulse().reply)
+
+        PerformanceLog.replyStarted("get_vod_streams", encoding = "gzip", declaredBytes = 9_000_000)
+        PerformanceLog.replyBytes("get_vod_streams", 4_000_000)
+        PerformanceLog.replyBytes("get_vod_streams", 1_000_000)
+
+        val reply = PerformanceLog.pulse().reply!!
+        assertEquals(5_000_000L, reply.bytes)
+        assertEquals("gzip", reply.encoding)
+        assertEquals(9_000_000L, reply.declaredBytes)
+    }
+
+    @Test
+    fun `the next run does not inherit the last one's reply`() {
+        PerformanceLog.replyBytes("get_vod_streams", 1_000)
+        assertNotNull(PerformanceLog.pulse().reply)
+
+        PerformanceLog.begin(PerfSection.MOVIES)
+
+        assertNull(PerformanceLog.pulse().reply)
+    }
 }
+

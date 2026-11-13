@@ -9,13 +9,15 @@ import coil.memory.MemoryCache
 import com.castivio.core.design.components.ArtworkPolicy
 import com.castivio.core.platform.DeviceCapabilities
 import com.castivio.core.platform.MemoryClass
+import com.castivio.data.networking.ArtworkCalls
+import com.castivio.data.networking.ArtworkListener
 import com.castivio.tv.debug.CrashReport
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.HiltAndroidApp
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
-import java.util.concurrent.TimeUnit
+import okhttp3.Call
 import okhttp3.OkHttpClient
 
 /**
@@ -54,12 +56,7 @@ class CastivioApp : Application(), ImageLoaderFactory {
      * connection that is usually already warm because the channel list came down it.
      *
      * It is shared by derivation, which keeps the connections, the name cache, the
-     * `User-Agent`, the HTTP cache and the listener, and changes one thing: a logo
-     * request is given up at [ArtworkPolicy.CALL_TIMEOUT_MS], whole. The client's own
-     * limits -- twelve seconds to connect, twenty between packets -- are right for a
-     * playlist and wrong for some kilobytes asked for by a screen that is being drawn:
-     * a host that did not answer held its request, and one of the five a host is
-     * allowed at once, for that long, with the pictures behind it.
+     * `User-Agent` and the HTTP cache, and changes three things -- see [pictureCalls].
      *
      * The client is fetched through an entry point rather than injected into a field:
      * field injection happens in `super.onCreate()` and would drag the whole networking
@@ -69,11 +66,7 @@ class CastivioApp : Application(), ImageLoaderFactory {
         val graph = EntryPointAccessors.fromApplication(this, ImageGraph::class.java)
         val memoryClass = graph.capabilities().memoryClass
         return ImageLoader.Builder(this)
-            .callFactory {
-                graph.httpClient().newBuilder()
-                    .callTimeout(ArtworkPolicy.CALL_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-                    .build()
-            }
+            .callFactory { pictureCalls(graph.httpClient()) }
             .memoryCache {
                 MemoryCache.Builder(this)
                     .maxSizePercent(
@@ -103,6 +96,39 @@ class CastivioApp : Application(), ImageLoaderFactory {
             }
             .build()
     }
+
+    /**
+     * The image loader's way of making a call, derived from the application's client.
+     *
+     * **Its own dispatcher.** A client's dispatcher decides how many calls run at once, five to a host by default, and
+     * queues the rest. Shared with the application's, a screen of posters from the provider's host stood in the same
+     * queue as the import's calls to that host -- and every poster behind the five that were running. The pictures'
+     * dispatcher has limits of its own ([ArtworkPolicy.MAX_REQUESTS_PER_HOST] to a host, [ArtworkPolicy.MAX_REQUESTS] in
+     * all) and the same threads, so a poster waits for a place among posters and for nothing else.
+     *
+     * **Its own listener.** What the pictures did -- how each call ended, how long it took and waited, how large it was --
+     * is told to [ArtworkListener]'s tally for the strip. Counted among the provider's calls, as they were, they made the
+     * provider's figures say what the posters did.
+     *
+     * **Two limits for a whole call.** A logo is some kilobytes asked for by a list that is being drawn, and what has not
+     * come in [ArtworkPolicy.CALL_TIMEOUT_MS] is not coming. A poster is a few hundred, over a phone's mobile data while the
+     * connection is busy with an import; given the logo's six seconds it was given up on and its card stayed an empty
+     * frame. The request says which it is ([ArtworkPolicy.KIND_HEADER]) and [ArtworkCalls] gives the call
+     * [ArtworkPolicy.PICTURE_CALL_TIMEOUT_MS] for a picture and the logo's limit for the rest. The client's own limits --
+     * twelve seconds to connect, twenty between packets -- are left as they are.
+     */
+    private fun pictureCalls(shared: OkHttpClient): Call.Factory = ArtworkCalls(
+        client = ArtworkCalls.deriveClient(
+            shared = shared,
+            listenerFactory = ArtworkListener.FACTORY,
+            maxRequests = ArtworkPolicy.MAX_REQUESTS,
+            maxRequestsPerHost = ArtworkPolicy.MAX_REQUESTS_PER_HOST,
+            callTimeoutMs = ArtworkPolicy.CALL_TIMEOUT_MS,
+        ),
+        markerHeader = ArtworkPolicy.KIND_HEADER,
+        markedLimitMs = ArtworkPolicy.PICTURE_CALL_TIMEOUT_MS,
+        limitMs = ArtworkPolicy.CALL_TIMEOUT_MS,
+    )
 
     /** What [newImageLoader] needs off the graph, fetched when it is needed and not before. */
     @EntryPoint

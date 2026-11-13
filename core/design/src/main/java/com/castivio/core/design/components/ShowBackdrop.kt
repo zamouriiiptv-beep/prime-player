@@ -42,7 +42,12 @@ fun ShowBackdrop(url: String, modifier: Modifier = Modifier) {
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     Box(modifier) {
         AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current).data(url).crossfade(false).build(),
+            // A wide picture, hundreds of kilobytes: asked for as a picture, and given a picture's limit and not a logo's.
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(url)
+                .addHeader(ArtworkPolicy.KIND_HEADER, ArtworkPolicy.KIND_PICTURE)
+                .crossfade(false)
+                .build(),
             contentDescription = null,
             contentScale = ContentScale.Crop,
             onError = { failed = true },

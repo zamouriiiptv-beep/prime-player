@@ -36,6 +36,38 @@ object ArtworkPolicy {
     /** How long a logo request may take, whole. */
     const val CALL_TIMEOUT_MS = 6_000L
 
+    /**
+     * How long a *picture's* request -- a poster, a backdrop -- may take, whole: twenty seconds, against a logo's six.
+     *
+     * The six were made for some kilobytes. A poster is a few hundred, asked of a host the application does not control, over a
+     * phone's mobile data, and while a section's first load runs the same connection is busy with a reply of tens of megabytes:
+     * a poster that needed eight seconds was given up on at six, and the card it was for stayed an empty frame. Longer than a
+     * logo's and shorter than the client's own limits, which are twelve seconds to connect and twenty between packets -- a call
+     * that has not finished in twenty is not coming, and [PosterRetry][com.castivio.core.common.artwork.PosterRetry] asks again.
+     */
+    const val PICTURE_CALL_TIMEOUT_MS = 20_000L
+
+    /**
+     * The request header with which a picture says which limit it is to be given. Written on the request by the card that asks
+     * for a poster or a backdrop, read by the image loader's call factory, and taken off before the call is made: it never
+     * reaches a host.
+     */
+    const val KIND_HEADER = "X-Castivio-Artwork"
+
+    /** The value of [KIND_HEADER] for a poster or a backdrop: a picture, and not a logo. */
+    const val KIND_PICTURE = "picture"
+
+    /**
+     * How many of the image loader's requests may be on their way at once, in all, and to any one host.
+     *
+     * The loader shared the application's own dispatcher, which lets five at a time go to a host and sixty-four in all -- and a
+     * section's import holds one of the five of the provider's host for as long as its reply takes, which is a minute and a
+     * half. A poster wall of ten visible cards and the cards below them, asked of one host, queued five at a time behind it.
+     * The loader has a dispatcher of its own with room for a wall: twelve to a host, thirty-two in all.
+     */
+    const val MAX_REQUESTS = 32
+    const val MAX_REQUESTS_PER_HOST = 12
+
     /** How long an address that failed is believed to have failed: ten minutes. */
     const val FAILURE_MEMORY_MS = 10 * 60 * 1_000L
 

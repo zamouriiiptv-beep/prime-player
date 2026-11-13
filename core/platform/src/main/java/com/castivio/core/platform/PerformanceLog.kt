@@ -70,6 +70,7 @@ object PerformanceLog {
         actions.clear()
         failureCounts.clear()
         readRecords.set(0)
+        forgetReplies()
         val now = SystemClock.elapsedRealtimeNanos()
         // From the press when there was one -- see [LoadTrace]: the wait behind another section's load is the
         // viewer's, and a clock that starts when the load does would leave it out. The wait is the run's first
@@ -127,8 +128,31 @@ object PerformanceLog {
             recordsRead = readRecords.get(),
             databaseMs = databaseNanos.get() / 1_000_000,
             databaseSteps = stepsSoFar(),
+            reply = replyGauge.reading(),
         )
     }
+
+    /**
+     * The headers of the provider's reply to [action] have come: how it is encoded and how long it says it is.
+     *
+     * Told by the client's listener, the only place that sees the headers as the provider sent them. Kept for [pulse], so
+     * that the strip can say what a reply is while it arrives; see [ReplyGauge].
+     */
+    fun replyStarted(action: String, encoding: String?, declaredBytes: Long?) {
+        replyGauge.started(action, encoding, declaredBytes)
+    }
+
+    /** [count] more bytes of the provider's reply to [action] have come in, as the meter on its connection counts them. */
+    fun replyBytes(action: String, count: Long) {
+        replyGauge.bytes(action, count)
+    }
+
+    /** The replies counted so far are forgotten: a run begins, and its replies are the ones the strip is to say. */
+    fun forgetReplies() {
+        replyGauge.clear()
+    }
+
+    private val replyGauge = ReplyGauge()
 
     /** How the writer is saving this run: `REPLACE` or `APPEND`, each named once. */
     fun saveMode(mode: String) = updateRunning { report ->
@@ -829,7 +853,9 @@ data class ActionCount(val started: Int, val failed: Int, val retried: Int)
  * What changes while an import runs, as [PerformanceLog.pulse] reads it from the counters.
  *
  * [recordsRead] is what the importer has handed to the database; [databaseMs] is SQLite's commits so far, and
- * [databaseSteps] its other steps as they stand. The attempts are the provider's requests, retries included.
+ * [databaseSteps] its other steps as they stand. The attempts are the provider's requests, retries included. [reply] is the
+ * largest reply that is arriving, as far as it has come -- null until a byte of one has -- for a size to be said before the
+ * calls are complete, which is when their own figures come.
  */
 data class LivePulse(
     val requestsStarted: Int,
@@ -838,6 +864,7 @@ data class LivePulse(
     val recordsRead: Int,
     val databaseMs: Long,
     val databaseSteps: Map<DatabaseStep, Long>,
+    val reply: ReplyReading? = null,
 )
 
 /**

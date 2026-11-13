@@ -472,7 +472,9 @@ class XtreamHttpApi(
         val action = if (measured) CallMetrics.label(call.request().url) else ""
         val wire = body.byteStream()
         val timed = if (measured) {
-            MeteredInputStream(wire, timed = true) { _, nanos -> CallMetrics.recordBlocked(action, nanos) }
+            MeteredInputStream(wire, timed = true, onProgress = { PerformanceLog.replyBytes(action, it) }) { _, nanos ->
+                CallMetrics.recordBlocked(action, nanos)
+            }
         } else {
             wire
         }
@@ -508,7 +510,7 @@ class XtreamHttpApi(
      * Nothing is added to, or taken from, the bytes the parser reads.
      */
     private fun meteredReader(action: String, stream: InputStream): Reader {
-        val onTheWire = MeteredInputStream(stream, timed = true) { _, nanos ->
+        val onTheWire = MeteredInputStream(stream, timed = true, onProgress = { PerformanceLog.replyBytes(action, it) }) { _, nanos ->
             CallMetrics.recordBlocked(action, nanos)
         }
         val unpacked = decompressIfNeeded(onTheWire)

@@ -1,6 +1,7 @@
 package com.castivio.data.networking
 
 import android.util.Log
+import com.castivio.core.platform.PerformanceLog
 import com.castivio.core.platform.WireFigures
 import okhttp3.Call
 import okhttp3.EventListener
@@ -321,6 +322,29 @@ object CallMetrics {
         tallies.computeIfAbsent(action, ::Tally).wire.blockedNanos.addAndGet(nanos)
     }
 
+    /**
+     * The hosts that have answered an API call -- the provider's, or a portal's -- so that a picture asked of one of them can
+     * be told from a picture asked of another. Held in memory for that comparison and never printed: the rule at the top of
+     * this object is that no host reaches a counter, a log line or a report, and what the strip says is a word ("provider").
+     */
+    private val apiHosts = ConcurrentHashMap<String, Boolean>()
+
+    internal fun noteHost(url: HttpUrl, action: String) {
+        if (action != "other") apiHosts.putIfAbsent(url.host, true)
+    }
+
+    internal fun isApiHost(host: String): Boolean = apiHosts.containsKey(host)
+
+    /**
+     * Forgets which hosts have answered an API call, for a test that begins from none.
+     *
+     * Not part of [reset], which the importer calls at the start of every import: the provider's host is known for as long
+     * as the application runs, and a picture asked of it in the middle of a load is still the provider's.
+     */
+    internal fun forgetHosts() {
+        apiHosts.clear()
+    }
+
     internal fun markStart(atNanos: Long) {
         firstCallAtNanos.compareAndSet(0, atNanos)
     }
@@ -391,6 +415,7 @@ class CallMetricsListener : EventListener() {
         beganAt = 0
         CallMetrics.markEnd(now)
         val action = CallMetrics.label(call.request().url)
+        CallMetrics.noteHost(call.request().url, action)
         CallMetrics.record(
             action = action,
             nanos = now - begin,
@@ -524,6 +549,10 @@ class CallMetricsListener : EventListener() {
         // A cached response has no body event, so the declared length is the only size
         // signal. Overwritten by `responseBodyEnd` when a body really is read.
         if (bytesRead == 0L) bytesRead = response.body?.contentLength()?.coerceAtLeast(0) ?: 0
+        // The provider's reply that is arriving now, for the strip to say while it arrives: how it is encoded and how long
+        // it says it is. A call that is not an API call -- a picture, a playlist -- is no reply of the import's.
+        val action = CallMetrics.label(call.request().url)
+        if (action != "other") PerformanceLog.replyStarted(action, encoding, declaredLength)
     }
 
     companion object {

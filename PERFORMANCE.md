@@ -221,6 +221,17 @@ reports the split so a slow provider is visibly the provider.
   not asked for again for ten minutes (`ArtworkPolicy`, `ArtworkFailures`). The tile
   used to wait for the request to *fail*, which for a host that does not answer was
   an empty slot for twelve to twenty seconds, again each time the row came back.
+- **A poster is waited for longer, and asked for again.** A poster or a backdrop is a
+  few hundred kilobytes, often over mobile data, while a section's import holds the
+  same connection with a reply of tens of megabytes: it is given 20 s, whole, where a
+  logo is given 6; one that failed is asked for again after 2, 5, 10, 20 and 30 s --
+  and at once when the section's load ends -- unless the host said, in so many words,
+  that it will not (400, 401, 403, 404, 410, 451). The image loader has a dispatcher
+  of its own, 12 calls to a host and 32 in all, on the application client's own threads,
+  so a poster does not stand in the queue of the five a host is otherwise allowed behind
+  the import's calls (`ArtworkPolicy`, `PosterRetry`, `ArtworkCalls`). The load strip of a
+  development build says what the pictures did: how many calls, how each ended, how long
+  they took and waited, and whose host they asked.
 
 ### The design system pays this tax too
 

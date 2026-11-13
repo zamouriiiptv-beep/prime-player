@@ -1,5 +1,6 @@
 package com.castivio.data.networking
 
+import com.castivio.core.platform.PerformanceLog
 import com.castivio.domain.MediaKind
 import java.io.ByteArrayOutputStream
 import java.util.zip.GZIPOutputStream
@@ -8,6 +9,7 @@ import okhttp3.mockwebserver.MockWebServer
 import okio.Buffer
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -130,5 +132,69 @@ class XtreamMeteringTest {
         val wire = tally().wireFigures()!!
         assertEquals(1, wire.metered)
         assertTrue("some, and not all: ${wire.decodedBytes}", wire.decodedBytes in 1 until json.length)
+    }
+
+    // ------------------------------------------------------------------ the reply, while it comes
+
+    @Test
+    fun `a metered reply is counted for the strip as it is read, and says it is not compressed`() {
+        PerformanceLog.forgetReplies()
+        server.enqueue(MockResponse().setBody(json))
+
+        api(metered = true).allStreams(MediaKind.LIVE)!!.use { it.readText() }
+
+        val reply = PerformanceLog.pulse().reply!!
+        assertEquals("the bytes the wire carried", json.toByteArray().size.toLong(), reply.bytes)
+        assertNull("the provider named no encoding", reply.encoding)
+        assertEquals("and said how long the reply is", json.toByteArray().size.toLong(), reply.declaredBytes)
+    }
+
+    @Test
+    fun `a reply sent in chunks has no declared length`() {
+        PerformanceLog.forgetReplies()
+        server.enqueue(MockResponse().setChunkedBody(json, 4_096))
+
+        api(metered = true).allStreams(MediaKind.LIVE)!!.use { it.readText() }
+
+        val reply = PerformanceLog.pulse().reply!!
+        assertEquals(json.toByteArray().size.toLong(), reply.bytes)
+        assertNull("chunked: the provider did not say how long it is", reply.declaredBytes)
+        assertTrue(reply.describe(), "chunked" in reply.describe())
+    }
+
+    @Test
+    fun `a reply whose header says gzip is counted as it reaches the reader, unpacked, with the packed length it declared`() {
+        PerformanceLog.forgetReplies()
+        val packed = gzip(json)
+        server.enqueue(MockResponse().setHeader("Content-Encoding", "gzip").setBody(Buffer().write(packed)))
+
+        api(metered = true).allStreams(MediaKind.LIVE)!!.use { it.readText() }
+
+        val reply = PerformanceLog.pulse().reply!!
+        assertEquals("gzip", reply.encoding)
+        assertEquals("the length the provider declared is the packed one", packed.size.toLong(), reply.declaredBytes)
+        assertEquals("what has come is what the client unpacked for the reader", json.toByteArray().size.toLong(), reply.bytes)
+        assertTrue(reply.describe(), "unpacked so far" in reply.describe() && "packed" in reply.describe())
+    }
+
+    @Test
+    fun `a reply that is not metered counts no bytes`() {
+        PerformanceLog.forgetReplies()
+        server.enqueue(MockResponse().setBody(json))
+
+        api(metered = false).allStreams(MediaKind.LIVE)!!.use { it.readText() }
+
+        assertNull(PerformanceLog.pulse().reply)
+    }
+
+    @Test
+    fun `a reader that stops early has counted what it was given, as far as it came`() {
+        PerformanceLog.forgetReplies()
+        server.enqueue(MockResponse().setBody(json))
+
+        api(metered = true).allStreams(MediaKind.LIVE)!!.use { it.read(CharArray(100)) }
+
+        val reply = PerformanceLog.pulse().reply!!
+        assertTrue("some, and not all: ${reply.bytes}", reply.bytes in 1 until json.length)
     }
 }

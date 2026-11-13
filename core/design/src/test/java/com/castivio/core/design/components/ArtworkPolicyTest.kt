@@ -35,6 +35,27 @@ class ArtworkPolicyTest {
         assertTrue(ArtworkPolicy.CALL_TIMEOUT_MS < 12_000L)
     }
 
+    @Test
+    fun `a picture is given longer than a logo, and is over before its failure could be forgotten`() {
+        assertTrue(
+            "a poster is a few hundred kilobytes where a logo is some, and a call given a logo's six seconds gave up on it",
+            ArtworkPolicy.CALL_TIMEOUT_MS < ArtworkPolicy.PICTURE_CALL_TIMEOUT_MS,
+        )
+        assertTrue(ArtworkPolicy.PICTURE_CALL_TIMEOUT_MS < ArtworkPolicy.FAILURE_MEMORY_MS)
+    }
+
+    @Test
+    fun `the image loader has room for a wall, which the shared dispatcher's five to a host did not`() {
+        assertTrue(ArtworkPolicy.MAX_REQUESTS_PER_HOST > 5)
+        assertTrue(ArtworkPolicy.MAX_REQUESTS_PER_HOST <= ArtworkPolicy.MAX_REQUESTS)
+    }
+
+    @Test
+    fun `the header that names a picture is one of the application's own and says what the call factory reads`() {
+        assertTrue(ArtworkPolicy.KIND_HEADER.startsWith("X-Castivio-"))
+        assertEquals("picture", ArtworkPolicy.KIND_PICTURE)
+    }
+
     // -------------------------------------------------------------- the address
 
     @Test

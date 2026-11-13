@@ -37,6 +37,9 @@ import coil.request.Disposable
 import coil.request.ImageRequest
 import coil.size.Precision
 import coil.size.Scale
+import com.castivio.core.common.artwork.ArtworkKick
+import com.castivio.core.common.artwork.ArtworkMetrics
+import com.castivio.core.common.artwork.PosterRetry
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Radius
@@ -44,6 +47,8 @@ import com.castivio.core.design.theme.posterPlaceholderBrush
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * A poster a provider shipped, drawn to fill the card it is in.
@@ -56,6 +61,13 @@ import kotlinx.coroutines.flow.distinctUntilChanged
  * Nothing is drawn while the picture is on its way, or when it failed, or when there is no url:
  * the card's own placeholder is under it and stays the answer, so a poster that never arrives
  * leaves a card, not a hole -- and no stand-in claims to be the film's artwork.
+ *
+ * **A failure is not the end of it.** A poster is asked of a host the application does not control, often over a phone's
+ * mobile data, and while a section's first load is running the connection is busy with a reply of tens of megabytes. A call
+ * that gave up for want of a few seconds is not a picture that does not exist, and a card that drew nothing the first time and
+ * was never asked again showed an empty frame for as long as it stayed on the screen. So a poster that failed is asked for
+ * again -- after the waits [PosterRetry] gives it, and at once when [ArtworkKick] says the connection has been given back --
+ * unless the host said, in so many words, that it will not: a 404 is not a thing that mends in ten seconds.
  */
 @Composable
 internal fun PosterArtwork(
@@ -65,22 +77,58 @@ internal fun PosterArtwork(
     /** Called once the picture is on screen, so the card can take its placeholder away. */
     onLoaded: () -> Unit = {},
 ) {
-    // Keyed to the url, because a cell of a lazy grid is recycled: a poster that failed must not hand
+    val context = LocalContext.current
+    // All of this is keyed to the url, because a cell of a lazy grid is recycled: a poster that failed must not hand
     // its failure to whichever title scrolls into its place next.
-    var failed by remember(url) { mutableStateOf(false) }
-    if (failed) return
+    //
+    // How many times the picture has been asked for and failed; whether the last failure is one that will not change; and
+    // whether the picture is, just now, a failure that nobody has asked about again.
+    var failures by remember(url) { mutableStateOf(0) }
+    var refused by remember(url) { mutableStateOf(false) }
+    var failedNow by remember(url) { mutableStateOf(false) }
+
+    // The card that failed waits, and asks again. Declared before the early return below, which would otherwise end the
+    // composition before this was ever reached.
+    LaunchedEffect(url, failedNow, failures, refused) {
+        if (!failedNow || refused) return@LaunchedEffect
+        val seen = ArtworkKick.count.value
+        val wait = PosterRetry.waitBeforeRetry(failures)
+        if (wait != null) {
+            // The wait, or the kick, whichever comes first.
+            withTimeoutOrNull(wait) { ArtworkKick.count.first { it != seen } }
+        } else {
+            // Tried as often as it is on its own: it waits to be told the connection is free.
+            ArtworkKick.count.first { it != seen }
+        }
+        ArtworkMetrics.retried()
+        failedNow = false
+    }
+
+    if (failedNow) return
     AsyncImage(
-        model = ImageRequest.Builder(LocalContext.current)
-            .data(url)
-            .crossfade(false)
-            .build(),
+        model = pictureRequest(context, url),
         contentDescription = null,
         contentScale = contentScale,
         onSuccess = { onLoaded() },
-        onError = { failed = true },
+        onError = { error ->
+            failures += 1
+            refused = !PosterRetry.retryable(PosterRetry.statusOf(error.result.throwable.message))
+            failedNow = true
+        },
         modifier = modifier,
     )
 }
+
+/**
+ * The request for a poster or a backdrop: the address, and a word on the request that gives it a picture's limit -- twenty
+ * seconds, not a logo's six -- from the image loader's call factory, which takes the word off before the call is made.
+ */
+private fun pictureRequest(context: Context, url: String): ImageRequest =
+    ImageRequest.Builder(context)
+        .data(url)
+        .addHeader(ArtworkPolicy.KIND_HEADER, ArtworkPolicy.KIND_PICTURE)
+        .crossfade(false)
+        .build()
 
 /**
  * A poster's own colours, as the ground it stands on: the same picture asked for at a few dozen pixels and
@@ -119,6 +167,8 @@ internal fun PosterBackdrop(
 private fun backdropRequest(context: Context, url: String): ImageRequest =
     ImageRequest.Builder(context)
         .data(url)
+        // It brings the whole picture into the disk cache on the way, so it is asked for as a picture and given a picture's limit.
+        .addHeader(ArtworkPolicy.KIND_HEADER, ArtworkPolicy.KIND_PICTURE)
         .size(BACKDROP_WIDTH, BACKDROP_HEIGHT)
         .precision(Precision.EXACT)
         .scale(Scale.FILL)

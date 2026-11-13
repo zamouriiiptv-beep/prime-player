@@ -104,4 +104,57 @@ class MeteredInputStreamTest {
 
         assertEquals(listOf(data.size.toLong()), report.bytes)
     }
+
+    @Test
+    fun `progress is told for every read, with how many, and adds up to what was handed on`() {
+        val report = Report()
+        val told = ArrayList<Long>()
+        val metered = MeteredInputStream(ByteArrayInputStream(data), timed = false, onProgress = { told += it }, onDone = report.callback)
+
+        val block = ByteArray(4_000)
+        while (metered.read(block, 0, block.size) >= 0) Unit
+
+        assertEquals("three reads of the data's ten thousand: 4,000 + 4,000 + 2,000", listOf(4_000L, 4_000L, 2_000L), told)
+        assertEquals(data.size.toLong(), told.sum())
+        assertEquals(listOf(data.size.toLong()), report.bytes)
+    }
+
+    @Test
+    fun `a byte read alone is a progress of one, and skipped bytes are progress too`() {
+        val told = ArrayList<Long>()
+        val metered = MeteredInputStream(ByteArrayInputStream(data), timed = false, onProgress = { told += it }, onDone = { _, _ -> })
+
+        metered.read()
+        metered.skip(500)
+
+        assertEquals(listOf(1L, 500L), told)
+    }
+
+    @Test
+    fun `the end of the stream is not progress`() {
+        val told = ArrayList<Long>()
+        val metered = MeteredInputStream(ByteArrayInputStream(ByteArray(0)), timed = false, onProgress = { told += it }, onDone = { _, _ -> })
+
+        assertEquals(-1, metered.read())
+        assertEquals(-1, metered.read(ByteArray(10), 0, 10))
+
+        assertTrue("$told", told.isEmpty())
+    }
+
+    @Test
+    fun `a read that was asked for nothing and returned nothing is not progress`() {
+        val told = ArrayList<Long>()
+        val metered = MeteredInputStream(ByteArrayInputStream(data), timed = false, onProgress = { told += it }, onDone = { _, _ -> })
+
+        assertEquals(0, metered.read(ByteArray(10), 0, 0))
+
+        assertTrue("$told", told.isEmpty())
+    }
+
+    @Test
+    fun `a meter with nobody to tell hands on the same bytes`() {
+        val metered = MeteredInputStream(ByteArrayInputStream(data), timed = true, onDone = { _, _ -> })
+
+        assertArrayEquals(data, metered.readBytes())
+    }
 }

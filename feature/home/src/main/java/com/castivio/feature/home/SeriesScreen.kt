@@ -32,6 +32,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,6 +47,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
+import com.castivio.core.common.artwork.KickWhenLoadEnds
 import com.castivio.core.design.components.CardShape
 import com.castivio.core.design.components.CastivioChip
 import com.castivio.core.design.components.MediaCard
@@ -100,6 +102,11 @@ fun SeriesScreen(
     LaunchedEffect(Unit) { LoadTrace.screenShown(PerfSection.SERIES) }
 
     val state by model.state.collectAsStateWithLifecycle()
+    // The section's load held the connection with a reply of tens of megabytes, and the posters that gave up while it did
+    // ask again the moment it is over, and not at the end of their own waits.
+    val loadEnd = remember { KickWhenLoadEnds() }
+    val loading = state.fetch is SectionLoad.Loading
+    LaunchedEffect(loading) { loadEnd.reading(loading) }
     val typed by model.searchText.collectAsStateWithLifecycle()
     val shows = model.shows.collectAsLazyPagingItems()
     // The first row, from the device or from the load: told once, to the session of the press that opened this.

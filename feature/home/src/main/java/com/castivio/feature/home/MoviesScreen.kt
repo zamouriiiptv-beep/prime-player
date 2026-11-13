@@ -48,6 +48,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
+import com.castivio.core.common.artwork.KickWhenLoadEnds
 import com.castivio.core.design.components.CardShape
 import com.castivio.core.design.components.CastivioChip
 import com.castivio.core.design.components.MediaCard
@@ -103,6 +104,11 @@ fun MoviesScreen(
     LaunchedEffect(Unit) { LoadTrace.screenShown(PerfSection.MOVIES) }
 
     val state by model.state.collectAsStateWithLifecycle()
+    // The section's load held the connection with a reply of tens of megabytes, and the posters that gave up while it did
+    // ask again the moment it is over, and not at the end of their own waits.
+    val loadEnd = remember { KickWhenLoadEnds() }
+    val loading = state.fetch is SectionLoad.Loading
+    LaunchedEffect(loading) { loadEnd.reading(loading) }
     val typed by model.searchText.collectAsStateWithLifecycle()
     val gridState = rememberLazyGridState()
     // A new list starts at its first poster; the same list keeps its place.

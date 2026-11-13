@@ -1,6 +1,14 @@
 package com.castivio.core.platform
 
 import android.os.SystemClock
+import com.castivio.core.common.artwork.ArtworkFigures
+import com.castivio.core.common.artwork.ArtworkHost
+import com.castivio.core.common.artwork.ArtworkMetrics
+import com.castivio.core.common.artwork.ArtworkTally
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -28,12 +36,14 @@ class LoadTraceTest {
     fun setUp() {
         DevDiagnostics.enable(true)
         LoadTrace.reset()
+        ArtworkMetrics.reset()
     }
 
     @After
     fun tearDown() {
         DevDiagnostics.enable(false)
         LoadTrace.reset()
+        ArtworkMetrics.reset()
     }
 
     private fun session(section: PerfSection) = LoadTrace.sessions.value[section]!!
@@ -472,6 +482,139 @@ class LoadTraceTest {
 
         assertTrue(text, "answered gzip (1/1)" in text)
         assertTrue("the ratio is the provider's: $text", "1.0 MB on the wire → 20.0 MB decoded ×20.0" in text)
+    }
+
+    // ------------------------------------------------- the reply that is arriving, and the pictures
+
+    private fun loadingMovies() = LoadSession(
+        id = 1, section = PerfSection.MOVIES, origin = LoadOrigin.COLD, pressedAtNanos = 0,
+        expectsLoad = true, expectsScreen = true, run = 1,
+    )
+
+    private fun pulseWith(reply: ReplyReading?) = LivePulse(
+        requestsStarted = 2, requestsFailed = 0, retries = 0, recordsRead = 0, databaseMs = 0,
+        databaseSteps = emptyMap(), reply = reply,
+    )
+
+    @Test
+    fun `a reply that is arriving is said as far as it has come, where the size used to be only measured`() {
+        val reply = ReplyReading(bytes = 33_000_000, encoding = null, declaredBytes = null, spanMs = 30_000)
+
+        val text = LoadTrace.render(loadingMovies(), 31_000_000_000L, report = null, pulse = pulseWith(reply))
+            .joinToString("\n") { it.text }
+
+        assertTrue(text, "size 31.5 MB so far (no Content-Encoding · chunked · 1.05 MB/s)" in text)
+        assertFalse("it is no longer only being measured: $text", "جارٍ القياس" in text)
+    }
+
+    @Test
+    fun `before a byte of the reply has come it still says it is being measured`() {
+        val text = LoadTrace.render(loadingMovies(), 1_000_000_000L, report = null, pulse = pulseWith(reply = null))
+            .joinToString("\n") { it.text }
+
+        assertTrue(text, "size جارٍ القياس" in text)
+        assertFalse(text, "so far" in text)
+    }
+
+    @Test
+    fun `when the calls are complete the size is theirs, and no live figure is said beside it`() {
+        val done = loadingMovies().copy(state = LoadState.DONE, endedMs = 9_000, loadDoneMs = 8_000)
+        val report = SectionReport(
+            section = PerfSection.MOVIES, run = 1, startedAtNanos = 0, mode = PerfMode.COLD,
+            calls = listOf(CallTimes("get_vod_streams", 1, 0, 8_000, 300, 20L * 1_048_576)),
+        )
+
+        val text = LoadTrace.render(done, 0L, report, pulse = null).joinToString("\n") { it.text }
+
+        assertTrue(text, "size 20.0 MB" in text)
+        assertFalse(text, "so far" in text)
+    }
+
+    private fun pictures() = ArtworkFigures(
+        started = 5, ok = 3, timeouts = 1, network = 0, cancelled = 0, httpFailures = mapOf(404 to 1L),
+        inFlight = 0, retried = 2, bytes = 3L * 80 * 1024, bodies = 3, meanMs = 900, slowestMs = 6_000,
+        meanBeforeConnectionMs = 40, fromProvider = 5, fromTmdb = 0, fromOther = 0,
+    )
+
+    @Test
+    fun `what the pictures did is told in two lines of their own, muted, and the first line is not one of them`() {
+        val lines = LoadTrace.render(loadingMovies(), 5_000_000_000L, report = null, pulse = null, artwork = pictures())
+        val artwork = lines.filter { it.text.startsWith("artwork:") }
+
+        assertEquals(2, artwork.size)
+        assertTrue(artwork.all { it.tone == StripTone.MUTED })
+        assertTrue(artwork[0].text, "5 calls · ok 3 · timeout 1 · http 404×1" in artwork[0].text)
+        assertTrue(artwork[0].text, "asked again 2" in artwork[0].text)
+        assertTrue(artwork[1].text, "hosts provider 5 · tmdb 0 · other 0" in artwork[1].text)
+        assertFalse("the first line is the card's: ${lines.first().text}", lines.first().text.startsWith("artwork"))
+    }
+
+    @Test
+    fun `a session with no pictures counted has no artwork lines`() {
+        val none = LoadTrace.render(loadingMovies(), 1_000_000_000L, report = null, pulse = null, artwork = null)
+        val empty = LoadTrace.render(loadingMovies(), 1_000_000_000L, report = null, pulse = null, artwork = ArtworkTally().figures())
+
+        assertTrue(none.none { it.text.startsWith("artwork:") })
+        assertTrue(empty.none { it.text.startsWith("artwork:") })
+    }
+
+    @Test
+    fun `a press starts the count of the pictures over`() {
+        ArtworkMetrics.started(ArtworkHost.OTHER)
+        ArtworkMetrics.started(ArtworkHost.OTHER)
+
+        LoadTrace.pressed(PerfSection.MOVIES, earlier(), LoadPress.OPEN)
+
+        assertEquals(0L, ArtworkMetrics.figures().started)
+    }
+
+    @Test
+    fun `a load nobody pressed Home for starts the count over too`() {
+        ArtworkMetrics.started(ArtworkHost.OTHER)
+
+        LoadTrace.runStarted(PerfSection.SERIES)
+
+        assertEquals(0L, ArtworkMetrics.figures().started)
+    }
+
+    @Test
+    fun `the load a press asked for does not start the count over a second time`() {
+        LoadTrace.pressed(PerfSection.MOVIES, earlier(), LoadPress.FIRST_OPENS)
+        ArtworkMetrics.started(ArtworkHost.PROVIDER)
+
+        LoadTrace.runStarted(PerfSection.MOVIES)
+
+        assertEquals("the posters the wall asked for while the load waited its turn are still counted", 1L, ArtworkMetrics.figures().started)
+    }
+
+    @Test
+    fun `only the last session tells of the pictures, which were counted from its press`() = runBlocking {
+        LoadTrace.pressed(PerfSection.RADIO, earlier(), LoadPress.OPEN)
+        LoadTrace.pressed(PerfSection.CHANNELS, earlier(), LoadPress.OPEN)
+        ArtworkMetrics.started(ArtworkHost.OTHER)
+
+        val older = withTimeout(5_000) { LoadTrace.lines(PerfSection.RADIO, runningOnly = false).first() }
+        val last = withTimeout(5_000) { LoadTrace.lines(PerfSection.CHANNELS, runningOnly = false).first() }
+
+        assertTrue("an older section's strip does not tell of pictures it did not ask for", older.none { it.text.startsWith("artwork:") })
+        assertTrue(last.any { it.text.startsWith("artwork:") })
+    }
+
+    @Test
+    fun `a load that is over goes on telling of the pictures that come after it`() = runBlocking {
+        LoadTrace.pressed(PerfSection.RADIO, earlier(), LoadPress.OPEN)
+        LoadTrace.screenShown(PerfSection.RADIO)
+        LoadTrace.contentShown(PerfSection.RADIO)
+        assertEquals(LoadState.DONE, session(PerfSection.RADIO).state)
+
+        // The first reading has no pictures in it; one is asked for then, and the reading after it, a second on, has.
+        val seen = withTimeout(10_000) {
+            LoadTrace.lines(PerfSection.RADIO, runningOnly = false)
+                .onEach { lines -> if (lines.none { it.text.startsWith("artwork:") }) ArtworkMetrics.started(ArtworkHost.OTHER) }
+                .first { lines -> lines.any { it.text.startsWith("artwork:") } }
+        }
+
+        assertTrue(seen.toString(), seen.any { it.text.startsWith("artwork: 1 calls") })
     }
 
     private companion object {
