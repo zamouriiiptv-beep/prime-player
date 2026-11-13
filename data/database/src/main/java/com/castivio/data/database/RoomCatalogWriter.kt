@@ -4,11 +4,15 @@ import android.os.Debug
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteStatement
 import androidx.tracing.trace
+import com.castivio.core.common.LoadPace
 import com.castivio.core.common.UpdatePacer
 import com.castivio.core.platform.CastivioTrace
+import com.castivio.core.platform.CurvePoint
 import com.castivio.core.platform.DatabaseStep
 import com.castivio.core.platform.DevDiagnostics
+import com.castivio.core.platform.LoadCurve
 import com.castivio.core.platform.PerformanceLog
+import com.castivio.core.platform.ProcStats
 import com.castivio.domain.CatalogItem
 import com.castivio.domain.CatalogWriter
 import com.castivio.domain.ImportMode
@@ -106,6 +110,12 @@ class RoomCatalogWriter(
     // ------------------------------------------------------ telling the observers
     private var notifyInterval = notifyEveryMs
     private var pacer = UpdatePacer(notifyInterval)
+
+    /** The interval [pacer] is on now: [notifyInterval], or what [LoadPace] has made of it for a load that has grown. */
+    private var pacedMs = notifyEveryMs
+
+    /** Rows this load has written: what [LoadPace] reads. */
+    private var rowsWritten = 0
     @Volatile private var timer: ScheduledFuture<*>? = null
     private var rowsSinceCommit = false
     private var countedSinceCommit = false
@@ -134,6 +144,7 @@ class RoomCatalogWriter(
     override fun tellRarely() {
         notifyInterval = REFRESH_NOTIFY_INTERVAL_MS
         pacer = UpdatePacer(notifyInterval)
+        pacedMs = notifyInterval
     }
 
     override fun begin(sourceId: String, mode: ImportMode, sections: Set<MediaKind>) {
@@ -164,6 +175,11 @@ class RoomCatalogWriter(
         lastRowIdBefore = db.longOf("SELECT IFNULL(MAX(rowid), 0) FROM media")
         wroteRows = false
         wroteGroups = false
+        rowsWritten = 0
+        if (pacedMs != notifyInterval) {
+            pacedMs = notifyInterval
+            pacer.retime(notifyInterval)
+        }
         pacer.reset()
         rowsSinceCommit = false
         countedSinceCommit = false
@@ -252,17 +268,41 @@ class RoomCatalogWriter(
         leaveSortTitleForAfter()
         wroteRows = true
         rowsSinceCommit = true
+        rowsWritten += items.size
         // Development builds only: the thread's own CPU time over the same stretch [timed] covers, to say how much
         // of the rows' wall time the processor was working on them. Read twice per batch, never per row.
         val cpuAt = if (measuring) Debug.threadCpuTimeNanos() else 0L
         val wallAt = if (measuring) System.nanoTime() else 0L
+        // And the scheduler's account of the same stretch: how long the thread ran, and how long it waited for a processor.
+        // What is neither was spent asleep -- on a lock, a file -- which the thread's CPU time alone cannot tell from a wait.
+        val schedAt = if (measuring) ProcStats.schedStatOfThisThread() else null
         timed(DatabaseStep.ROWS) {
             for (item in items) insert(source, statement, item)
         }
         if (measuring) {
             figures.rowsCpuNanos += Debug.threadCpuTimeNanos() - cpuAt
             figures.rowsWallNanos += System.nanoTime() - wallAt
+            val schedNow = ProcStats.schedStatOfThisThread()
+            if (schedAt != null && schedNow != null) {
+                figures.schedRead = true
+                figures.rowsRunNanos += schedNow.runNanos - schedAt.runNanos
+                figures.rowsQueueNanos += schedNow.waitNanos - schedAt.waitNanos
+            }
+            markCurve(items.size)
         }
+    }
+
+    /**
+     * One point of the load's curve for every [LoadCurve.STEP_ROWS] rows written: what the rows have cost the writer's
+     * thread so far and how large the log is -- see [LoadCurve]. Development builds only, once per batch.
+     */
+    private fun markCurve(rows: Int) {
+        val f = figures
+        f.rowsCounted += rows
+        if (f.rowsCounted < f.nextCurveAt) return
+        while (f.rowsCounted >= f.nextCurveAt) f.nextCurveAt += LoadCurve.STEP_ROWS
+        val wal = probed { database.openHelper.writableDatabase.sizeOf(WAL_SUFFIX) }
+        f.curve += CurvePoint(f.rowsCounted, f.rowsWallNanos, f.rowsCpuNanos, wal)
     }
 
     /**
@@ -417,6 +457,7 @@ class RoomCatalogWriter(
      * the first is the section's first content, the second is what Live TV opens with.
      */
     private fun announceCommit() {
+        repace()
         val firstRows = rowsSinceCommit && !toldRows
         val firstCounts = countedSinceCommit && !toldCounts
         toldRows = toldRows || rowsSinceCommit
@@ -431,6 +472,18 @@ class RoomCatalogWriter(
         if (step is UpdatePacer.Step.Later) schedule(step.afterMs)
         val urgent = (firstRows || firstCounts) && pacer.urgent(now) == UpdatePacer.Step.Now
         if (step == UpdatePacer.Step.Now || urgent) told()
+    }
+
+    /**
+     * A load that has written many rows is told less often -- see [LoadPace]. Asked at every commit, which is when a
+     * telling is decided. The pacer keeps what it knew when its interval changes, so what was told is not told again and
+     * what was not is not lost.
+     */
+    private fun repace() {
+        val wanted = LoadPace.intervalMs(notifyInterval, rowsWritten)
+        if (wanted == pacedMs) return
+        pacedMs = wanted
+        pacer.retime(wanted)
     }
 
     private fun schedule(afterMs: Long) {
@@ -584,6 +637,16 @@ class RoomCatalogWriter(
         var rowsWallNanos = 0L
         var rowsCpuNanos = 0L
 
+        /** The scheduler's account of those stretches: ran on a processor, waited for one. [schedRead] is false where it could not be read. */
+        var rowsRunNanos = 0L
+        var rowsQueueNanos = 0L
+        var schedRead = false
+
+        /** Rows counted toward the curve's next point, and the points taken: see [markCurve]. */
+        var rowsCounted = 0
+        var nextCurveAt = LoadCurve.STEP_ROWS
+        val curve = ArrayList<CurvePoint>()
+
         /** How many times the readers were told, the first rows and the end included. */
         var told = 0
 
@@ -669,6 +732,16 @@ class RoomCatalogWriter(
             NOTE_WRITER_CPU,
             "rows cpu ${hundredthsOfSeconds(f.rowsCpuNanos)} of ${hundredthsOfSeconds(f.rowsWallNanos)}",
         )
+        // And how that wall time divides: on a processor, waiting for one, or asleep -- and how the cost of a row went as the load grew.
+        if (f.schedRead) {
+            val asleep = (f.rowsWallNanos - f.rowsRunNanos - f.rowsQueueNanos).coerceAtLeast(0L)
+            PerformanceLog.note(
+                NOTE_WRITER_SCHED,
+                "on a cpu ${hundredthsOfSeconds(f.rowsRunNanos)} · waiting for a cpu ${hundredthsOfSeconds(f.rowsQueueNanos)}" +
+                    " · asleep ${hundredthsOfSeconds(asleep)} of ${hundredthsOfSeconds(f.rowsWallNanos)}",
+            )
+        }
+        LoadCurve.text(f.curve)?.let { PerformanceLog.note(NOTE_CURVE, it) }
     }
 
     /** [block], with its time counted as the cost of measuring: the reads this instrumentation adds. */
@@ -698,7 +771,11 @@ class RoomCatalogWriter(
         if (notifyInterval != notifyEveryMs) {
             notifyInterval = notifyEveryMs
             pacer = UpdatePacer(notifyInterval)
+        } else if (pacedMs != notifyInterval) {
+            // A load that grew was told less often; the next begins as any first load does.
+            pacer = UpdatePacer(notifyInterval)
         }
+        pacedMs = notifyInterval
         runCatching { itemStatement?.close() }
         runCatching { groupStatement?.close() }
         runCatching { countStatement?.close() }
@@ -836,6 +913,8 @@ class RoomCatalogWriter(
 
         /** The writer's CPU against its wall time over the rows; read by the load strip, which names it the same. */
         const val NOTE_WRITER_CPU = "writer cpu"
+        const val NOTE_WRITER_SCHED = "writer sched"
+        const val NOTE_CURVE = "rows curve"
 
         /** Nanoseconds as seconds to a hundredth, with a point whatever the device's language. */
         fun hundredthsOfSeconds(nanos: Long): String {

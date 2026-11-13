@@ -94,4 +94,53 @@ class UpdatePacerTest {
 
         assertEquals(Step.Now, pacer.changed(5_200))
     }
+
+    @Test
+    fun `a longer interval holds the next change back for the longer time`() {
+        pacer.changed(5_000)
+        pacer.retime(5_000)
+
+        assertEquals(5_000L, pacer.currentIntervalMs())
+        // Two seconds after the telling: a one-second pacer would tell now.
+        assertEquals(Step.Later(afterMs = 3_000), pacer.changed(7_000))
+        assertEquals(Step.Now, pacer.due(10_000))
+    }
+
+    /** The timer asked for under the short interval fires early under the long one and is not lost. */
+    @Test
+    fun `a timer set before the interval was lengthened asks for the rest and the last change is still told`() {
+        pacer.changed(5_000)
+        assertEquals(Step.Later(afterMs = 700), pacer.changed(5_300))
+        pacer.retime(5_000)
+
+        assertEquals(Step.Later(afterMs = 4_000), pacer.due(6_000))
+        assertEquals("the timer asked for is the one running", Step.Wait, pacer.changed(6_500))
+        assertEquals(Step.Now, pacer.due(10_000))
+        assertEquals("and it is told once", Step.Wait, pacer.due(10_001))
+    }
+
+    @Test
+    fun `lengthening the interval tells nothing and forgets nothing`() {
+        pacer.changed(5_000)
+        pacer.changed(5_400)
+        pacer.retime(10_000)
+
+        assertEquals("something is still untold, and urgent says so", Step.Now, pacer.urgent(5_500))
+        assertEquals("and only once", Step.Wait, pacer.urgent(5_600))
+    }
+
+    @Test
+    fun `a retimed pacer is as a new one after reset`() {
+        pacer.retime(10_000)
+        pacer.changed(5_000)
+        pacer.reset()
+
+        assertEquals("the interval is kept, the next change is told at once", 10_000L, pacer.currentIntervalMs())
+        assertEquals(Step.Now, pacer.changed(5_100))
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `no interval of nothing`() {
+        pacer.retime(0)
+    }
 }

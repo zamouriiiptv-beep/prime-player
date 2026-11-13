@@ -629,6 +629,69 @@ class RoomCatalogWriterTest {
         t.writer.abort(null)
     }
 
+    private fun manyItems(from: Int, count: Int): List<CatalogItem> =
+        (from until from + count).map { liveItem("big-$it", "Big $it") }
+
+    /**
+     * What each telling makes the screens read grows with what has been written -- a phone loading two hundred thousand
+     * films spent a second of processor time on each of its hundred and nine tellings -- so a load that has written
+     * twenty-five thousand rows is told every five seconds, not every second (see `LoadPace`). The first rows are still told
+     * at once, the end always, and the next load starts as any first load does.
+     */
+    @Test
+    fun `a first load is told less often once it has written twenty-five thousand rows`() = runBlocking {
+        Fixtures.register(database, "src")
+        val t = Told()
+        t.writer.begin("src", ImportMode.APPEND)
+
+        t.writer.writeItems(manyItems(0, 1))
+        t.writer.commit()
+        assertEquals("the first rows at once", 1, t.told)
+
+        t.now += 1_000
+        t.writer.writeItems(manyItems(1, 12_000))
+        t.writer.commit()
+        assertEquals("a second on, as any first load", 2, t.told)
+
+        t.now += 1_000
+        t.writer.writeItems(manyItems(12_001, 12_000))
+        t.writer.commit()
+        assertEquals("24,001 rows written: still every second", 3, t.told)
+
+        t.now += 1_000
+        t.writer.writeItems(manyItems(24_001, 1_000))
+        t.writer.commit()
+        assertEquals("25,001 rows written: a second since the last telling is not enough now", 3, t.told)
+
+        t.now += 3_000
+        t.writer.writeItems(manyItems(25_001, 1))
+        t.writer.commit()
+        assertEquals("four seconds since the last telling", 3, t.told)
+
+        t.now += 1_000
+        t.writer.writeItems(manyItems(25_002, 1))
+        t.writer.commit()
+        // Told by this commit, or by the timer that was waiting for exactly this moment: once either way.
+        val deadline = System.nanoTime() + 3_000_000_000L
+        while (t.told < 4 && System.nanoTime() < deadline) Thread.sleep(10)
+        assertEquals("five seconds since the last telling", 4, t.told)
+        assertEquals("every batch was committed whether or not anybody was told", 25_003, rowsOf("src"))
+
+        t.writer.finish(summaryOf(25_003))
+        assertEquals("the end is always told", 5, t.told)
+
+        t.writer.begin("src", ImportMode.APPEND)
+        t.writer.writeItems(manyItems(30_000, 1))
+        t.writer.commit()
+        assertEquals("the next load's first rows at once", 6, t.told)
+
+        t.now += 1_000
+        t.writer.writeItems(manyItems(30_001, 1))
+        t.writer.commit()
+        assertEquals("and the next a second later, not five", 7, t.told)
+        t.writer.abort(null)
+    }
+
     /** What makes a load a refresh: rows of this section of this source are on the device already. */
     @Test
     fun `the writer says whether a section of a source has rows on the device`() {

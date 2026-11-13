@@ -12,7 +12,10 @@ import com.castivio.core.platform.PassTimes
 import com.castivio.core.platform.PerfPhase
 import com.castivio.core.platform.PerfSection
 import com.castivio.core.platform.PerformanceLog
+import com.castivio.core.platform.ProcParsers
+import com.castivio.core.platform.ProcStats
 import com.castivio.core.platform.RecordCounts
+import com.castivio.core.platform.RoomThreadSampler
 import com.castivio.data.networking.CallMetrics
 import com.castivio.data.networking.HttpStatusException
 import com.castivio.data.networking.HttpStreamSource
@@ -748,6 +751,9 @@ class DefaultCatalogImporter(
         val gcBefore = if (probing) GcCounters.read() else null
         // And who spent it: every thread's processor time by name, now and in the `finally` below.
         val threadsBefore = if (probing) ThreadCpu.read() else null
+        // And what the threads of Room's pool were doing, looked at a few times a second, and what the load asked of the storage.
+        val sampler = if (probing) RoomThreadSampler().also { it.start() } else null
+        val ioBefore = if (probing) ProcStats.ioOfThisProcess() else null
         // The reader's own CPU time, from its thread's clock; nothing in the import reads it.
         val readerCpuClock: () -> Long = if (probing) {
             { Debug.threadCpuTimeNanos() }
@@ -829,6 +835,11 @@ class DefaultCatalogImporter(
             // The viewer's asks end with the load: one made after this finds no channel and is dropped.
             if (asks != null) early.close(kind, asks)
             if (probing) {
+                sampler?.stop()?.let { PerformanceLog.note(NOTE_ROOM_THREADS, it) }
+                val ioAfter = ProcStats.ioOfThisProcess()
+                if (ioBefore != null && ioAfter != null) {
+                    PerformanceLog.note(NOTE_PROCESS_IO, ProcParsers.describe(ioBefore, ioAfter))
+                }
                 // The threads first and the process after, so the process's total is never the smaller of the two.
                 val threadsAfter = ThreadCpu.read()
                 val processCpuMs = Process.getElapsedCpuTime() - cpuStartedMs
@@ -1123,6 +1134,12 @@ private const val NOTE_PROCESS_CPU = "process cpu"
 
 /** Each thread name's processor time over the import, read by the load strip under the same name. */
 private const val NOTE_THREAD_CPU = "thread cpu"
+
+/** What the threads of Room's pool were doing during the import, from their stacks, read by the load strip under the same name. */
+private const val NOTE_ROOM_THREADS = "room threads"
+
+/** What the import asked of the storage, read by the load strip under the same name. */
+private const val NOTE_PROCESS_IO = "process io"
 
 /**
  * The writer, with a note of whether it was the one that threw.

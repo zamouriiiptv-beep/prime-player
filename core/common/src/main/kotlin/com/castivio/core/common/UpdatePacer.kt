@@ -21,9 +21,10 @@ package com.castivio.core.common
  * timer [Step.Later] asks for. Safe from any thread: a writer commits on one and its timer
  * fires on another.
  *
- * @param intervalMs the least time between two tellings that were not [urgent].
+ * @param intervalMs the least time between two tellings that were not [urgent]; [retime] changes it, for a load that
+ * has grown -- see [LoadPace].
  */
-class UpdatePacer(private val intervalMs: Long) {
+class UpdatePacer(private var intervalMs: Long) {
 
     /** What the caller does now. */
     sealed interface Step {
@@ -68,6 +69,22 @@ class UpdatePacer(private val intervalMs: Long) {
         if (!untold) return Step.Wait
         if (toldAt == NEVER || nowMs - toldAt >= intervalMs) return tell(nowMs)
         return later(nowMs)
+    }
+
+    /** The interval now: what [retime] last set, or the one this was made with. */
+    @Synchronized
+    fun currentIntervalMs(): Long = intervalMs
+
+    /**
+     * From now on the screens are told at most every [newIntervalMs]. What was told stays told, and a timer that was
+     * asked for under the old interval is not lost: it fires early, [due] finds the new interval not yet up and asks for
+     * the rest, so the last change is told once the longer interval is up -- or at once if it was made longer than that
+     * ago.
+     */
+    @Synchronized
+    fun retime(newIntervalMs: Long) {
+        require(newIntervalMs > 0) { "an interval of $newIntervalMs ms" }
+        intervalMs = newIntervalMs
     }
 
     /** Start again: the next change is told at once, and a timer still running tells nothing. */

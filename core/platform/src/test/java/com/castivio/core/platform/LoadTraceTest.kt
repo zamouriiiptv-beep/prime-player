@@ -378,6 +378,50 @@ class LoadTraceTest {
         assertTrue(absent.toString(), absent.none { it.startsWith("reply:") || it.startsWith("database:") })
     }
 
+    /**
+     * What a load of two hundred thousand films left unsaid: what the writer's wall time was made of, how the cost of a row
+     * went as the table grew, what the storage was asked for, and what Room's threads -- the largest spender of the
+     * processor -- were doing. Lines of their own, and only when a measuring build said them.
+     */
+    @Test
+    fun `the writer's wait, the curve, the storage and the pool of Room's threads are lines of their own, and only when they were said`() {
+        fun report(notes: Map<String, String>) = SectionReport(
+            section = PerfSection.MOVIES, run = 1, startedAtNanos = 0, mode = PerfMode.WARM, fullLoadMs = 1_000, notes = notes,
+        )
+        val session = LoadSession(
+            id = 1, section = PerfSection.MOVIES, origin = LoadOrigin.WARM, pressedAtNanos = 0,
+            expectsLoad = true, expectsScreen = true, run = 1, state = LoadState.DONE, endedMs = 1_100,
+        )
+        val said = report(
+            mapOf(
+                "writer sched" to "on a cpu 47.45 · waiting for a cpu 12.30 · asleep 29.60 of 89.35",
+                "rows curve" to "µs per row (on cpu) per 20k rows: 293 (180) · 700 (200); log MB: 21 · 150",
+                "process io" to "read 312 MB (4,100 calls) · written 801 MB (190,000 calls)",
+                "room threads" to "running 63% of 5 threads over 1170 looks · waiting for a connection 4% · of the running: MediaDao_Impl.window 41%",
+            ),
+        )
+
+        val shown = LoadTrace.render(session, 0L, said, pulse = null).map { it.text }
+        val absent = LoadTrace.render(session, 0L, report(emptyMap()), pulse = null).map { it.text }
+
+        assertTrue(shown.toString(), "writer rows (s): on a cpu 47.45 · waiting for a cpu 12.30 · asleep 29.60 of 89.35" in shown)
+        assertTrue(
+            shown.toString(),
+            "rows curve: µs per row (on cpu) per 20k rows: 293 (180) · 700 (200); log MB: 21 · 150" in shown,
+        )
+        assertTrue(shown.toString(), "process io: read 312 MB (4,100 calls) · written 801 MB (190,000 calls)" in shown)
+        assertTrue(
+            shown.toString(),
+            "room threads: running 63% of 5 threads over 1170 looks · waiting for a connection 4% · of the running: MediaDao_Impl.window 41%" in shown,
+        )
+        assertTrue(
+            absent.toString(),
+            absent.none {
+                it.startsWith("writer rows") || it.startsWith("rows curve") || it.startsWith("process io") || it.startsWith("room threads")
+            },
+        )
+    }
+
     @Test
     fun `the wire lines appear when a call was answered by the network, and only then`() {
         fun wire(encoding: List<String>, encoded: Int) = WireFigures(

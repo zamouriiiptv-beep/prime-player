@@ -460,6 +460,12 @@ object LoadTrace {
         if (cpu.isNotEmpty()) add("cpu vs wall (s): " + cpu.joinToString(" · "))
         // Who spent the process's CPU: a name that holds the reader and the writer holds their time above as well.
         report.notes[NOTE_THREAD_CPU]?.let { add("cpu by thread name (s): $it") }
+        // What the writer's wall time was made of, how the cost of a row went as the load grew, what the storage was asked
+        // for, and what the pool of Room's threads -- the largest spender of the processor -- was doing.
+        report.notes[NOTE_WRITER_SCHED]?.let { add("writer rows (s): $it") }
+        report.notes[NOTE_CURVE]?.let { add("rows curve: $it") }
+        report.notes[NOTE_PROCESS_IO]?.let { add("process io: $it") }
+        report.notes[NOTE_ROOM_THREADS]?.let { add("room threads: $it") }
 
         val first = passes.firstOrNull { it.oneReply }
         if (first != null) {
@@ -494,6 +500,10 @@ object LoadTrace {
     private const val NOTE_WRITER_CPU = "writer cpu"
     private const val NOTE_PROCESS_CPU = "process cpu"
     private const val NOTE_THREAD_CPU = "thread cpu"
+    private const val NOTE_WRITER_SCHED = "writer sched"
+    private const val NOTE_CURVE = "rows curve"
+    private const val NOTE_PROCESS_IO = "process io"
+    private const val NOTE_ROOM_THREADS = "room threads"
     private const val NOTE_STREAMS = "streams"
     private const val NOTE_TOLD = "told"
     private const val NOTE_TX_BEGIN = "tx begin"

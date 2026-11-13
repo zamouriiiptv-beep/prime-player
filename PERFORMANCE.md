@@ -110,10 +110,16 @@ is not the same job:
   with a large catalogue, a large share of the processor during the load. The
   first rows and the first counted category are still told at once.
 
-Neither applies to a first load, which is unchanged. The load strip says which was
-used: its `reply:` line gives the one reply's outcome and, when it was not used,
-the cause, the rows it had delivered and the seconds it had run; its `database:`
-line gives how often the screens were told.
+Neither applies to a first load as such. A first load is told every second for its
+first 25,000 rows, then every 5 s, and from 75,000 rows every 10 s (`LoadPace`): what
+a telling makes the screens read grows with what the load has written, and a phone
+loading 200,224 films was told 109 times and spent about a second of processor in
+the readers on each — more than the load itself, which they kept waiting for its
+transaction. A section of channels is over before the interval changes. The first
+rows, the first counted category and a category the viewer opens are still told at
+once. The load strip says which was used: its `reply:` line gives the one reply's
+outcome and, when it was not used, the cause, the rows it had delivered and the
+seconds it had run; its `database:` line gives how often the screens were told.
 
 ### Do the work once
 
