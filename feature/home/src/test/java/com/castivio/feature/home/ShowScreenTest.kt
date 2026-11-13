@@ -163,7 +163,8 @@ class ShowScreenTest {
     /** The left of the rail's first entry and the middle of the screen, both measured from the left of the screen. */
     private fun railAndMiddle(): Pair<Float, Float> {
         val rail = compose.onNodeWithContentDescription("Overview").getUnclippedBoundsInRoot().left.value
-        val middle = compose.onRoot().getUnclippedBoundsInRoot().width.value / 2f
+        val root = compose.onRoot().getUnclippedBoundsInRoot()
+        val middle = (root.left.value + root.right.value) / 2f
         return rail to middle
     }
 
