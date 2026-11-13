@@ -229,6 +229,45 @@ class XtreamParserTest {
     }
 
     @Test
+    fun `a show's TMDB and IMDb ids are read, written as tmdb or as tmdb_id`() {
+        val asTmdb = """{"info":{"name":"X","plot":"A story.","tmdb":"1396","imdb_id":"tt0903747"},"episodes":{}}"""
+        val asTmdbId = """{"info":{"tmdb_id":1396},"episodes":{}}"""
+        val infos = mutableListOf<XtreamSeriesInfo>()
+
+        XtreamParser.parseSeriesInfo(StringReader(asTmdb), onInfo = { infos.add(it) }) { }
+        XtreamParser.parseSeriesInfo(StringReader(asTmdbId), onInfo = { infos.add(it) }) { }
+
+        assertEquals(1396L, infos[0].tmdbId)
+        assertEquals("tt0903747", infos[0].imdbId)
+        assertEquals(1396L, infos[1].tmdbId)
+        assertNull(infos[1].imdbId)
+    }
+
+    @Test
+    fun `a show whose info holds only an id has details, so the id is not thrown away with an empty reply`() {
+        val json = """{"info":{"tmdb":"1396","plot":"","cast":""},"episodes":{"1":[{"id":"9001","episode_num":1,"title":"A"}]}}"""
+        val infos = mutableListOf<XtreamSeriesInfo>()
+
+        XtreamParser.parseSeriesInfo(StringReader(json), onInfo = { infos.add(it) }) { }
+
+        assertEquals(1396L, infos.single().tmdbId)
+        assertNull(infos.single().plot)
+    }
+
+    @Test
+    fun `an id that is not one is absent from a show's details, and a rating written in the field is not taken for one`() {
+        val json = """{"info":{"tmdb":"8.0","tmdb_id":"0","imdb_id":"8.7","plot":"A story."},"episodes":{}}"""
+        val infos = mutableListOf<XtreamSeriesInfo>()
+
+        XtreamParser.parseSeriesInfo(StringReader(json), onInfo = { infos.add(it) }) { }
+
+        val info = infos.single()
+        assertNull(info.tmdbId)
+        assertNull(info.imdbId)
+        assertEquals("A story.", info.plot)
+    }
+
+    @Test
     fun `the account response says whether the credentials will work`() {
         val json = """
             {"user_info":{"username":"u","password":"p","message":"","auth":1,"status":"Active",

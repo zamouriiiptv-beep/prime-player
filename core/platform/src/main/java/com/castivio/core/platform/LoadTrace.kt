@@ -4,6 +4,8 @@ import android.os.SystemClock
 import android.util.Log
 import com.castivio.core.common.artwork.ArtworkFigures
 import com.castivio.core.common.artwork.ArtworkMetrics
+import com.castivio.core.common.metadata.IdCoverage
+import com.castivio.core.common.metadata.IdCoverageFigures
 import java.util.Locale
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -247,7 +249,7 @@ object LoadTrace {
                             val report = session.settledReport ?: PerformanceLog.current.value
                                 ?.takeIf { it.section == session.section && it.run == session.run }
                             val pulse = if (session.run != null && session.settledReport == null) PerformanceLog.pulse() else null
-                            emit(render(session, SystemClock.elapsedRealtimeNanos(), report, pulse, picturesOf(session)))
+                            emit(render(session, SystemClock.elapsedRealtimeNanos(), report, pulse, picturesOf(session), idsOf(session)))
                             delay(TICK_MS)
                         }
                     }
@@ -256,7 +258,12 @@ object LoadTrace {
                     // failing and being asked again, after it. So it is read again, slowly, and drawn only when it changed.
                     else -> flow<List<StripLine>> {
                         while (true) {
-                            emit(render(session, session.pressedAtNanos, session.settledReport, pulse = null, artwork = picturesOf(session)))
+                            emit(
+                                render(
+                                    session, session.pressedAtNanos, session.settledReport, pulse = null,
+                                    artwork = picturesOf(session), ids = idsOf(session),
+                                ),
+                            )
                             delay(AFTER_TICK_MS)
                         }
                     }.distinctUntilChanged()
@@ -270,7 +277,19 @@ object LoadTrace {
      * older section's strip, read now, would tell of pictures it did not ask for.
      */
     private fun picturesOf(session: LoadSession): ArtworkFigures? =
-        if (session.id == _sessions.value.values.maxOfOrNull { it.id }) ArtworkMetrics.figures() else null
+        if (isLatest(session)) ArtworkMetrics.figures() else null
+
+    /**
+     * How often the provider has said what a film or a show is at TMDB, for [session]'s strip -- or nothing, for a session that
+     * is not the last one, so that the same line is not drawn under every section.
+     *
+     * Counted since the application began and never started over by a press: a tester opens twenty films, one after another,
+     * and reads the fraction after the last.
+     */
+    private fun idsOf(session: LoadSession): IdCoverageFigures? =
+        if (isLatest(session)) IdCoverage.figures() else null
+
+    private fun isLatest(session: LoadSession): Boolean = session.id == _sessions.value.values.maxOfOrNull { it.id }
 
     /**
      * One session as the lines the strip draws and the log keeps.
@@ -278,7 +297,7 @@ object LoadTrace {
      * Pure: the clock, the import's report and its live figures are given, so what a line says can be checked
      * without a device. [report] is the run's -- the settled one once it is over -- and null for a session with
      * no load; [pulse] is the live figures of a load that is still running; [artwork] is what the pictures have done, for
-     * the session that has been counting them.
+     * the session that has been counting them; [ids] is how often the provider has said what a film or a show is at TMDB.
      */
     internal fun render(
         session: LoadSession,
@@ -286,6 +305,7 @@ object LoadTrace {
         report: SectionReport?,
         pulse: LivePulse?,
         artwork: ArtworkFigures? = null,
+        ids: IdCoverageFigures? = null,
     ): List<StripLine> {
         val total = if (session.running) (nowNanos - session.pressedAtNanos) / NANOS_PER_MS else session.endedMs ?: 0L
         val tone = when (session.state) {
@@ -341,6 +361,8 @@ object LoadTrace {
         wire(report).forEach { lines += StripLine(it, StripTone.MUTED) }
 
         artwork?.describe()?.forEach { lines += StripLine(it, StripTone.MUTED) }
+
+        ids?.describe()?.let { lines += StripLine(it, StripTone.MUTED) }
 
         work(report)?.let { lines += StripLine(it, StripTone.MUTED) }
 

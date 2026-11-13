@@ -36,6 +36,18 @@ data class SeriesDetailEntity(
 
     @ColumnInfo(name = "fetched_at")
     val fetchedAt: Long,
+
+    /**
+     * The show's number at TMDB, as the provider's reply gave it; null when it gave none. Kept and not used yet: see
+     * `SeriesDetails.tmdbId`. A show's details are asked for again each time its page opens, so a row written before the column
+     * existed has its ids the next time the page is opened and needs no flag as `vod_detail` does.
+     */
+    @ColumnInfo(name = "tmdb_id")
+    val tmdbId: Long? = null,
+
+    /** The show's IMDb id, as the provider's reply gave it; null when it gave none. */
+    @ColumnInfo(name = "imdb_id")
+    val imdbId: String? = null,
 )
 
 /** One episode's plot, by the id of the catalogue row the episode was written as. */

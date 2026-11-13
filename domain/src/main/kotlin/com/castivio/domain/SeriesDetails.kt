@@ -18,6 +18,13 @@ data class SeriesDetails(
     val releaseYear: Int? = null,
     /** The first of the provider's wide pictures of the show, drawn behind the page's top. */
     val backdropUrl: String? = null,
+    /**
+     * The show's number at TMDB, when the provider matched it to one: a positive whole number, or null when it sent none or sent
+     * something that is not one. Kept and not used yet -- see `MovieDetails.tmdbId`.
+     */
+    val tmdbId: Long? = null,
+    /** The show's IMDb id (`tt0903747`), when the provider sent one. */
+    val imdbId: String? = null,
 )
 
 /**

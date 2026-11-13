@@ -31,6 +31,8 @@ class RoomSeriesDetailsStore(private val dao: SeriesDetailDao) : SeriesDetailsSt
                     releaseYear = details.releaseYear,
                     backdropUrl = details.backdropUrl,
                     fetchedAt = now,
+                    tmdbId = details.tmdbId,
+                    imdbId = details.imdbId,
                 ),
             )
         }
@@ -44,5 +46,7 @@ class RoomSeriesDetailsStore(private val dao: SeriesDetailDao) : SeriesDetailsSt
         genres = genres?.split(DETAIL_LIST_SEPARATOR).orEmpty(),
         releaseYear = releaseYear,
         backdropUrl = backdropUrl,
+        tmdbId = tmdbId,
+        imdbId = imdbId,
     )
 }

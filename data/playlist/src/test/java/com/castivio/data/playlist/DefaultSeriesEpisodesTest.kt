@@ -1,6 +1,7 @@
 package com.castivio.data.playlist
 
 import androidx.paging.PagingData
+import com.castivio.core.common.metadata.IdCoverage
 import com.castivio.domain.CatalogItem
 import com.castivio.domain.CatalogPager
 import com.castivio.domain.CatalogQuery
@@ -54,11 +55,13 @@ class DefaultSeriesEpisodesTest {
     @Before
     fun setUp() {
         server = MockWebServer().also { it.start() }
+        IdCoverage.reset()
     }
 
     @After
     fun tearDown() {
         server.shutdown()
+        IdCoverage.reset()
     }
 
     private fun loader(shell: SeriesShell? = SHELL, source: ProviderSource? = account()) = DefaultSeriesEpisodes(
@@ -234,6 +237,55 @@ class DefaultSeriesEpisodesTest {
         assertEquals(2, (loader().load("show-1") as EpisodesLoad.Loaded).episodes)
     }
 
+    // ------------------------------------------------------------------ the show's numbers elsewhere
+
+    @Test
+    fun `the ids the provider sends of the show are kept with its details, and counted`() = runBlocking {
+        server.enqueue(MockResponse().setBody(SERIES_WITH_IDS))
+
+        loader().load("show-1")
+
+        val kept = details.puts.single().details!!
+        assertEquals(1396L, kept.tmdbId)
+        assertEquals("tt0903747", kept.imdbId)
+        val figures = IdCoverage.figures()
+        assertEquals(1L, figures.shows)
+        assertEquals(1L, figures.showsWithTmdb)
+        assertEquals(1L, figures.showsWithImdb)
+    }
+
+    @Test
+    fun `a show with details and no ids is counted as one without`() = runBlocking {
+        server.enqueue(MockResponse().setBody(SERIES_WITH_DETAILS))
+
+        loader().load("show-1")
+
+        assertNull(details.puts.single().details!!.tmdbId)
+        val figures = IdCoverage.figures()
+        assertEquals(1L, figures.shows)
+        assertEquals(0L, figures.showsWithTmdb)
+    }
+
+    @Test
+    fun `a show the provider says nothing of is a show without ids`() = runBlocking {
+        server.enqueue(MockResponse().setBody("""{"info": [], "episodes": {"1": [{"id": "9001", "title": "A", "episode_num": 1}]}}"""))
+
+        loader().load("show-1")
+
+        assertEquals(1L, IdCoverage.figures().shows)
+        assertEquals(0L, IdCoverage.figures().showsWithTmdb)
+    }
+
+    @Test
+    fun `a provider that could not be asked says nothing of its ids, and is not counted`() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(500))
+
+        val load = loader().load("show-1")
+
+        assertTrue("was $load", load is EpisodesLoad.Failed)
+        assertEquals(0L, IdCoverage.figures().shows)
+    }
+
     private class RecordingDetails : SeriesDetailsStore {
         class Put(val seriesId: String, val details: SeriesDetails?, val plots: Map<String, String>)
 
@@ -303,6 +355,15 @@ class DefaultSeriesEpisodesTest {
               {"id": "9001", "title": "The Tide Table", "episode_num": 1, "container_extension": "mkv",
                "info": {"plot": "A storm closes the harbour.", "duration_secs": 2780}},
               {"id": "9002", "title": "Low Water", "episode_num": 2, "container_extension": "mkv", "info": {}}
+            ]
+          }
+        }"""
+
+        const val SERIES_WITH_IDS = """{
+          "info": {"name": "Dark Harbor", "plot": "An emotional thrill ride.", "tmdb": "1396", "imdb_id": "tt0903747"},
+          "episodes": {
+            "1": [
+              {"id": "9001", "title": "The Tide Table", "episode_num": 1, "container_extension": "mkv", "info": {}}
             ]
           }
         }"""

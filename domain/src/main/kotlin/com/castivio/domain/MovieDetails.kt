@@ -16,11 +16,30 @@ data class MovieDetails(
     val releaseYear: Int? = null,
     val durationSeconds: Int? = null,
     val addedEpochSeconds: Long? = null,
+    /**
+     * The film's number at TMDB, when the provider matched it to one: a positive whole number, or null when it sent none or
+     * sent something that is not one. **Kept, and nothing is done with it yet** -- it is what a page told in another language
+     * would ask by, and is read now so that the provider's coverage of it can be counted before anything is built on it.
+     */
+    val tmdbId: Long? = null,
+    /** The film's IMDb id (`tt0133093`), when the provider sent one. Kept as [tmdbId] is. */
+    val imdbId: String? = null,
+    /**
+     * Whether these details come from a reply that was **read for the ids** above. False only for details kept before they were:
+     * such details hold none, and say nothing about whether the provider has one. True for every reply read now.
+     *
+     * A cache keeps what it kept for as long as the catalogue does, so the details of every film whose page was opened before the
+     * ids were read would hold none for good. This is how that is told from a film whose provider gave none, and what makes the
+     * film be asked of its provider once more -- behind its page, which is drawn from what is kept.
+     */
+    val idsRead: Boolean = true,
 )
 
 /** The details a film's page has been given before, so opening it again asks the provider nothing. */
 interface MovieDetailsCache {
     suspend fun get(sourceId: String, providerRef: String): MovieDetails?
+
+    /** Keeps [details], which are a reply read now: whatever [MovieDetails.idsRead] says of them, the cache keeps them as read. */
     suspend fun put(sourceId: String, providerRef: String, details: MovieDetails, now: Long)
 }
 

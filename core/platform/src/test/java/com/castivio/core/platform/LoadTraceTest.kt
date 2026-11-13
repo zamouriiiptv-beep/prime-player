@@ -5,6 +5,8 @@ import com.castivio.core.common.artwork.ArtworkFigures
 import com.castivio.core.common.artwork.ArtworkHost
 import com.castivio.core.common.artwork.ArtworkMetrics
 import com.castivio.core.common.artwork.ArtworkTally
+import com.castivio.core.common.metadata.IdCoverage
+import com.castivio.core.common.metadata.IdCoverageFigures
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.runBlocking
@@ -37,6 +39,7 @@ class LoadTraceTest {
         DevDiagnostics.enable(true)
         LoadTrace.reset()
         ArtworkMetrics.reset()
+        IdCoverage.reset()
     }
 
     @After
@@ -44,6 +47,7 @@ class LoadTraceTest {
         DevDiagnostics.enable(false)
         LoadTrace.reset()
         ArtworkMetrics.reset()
+        IdCoverage.reset()
     }
 
     private fun session(section: PerfSection) = LoadTrace.sessions.value[section]!!
@@ -615,6 +619,48 @@ class LoadTraceTest {
         }
 
         assertTrue(seen.toString(), seen.any { it.text.startsWith("artwork: 1 calls") })
+    }
+
+    // ------------------------------------------------- how often the provider says what a title is at TMDB
+
+    @Test
+    fun `how often the provider said what a title is at TMDB is told in a line of its own, muted`() {
+        val ids = IdCoverageFigures(
+            films = 20, filmsWithTmdb = 14, filmsWithImdb = 0, shows = 8, showsWithTmdb = 6, showsWithImdb = 0,
+        )
+
+        val lines = LoadTrace.render(loadingMovies(), 5_000_000_000L, report = null, pulse = null, ids = ids)
+
+        val line = lines.single { it.text.startsWith("ids:") }
+        assertEquals("ids: films tmdb 14/20 · imdb 0/20 · shows tmdb 6/8 · imdb 0/8", line.text)
+        assertEquals(StripTone.MUTED, line.tone)
+        assertFalse("the first line is the card's: ${lines.first().text}", lines.first().text.startsWith("ids:"))
+    }
+
+    @Test
+    fun `there is no ids line before a reply has been read`() {
+        val none = LoadTrace.render(loadingMovies(), 1_000_000_000L, report = null, pulse = null, ids = null)
+        val empty = LoadTrace.render(
+            loadingMovies(), 1_000_000_000L, report = null, pulse = null,
+            ids = IdCoverageFigures(0, 0, 0, 0, 0, 0),
+        )
+
+        assertTrue(none.none { it.text.startsWith("ids:") })
+        assertTrue(empty.none { it.text.startsWith("ids:") })
+    }
+
+    @Test
+    fun `only the last session tells of the ids, and a press does not start their count over`() = runBlocking {
+        IdCoverage.film(tmdb = true, imdb = false)
+        LoadTrace.pressed(PerfSection.RADIO, earlier(), LoadPress.OPEN)
+        LoadTrace.pressed(PerfSection.CHANNELS, earlier(), LoadPress.OPEN)
+
+        val older = withTimeout(5_000) { LoadTrace.lines(PerfSection.RADIO, runningOnly = false).first() }
+        val last = withTimeout(5_000) { LoadTrace.lines(PerfSection.CHANNELS, runningOnly = false).first() }
+
+        assertEquals("the count is the session of the application's, not of a press", 1L, IdCoverage.figures().films)
+        assertTrue("an older section's strip does not repeat the line", older.none { it.text.startsWith("ids:") })
+        assertTrue(last.any { it.text == "ids: films tmdb 1/1 · imdb 0/1" })
     }
 
     private companion object {

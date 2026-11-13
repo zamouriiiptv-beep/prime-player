@@ -136,13 +136,15 @@ class MovieRatingTest {
         assertEquals("and has no rating until its list is read again", 1, countOf(db, "SELECT COUNT(*) FROM `media` WHERE `rating` IS NULL"))
     }
 
+    /**
+     * That the chain is unbroken up to the version the database is at is `MigrationGuardTest`'s to hold, and holds for every
+     * version added since: this one only says that the step to 11 is there, and is the one that adds the column.
+     */
     @Test
-    fun `the migration to version 11 is the last of the chain, and the database is at 11`() {
-        val last = CastivioMigrations.ALL.maxByOrNull { it.startVersion }!!
+    fun `the migration to version 11 is in the chain`() {
+        val step = CastivioMigrations.ALL.single { it.startVersion == 10 }
 
-        assertEquals(10, last.startVersion)
-        assertEquals(11, last.endVersion)
-        assertEquals(11, database.openHelper.readableDatabase.version)
+        assertEquals(11, step.endVersion)
     }
 
     // ------------------------------------------------------------------ helpers

@@ -70,7 +70,10 @@ import com.castivio.data.database.entity.VodDetailEntity
     //    draws on a poster -- see `CastivioMigrations.ADD_RATING`. Nothing that was stored changed and no sync
     //    state is forgotten: a film that is already here has none until its list is read again, and the next
     //    ordinary refresh of the films writes it with the row.
-    version = 11,
+    // 12: columns added to the two detail tables, the ids a provider gives a film or a show at TMDB and IMDb -- see
+    //    `CastivioMigrations.ADD_PROVIDER_IDS`. Nothing that was stored changed and no sync state is forgotten: a film kept
+    //    before this has `ids_read` = 0 and is asked of its provider once more, behind its page.
+    version = 12,
     exportSchema = true,
 )
 abstract class CastivioDatabase : RoomDatabase() {

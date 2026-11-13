@@ -43,4 +43,25 @@ data class VodDetailEntity(
 
     @ColumnInfo(name = "fetched_at")
     val fetchedAt: Long,
+
+    /**
+     * The film's number at TMDB, as the provider's reply gave it; null when it gave none. Kept and not used yet: see
+     * `MovieDetails.tmdbId`. Null for every row written before the column existed -- `CastivioMigrations.ADD_PROVIDER_IDS`.
+     */
+    @ColumnInfo(name = "tmdb_id")
+    val tmdbId: Long? = null,
+
+    /** The film's IMDb id, as the provider's reply gave it; null when it gave none. */
+    @ColumnInfo(name = "imdb_id")
+    val imdbId: String? = null,
+
+    /**
+     * Whether the reply these details came from was **read for the ids** above: false for every row kept before they were, and
+     * for a row a portal's list wrote, true for one written from a reply read now.
+     *
+     * Without it a row kept earlier could not be told from a film whose provider gave no id, and -- the table having no expiry --
+     * it would hold none for good; with it the film is asked of its provider once more, behind its page.
+     */
+    @ColumnInfo(name = "ids_read", defaultValue = "0")
+    val idsRead: Boolean = false,
 )

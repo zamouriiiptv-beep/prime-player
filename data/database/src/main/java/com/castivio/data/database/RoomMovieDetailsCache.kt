@@ -25,6 +25,10 @@ class RoomMovieDetailsCache(private val dao: VodDetailDao) : MovieDetailsCache {
                 durationSeconds = details.durationSeconds,
                 addedEpochSeconds = details.addedEpochSeconds,
                 fetchedAt = now,
+                tmdbId = details.tmdbId,
+                imdbId = details.imdbId,
+                // What is put here came from a reply read now, and a reply read now is read for its ids.
+                idsRead = true,
             ),
         )
     }
@@ -38,6 +42,10 @@ class RoomMovieDetailsCache(private val dao: VodDetailDao) : MovieDetailsCache {
         releaseYear = releaseYear,
         durationSeconds = durationSeconds,
         addedEpochSeconds = addedEpochSeconds,
+        tmdbId = tmdbId,
+        imdbId = imdbId,
+        // A row written before the ids were read, or by a portal's list, says so: see `MovieDetails.idsRead`.
+        idsRead = idsRead,
     )
 }
 

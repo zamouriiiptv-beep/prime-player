@@ -52,6 +52,7 @@ object CastivioMigrations {
         get() = arrayOf(
             REKEY_SOURCES, SCOPE_TO_SOURCE, KEY_SEARCH_BY_ROW, ADD_CUSTOM_ORDER, ADD_HIDDEN_ITEM, ADD_VOD_DETAIL,
             ADD_SERIES_DETAIL, guarded(DROP_EPG_INDEX), guarded(ADD_CATCH_UP), guarded(ADD_RATING),
+            guarded(ADD_PROVIDER_IDS),
         )
 
     /** The first version a database may be in with the sort-title index out: see [guarded]. */
@@ -365,6 +366,34 @@ object CastivioMigrations {
     private val ADD_RATING = object : Migration(10, 11) {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL("ALTER TABLE `media` ADD COLUMN `rating` REAL")
+        }
+    }
+
+    /**
+     * 11 → 12: the ids a provider gives a film or a show at TMDB and IMDb -- `vod_detail.tmdb_id`, `imdb_id` and `ids_read`,
+     * and `series_detail.tmdb_id` and `imdb_id`.
+     *
+     * **Four nullable columns and one flag with a default, no row touched, no sync state forgotten** -- the shape of the two
+     * migrations before it, for the same reasons: adding a column changes a table's definition and not its rows, so it costs
+     * nothing however many films have been opened. `tmdb_id` is `INTEGER` and `imdb_id` is `TEXT` because that is what Room maps a
+     * `Long?` and a `String?` to, and it checks the result against the entities; `ids_read` is `INTEGER NOT NULL DEFAULT 0`
+     * because the entity declares exactly that, and the default is part of what Room compares.
+     *
+     * ## Why `vod_detail` needs the flag and `series_detail` does not
+     *
+     * `vod_detail` has no expiry: a film's details are kept for as long as the catalogue is and never asked for again, so every film
+     * opened before this version is kept **without** an id and would stay so. `ids_read` is 0 for those rows -- and for a portal's,
+     * which its list wrote and nothing can ask again -- and 1 for every row written from a reply read from now on. A film whose row
+     * says 0 is drawn from what is kept and asked of its provider once more, behind the page, and the reply replaces the row. A
+     * show's details are asked for each time its page opens, so a row written before this version has its ids the next time the page is.
+     */
+    private val ADD_PROVIDER_IDS = object : Migration(11, 12) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `vod_detail` ADD COLUMN `tmdb_id` INTEGER")
+            db.execSQL("ALTER TABLE `vod_detail` ADD COLUMN `imdb_id` TEXT")
+            db.execSQL("ALTER TABLE `vod_detail` ADD COLUMN `ids_read` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE `series_detail` ADD COLUMN `tmdb_id` INTEGER")
+            db.execSQL("ALTER TABLE `series_detail` ADD COLUMN `imdb_id` TEXT")
         }
     }
 

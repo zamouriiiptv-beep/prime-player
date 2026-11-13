@@ -1,5 +1,6 @@
 package com.castivio.data.playlist
 
+import com.castivio.core.common.metadata.IdCoverage
 import com.castivio.data.networking.HttpStatusException
 import com.castivio.data.networking.XtreamHttpApi
 import com.castivio.data.parsing.XtreamParser
@@ -22,6 +23,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import java.io.IOException
+import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -36,6 +38,11 @@ import java.util.concurrent.ConcurrentHashMap
  * seven seconds before it gives up. Only a provider that *answered* nothing every time is remembered as having
  * nothing, and only for a while: a film whose asking failed on the way -- a weak connection, a timeout -- is
  * remembered as nothing at all, because the next page may well reach the provider.
+ *
+ * **A film kept before its ids were read is asked once more, behind its page.** The cache has no expiry, so the details of every
+ * film opened before the provider's TMDB and IMDb ids were read were kept without them and would be for good. Such a film is
+ * drawn from what is kept, at once, and its provider is asked again -- once in a run, in the background -- and the reply, which
+ * is read for the ids, takes the place of the old row. Nothing waits on it, and nothing it does can fail a page.
  */
 class DefaultMovieDetails(
     private val cache: MovieDetailsCache,
@@ -47,6 +54,12 @@ class DefaultMovieDetails(
 
     /** Films whose provider answered nothing every time it was asked, and when: left alone for [MISS_MEMORY_MS]. */
     private val misses = ConcurrentHashMap<String, Long>()
+
+    /**
+     * Films kept before their ids were read that have been asked of their provider once in this run: see [askForIds]. A set made
+     * of a map, because `ConcurrentHashMap.newKeySet` is API 24 and this module ships to API 23.
+     */
+    private val idsAsked: MutableSet<String> = Collections.newSetFromMap(ConcurrentHashMap())
 
     private val accounts = AccountLookup(sources, clock)
 
@@ -67,7 +80,12 @@ class DefaultMovieDetails(
             val account = async { accounts.of(sourceId) }
             kept.await() to account.await()
         }
-        kept?.let { return it }
+        kept?.let { held ->
+            // Kept before the ids were read: the page is drawn from what is kept, and the provider is asked again behind it.
+            // A portal's details are written with its list and nobody can be asked for them (`xtream` is null), so they stay.
+            if (!held.idsRead && xtream != null) askForIds(sourceId, providerRef, xtream, key)
+            return held
+        }
         misses[key]?.let { if (clock() - it < MISS_MEMORY_MS) return null }
         // The panel account the film is read through -- see [AccountLookup].
         xtream ?: return null
@@ -75,14 +93,17 @@ class DefaultMovieDetails(
 
         var tries = 0
         var answeredNothing = 0
+        var lastRead: Reply? = null
         while (true) {
             tries++
             val reply = ask(xtream, providerRef)
             onTimes(reply.times.copy(tries = tries, lookupMs = lookupMs))
             if (reply.definitive && reply.refusedAccount) accounts.forget(sourceId)
+            if (reply.parsed) lastRead = reply
             if (reply.details != null) {
                 // The page has its details now; the cache keeps them behind it.
                 val details = reply.details
+                count(reply)
                 keeping.launch { runCatching { cache.put(sourceId, providerRef, details, clock()) } }
                 return details
             }
@@ -91,8 +112,40 @@ class DefaultMovieDetails(
             if (reply.definitive || tries > RETRY_DELAYS_MS.size) break
             delay(RETRY_DELAYS_MS[tries - 1])
         }
+        // Counted once for the film, and only if the provider gave a reply that was read: a refusal or a failed asking says
+        // nothing of whether it has ids.
+        lastRead?.let { count(it) }
         if (answeredNothing == tries) misses[key] = clock()
         return null
+    }
+
+    /**
+     * Asks the provider once more for a film whose details were kept before the ids were read, behind the page that is drawn
+     * from what is kept, and keeps the reply -- which holds the ids, and is read for them -- in the place of the old row.
+     *
+     * Once in a run for each film: a provider that cannot be reached, or that answers nothing now, leaves the row as it was and is
+     * asked again by the next run, and never by a page opened a second time in this one. A courtesy to a feature that is not built
+     * yet, so it takes one asking and no retry, and whatever goes wrong with it is nobody's to hear.
+     */
+    private fun askForIds(sourceId: String, providerRef: String, xtream: PlaylistSource.Xtream, key: String) {
+        if (!idsAsked.add(key)) return
+        keeping.launch {
+            try {
+                val reply = ask(xtream, providerRef)
+                if (reply.definitive && reply.refusedAccount) accounts.forget(sourceId)
+                if (reply.parsed) count(reply)
+                reply.details?.let { cache.put(sourceId, providerRef, it, clock()) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // The film's page is drawn, and the next run asks again.
+            }
+        }
+    }
+
+    /** What a reply that was read says of the provider's ids, for the strip's count: a reply with no details says it has none. */
+    private fun count(reply: Reply) {
+        IdCoverage.film(tmdb = reply.details?.tmdbId != null, imdb = reply.details?.imdbId != null)
     }
 
     /** One asking: what came, whether the provider answered at all, and what it cost. */
@@ -104,6 +157,8 @@ class DefaultMovieDetails(
         val definitive: Boolean = false,
         /** What it refused was the account itself, so the account is read again before it is used again. */
         val refusedAccount: Boolean = false,
+        /** The provider's reply came and was read -- with details or without -- as against a refusal or a failed asking. */
+        val parsed: Boolean = false,
     )
 
     private suspend fun ask(xtream: PlaylistSource.Xtream, providerRef: String): Reply = withContext(dispatcher) {
@@ -118,6 +173,7 @@ class DefaultMovieDetails(
                 details = info?.toDomain()?.takeIf { it != MovieDetails() },
                 answered = true,
                 times = RequestTimes(askMs, clock() - readStarted),
+                parsed = true,
             )
         } catch (e: CancellationException) {
             throw e
@@ -145,6 +201,8 @@ class DefaultMovieDetails(
         releaseYear = releaseYear,
         durationSeconds = durationSeconds,
         addedEpochSeconds = addedEpochSeconds,
+        tmdbId = tmdbId,
+        imdbId = imdbId,
     )
 }
 

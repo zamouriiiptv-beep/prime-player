@@ -89,6 +89,7 @@ import com.castivio.core.design.theme.castivioBackdrop
 import com.castivio.core.design.theme.castivioStage
 import com.castivio.core.platform.PerformanceLog
 import com.castivio.domain.Movie
+import com.castivio.domain.externalIdsLine
 
 /**
  * One film's page: its poster, its name, what the provider said about it, and the two things a viewer
@@ -155,7 +156,17 @@ fun MovieScreen(
     val context = LocalContext.current
     val instrumented = remember(context) { PerformanceLog.isVisibleIn(context) }
     // The line that cost reads as, or null: a user's build has none to draw. It is drawn on the poster -- see `PagePoster`.
-    val costLine = remember(cost, instrumented) { cost?.takeIf { instrumented }?.line() }
+    // It ends with the ids the provider gave the film at TMDB and IMDb, once its details are here -- whether they were asked of
+    // the provider now or kept from before, which has no cost to print -- for a tester to read whether this provider says them.
+    val costLine = remember(cost, known, instrumented) {
+        if (instrumented) {
+            listOfNotNull(cost?.line(), known?.let { externalIdsLine(it.tmdbId, it.imdbId, it.idsRead) })
+                .takeIf { it.isNotEmpty() }
+                ?.joinToString(" · ")
+        } else {
+            null
+        }
+    }
     val favorite = movie.id in ids
     val state by model.state.collectAsStateWithLifecycle()
     val selection = remember(movie) { movie.asSelection() }

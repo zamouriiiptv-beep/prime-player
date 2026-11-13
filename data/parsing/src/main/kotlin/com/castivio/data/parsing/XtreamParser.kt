@@ -165,6 +165,9 @@ object XtreamParser {
         var durationSeconds: Int? = null
         var durationClock: Int? = null
         var added: Long? = null
+        var tmdbId: Long? = null
+        var tmdbAlias: Long? = null
+        var imdbId: String? = null
 
         val scanner = JsonScanner(reader)
         scanner.readObject { section ->
@@ -179,6 +182,11 @@ object XtreamParser {
                         "releasedate", "release_date" -> releaseDate = scanner.string()
                         "duration_secs" -> durationSeconds = scanner.string()?.toIntOrNull()?.takeIf { it > 0 }
                         "duration" -> durationClock = scanner.string()?.let(::secondsOfClock)
+                        // The film's number at TMDB and at IMDb, when the panel matched it to either: what a page that is told in
+                        // another language would be asked for by. Read strictly -- see [ExternalIds] -- and only kept here.
+                        "tmdb_id" -> tmdbId = ExternalIds.tmdb(scanner.string())
+                        "tmdb" -> tmdbAlias = ExternalIds.tmdb(scanner.string())
+                        "imdb_id" -> imdbId = ExternalIds.imdb(scanner.string())
                     }
                 }
                 "movie_data" -> scanner.readObject { field ->
@@ -198,6 +206,8 @@ object XtreamParser {
             // `duration_secs` -- a two-hour film read as one minute and fifty-eight seconds.
             durationSeconds = durationClock ?: durationSeconds,
             addedEpochSeconds = added,
+            tmdbId = tmdbId ?: tmdbAlias,
+            imdbId = imdbId,
         ).takeIf { it.saysAnything }
     } catch (e: JsonFormatException) {
         null
@@ -340,6 +350,9 @@ object XtreamParser {
         var genres: List<String> = emptyList()
         var releaseDate: String? = null
         var backdrop: String? = null
+        var tmdbId: Long? = null
+        var tmdbAlias: Long? = null
+        var imdbId: String? = null
         scanner.readObject { field ->
             when (field) {
                 "rating" -> rating = ratingOf(scanner.string())
@@ -347,6 +360,11 @@ object XtreamParser {
                 "cast", "actors" -> cast = listOfNames(scanner.string())
                 "genre" -> genres = listOfNames(scanner.string())
                 "releaseDate", "releasedate", "release_date" -> releaseDate = scanner.string()
+                // The show's number at TMDB and at IMDb, as a film's are read: see [parseVodInfo]. Some panels write a show's
+                // TMDB id as `tmdb` and others as `tmdb_id`, and both are read.
+                "tmdb_id" -> tmdbId = ExternalIds.tmdb(scanner.string())
+                "tmdb" -> tmdbAlias = ExternalIds.tmdb(scanner.string())
+                "imdb_id" -> imdbId = ExternalIds.imdb(scanner.string())
                 // An array of addresses; the first is the show's wide picture. A provider that sends a
                 // bare string, or nothing, has none that is read here.
                 "backdrop_path" -> scanner.readArray {
@@ -362,6 +380,8 @@ object XtreamParser {
             genres = genres,
             releaseYear = releaseDate?.take(YEAR_DIGITS)?.toIntOrNull()?.takeIf { it > 0 },
             backdropUrl = backdrop,
+            tmdbId = tmdbId ?: tmdbAlias,
+            imdbId = imdbId,
         ).takeIf { it.saysAnything }
     }
 
@@ -610,14 +630,22 @@ data class XtreamVodInfo(
     val releaseYear: Int?,
     val durationSeconds: Int?,
     val addedEpochSeconds: Long?,
+    /** The film's number at TMDB, when the panel matched it to one; null when it sent none or sent something that is not one. */
+    val tmdbId: Long? = null,
+    /** The film's IMDb id (`tt0133093`), when the panel sent one. */
+    val imdbId: String? = null,
 ) {
     /**
      * Whether the reply held a single fact. One that held none -- `"info":[]`, which panels send for a film
      * they know nothing about -- is no details rather than details that are all empty.
+     *
+     * An id is a fact: a panel that matched a film to TMDB and has no story for it is the very case a translated page helps
+     * most, and its reply must not be thrown away as empty.
      */
     val saysAnything: Boolean
         get() = rating != null || plot != null || director != null || cast.isNotEmpty() || genres.isNotEmpty() ||
-            releaseYear != null || durationSeconds != null || addedEpochSeconds != null
+            releaseYear != null || durationSeconds != null || addedEpochSeconds != null ||
+            tmdbId != null || imdbId != null
 }
 
 private const val YEAR_DIGITS = 4
@@ -650,11 +678,15 @@ data class XtreamSeriesInfo(
     val genres: List<String>,
     val releaseYear: Int?,
     val backdropUrl: String?,
+    /** The show's number at TMDB, when the panel matched it to one; null when it sent none or sent something that is not one. */
+    val tmdbId: Long? = null,
+    /** The show's IMDb id (`tt0903747`), when the panel sent one. */
+    val imdbId: String? = null,
 ) {
-    /** Whether the block held a single fact; `"info":[]` held none. */
+    /** Whether the block held a single fact -- an id is one -- and `"info":[]` held none. */
     val saysAnything: Boolean
         get() = rating != null || plot != null || cast.isNotEmpty() || genres.isNotEmpty() ||
-            releaseYear != null || backdropUrl != null
+            releaseYear != null || backdropUrl != null || tmdbId != null || imdbId != null
 }
 
 /** The account behind the credentials, including why it might not work. */

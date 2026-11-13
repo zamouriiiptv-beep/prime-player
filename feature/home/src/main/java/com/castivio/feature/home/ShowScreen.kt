@@ -94,6 +94,7 @@ import com.castivio.domain.EpisodeMark
 import com.castivio.domain.RequestTimes
 import com.castivio.domain.Season
 import com.castivio.domain.SeriesSummary
+import com.castivio.domain.externalIdsLine
 import kotlinx.coroutines.launch
 
 /**
@@ -222,7 +223,9 @@ fun ShowScreen(
                     )
                 }
                 state.times?.takeIf { instrumented }?.let { cost ->
-                    item(key = "times") { RequestTimesLine(cost, m) }
+                    // With the ids the provider gave the show, once its details are here -- see `RequestTimesLine`.
+                    val ids = state.details?.let { externalIdsLine(it.tmdbId, it.imdbId) }
+                    item(key = "times") { RequestTimesLine(cost, ids, m) }
                 }
                 if (state.seasons.isEmpty()) {
                     item(key = "placeholder") {
@@ -659,12 +662,13 @@ private fun EpisodesPlaceholder(
 
 /**
  * What the request for this page cost, in one muted line: a debuggable build says where a wait went -- the provider
- * answering, its answer arriving, the catalogue keeping it -- and how many times it was asked.
+ * answering, its answer arriving, the catalogue keeping it -- and how many times it was asked. It ends with the ids the
+ * provider gave the show ([ids]), when its details have come.
  */
 @Composable
-private fun RequestTimesLine(times: RequestTimes, m: CatalogMetrics) {
+private fun RequestTimesLine(times: RequestTimes, ids: String?, m: CatalogMetrics) {
     Text(
-        text = times.line(),
+        text = times.line() + ids?.let { " · $it" }.orEmpty(),
         style = castivioBodyStyle(m.frame.fsLabel),
         color = CastivioTheme.colors.onBackgroundMuted,
         maxLines = 1,

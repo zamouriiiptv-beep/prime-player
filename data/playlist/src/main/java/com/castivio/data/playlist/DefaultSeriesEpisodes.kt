@@ -1,5 +1,6 @@
 package com.castivio.data.playlist
 
+import com.castivio.core.common.metadata.IdCoverage
 import com.castivio.data.networking.HttpStatusException
 import com.castivio.data.networking.XtreamHttpApi
 import com.castivio.data.parsing.XtreamImportEngine
@@ -77,6 +78,9 @@ class DefaultSeriesEpisodes(
                         onReady(EpisodesReady(rows.toSeasons(), info?.toDomain(), episodePlots))
                     },
                 )
+                // The provider answered: whether its reply carried the show's ids is counted, for the strip. A show whose
+                // `info` said nothing is a show without ids.
+                IdCoverage.show(tmdb = said?.tmdbId != null, imdb = said?.imdbId != null)
                 // The episodes are in; what the provider said of them is a courtesy, and failing to keep it
                 // must not turn a page that has its episodes into one that says it could not be read.
                 val putStarted = clock()
@@ -120,4 +124,6 @@ private fun XtreamSeriesInfo.toDomain() = SeriesDetails(
     genres = genres,
     releaseYear = releaseYear,
     backdropUrl = backdropUrl,
+    tmdbId = tmdbId,
+    imdbId = imdbId,
 )

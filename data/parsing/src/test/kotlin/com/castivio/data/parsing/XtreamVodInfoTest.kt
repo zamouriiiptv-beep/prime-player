@@ -81,4 +81,67 @@ class XtreamVodInfoTest {
         val reply = """{"info":{"rating":"","plot":"  ","cast":""},"movie_data":{"added":"0"}}"""
         assertNull(XtreamParser.parseVodInfo(StringReader(reply)))
     }
+
+    // ------------------------------------------------------------------ the film's numbers elsewhere
+
+    @Test
+    fun `a TMDB id and an IMDb id are read whichever way the panel writes them`() {
+        val asText = XtreamParser.parseVodInfo(StringReader("""{"info":{"tmdb_id":"603","imdb_id":"tt0133093","plot":"A story."}}"""))!!
+        val asNumber = XtreamParser.parseVodInfo(StringReader("""{"info":{"tmdb_id":603,"imdb_id":"TT0133093"}}"""))!!
+
+        assertEquals(603L, asText.tmdbId)
+        assertEquals("tt0133093", asText.imdbId)
+        assertEquals(603L, asNumber.tmdbId)
+        assertEquals("tt0133093", asNumber.imdbId)
+    }
+
+    @Test
+    fun `a panel that calls the field tmdb is read, and tmdb_id wins when both are sent`() {
+        val alias = XtreamParser.parseVodInfo(StringReader("""{"info":{"tmdb":"603"}}"""))!!
+        val both = XtreamParser.parseVodInfo(StringReader("""{"info":{"tmdb":"111","tmdb_id":"603"}}"""))!!
+        val bothBackwards = XtreamParser.parseVodInfo(StringReader("""{"info":{"tmdb_id":"603","tmdb":"111"}}"""))!!
+
+        assertEquals(603L, alias.tmdbId)
+        assertEquals(603L, both.tmdbId)
+        assertEquals("the order the panel wrote them in does not decide", 603L, bothBackwards.tmdbId)
+    }
+
+    @Test
+    fun `an id that is not one is absent, and the rest of the reply still reads`() {
+        for (raw in listOf("\"0\"", "0", "\"\"", "null", "\"abc\"", "\"8.0\"", "\"-5\"", "[]", "{}", "[603]", "\"99999999999999999999\"")) {
+            val reply = """{"info":{"tmdb_id":$raw,"plot":"A story."}}"""
+
+            val info = XtreamParser.parseVodInfo(StringReader(reply))!!
+
+            assertNull("$raw is not an id", info.tmdbId)
+            assertEquals("A story.", info.plot)
+        }
+    }
+
+    @Test
+    fun `a reply that holds only an id is details, so a film the panel matched but knows no story of is not thrown away`() {
+        val info = XtreamParser.parseVodInfo(StringReader("""{"info":{"tmdb_id":"603","plot":"","cast":""}}"""))
+
+        assertEquals(603L, info!!.tmdbId)
+        assertNull(info.plot)
+    }
+
+    @Test
+    fun `an id read from a reply changes nothing else it says`() {
+        val without = XtreamParser.parseVodInfo(StringReader("""{"info":{"rating":"8.1","plot":"A story.","cast":"A, B","genre":"Drama"}}"""))!!
+        val with = XtreamParser.parseVodInfo(
+            StringReader("""{"info":{"rating":"8.1","plot":"A story.","cast":"A, B","genre":"Drama","tmdb_id":"603","imdb_id":"tt0133093"}}"""),
+        )!!
+
+        assertEquals(without, with.copy(tmdbId = null, imdbId = null))
+    }
+
+    @Test
+    fun `a reply with no id has none, which is what a coverage count reads as not covered`() {
+        val info = XtreamParser.parseVodInfo(StringReader("""{"info":{"plot":"A story."}}"""))!!
+
+        assertNull(info.tmdbId)
+        assertNull(info.imdbId)
+    }
 }
+
