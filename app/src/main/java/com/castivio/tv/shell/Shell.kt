@@ -123,6 +123,7 @@ import com.castivio.feature.player.PlayerViewModel
 import com.castivio.feature.player.RadioAudioRoute
 import com.castivio.feature.player.TimeShiftHandle
 import com.castivio.playback.api.MediaKind
+import com.castivio.tv.BuildConfig
 import com.castivio.tv.R
 import com.castivio.tv.licence.LicenceWithLanguage
 import com.castivio.tv.locale.LocalLocaleController
@@ -1182,16 +1183,21 @@ private fun SettingsScreen(
             value = stringResource(R.string.settings_player_default),
         )
 
-        Text(
-            stringResource(R.string.settings_design),
-            style = CastivioType.titleMedium,
-            color = colors.onBackground,
-        )
-        SettingRow(
-            icon = Icons.Filled.VideoLibrary,
-            label = stringResource(R.string.settings_state_board),
-            onClick = onShowStateBoard,
-        )
+        // **The design board is a development tool, and a viewer is not shown it.** It draws cards with no data behind them, in English, to
+        // check the state language; a development build keeps it, and a release build does not carry the row at all -- the constant is
+        // folded by the compiler. The check-invariants script fails the build if this call loses the check.
+        if (BuildConfig.DEBUG) {
+            Text(
+                stringResource(R.string.settings_design),
+                style = CastivioType.titleMedium,
+                color = colors.onBackground,
+            )
+            SettingRow(
+                icon = Icons.Filled.VideoLibrary,
+                label = stringResource(R.string.settings_state_board),
+                onClick = onShowStateBoard,
+            )
+        }
         // Castivio's licence, which is not the provider's subscription. The two
         // are separate systems and this row says so by living under its own
         // heading rather than beside the playlist.
@@ -1206,11 +1212,15 @@ private fun SettingsScreen(
             onClick = onShowLicence,
         )
 
-        SettingRow(
-            icon = Icons.Filled.Settings,
-            label = stringResource(R.string.settings_device_class),
-            value = CastivioTheme.device.name,
-        )
+        // The device's class is a programming constant -- Compact, Medium, Expanded, Television -- read by whoever is checking the
+        // layouts, so it is a development build's row and not a viewer's.
+        if (BuildConfig.DEBUG) {
+            SettingRow(
+                icon = Icons.Filled.Settings,
+                label = stringResource(R.string.settings_device_class),
+                value = CastivioTheme.device.name,
+            )
+        }
         SettingRow(
             icon = Icons.Filled.Settings,
             label = stringResource(R.string.settings_version),

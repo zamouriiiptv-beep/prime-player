@@ -644,6 +644,46 @@ do
   fi
 done
 
+# ----------------------------- a developer's door that is not behind the build type
+# The statistics behind the player's three dots, the design board and the device's class
+# in Settings are for whoever builds the application, and a viewer is not shown them. A
+# release build leaves them out because the call that draws each is inside
+# `if (BuildConfig.DEBUG)`, a constant the compiler folds -- and only for as long as that
+# check stays where it is. The file-level check above cannot see it go: the file would
+# still hold the string somewhere else. So this one looks at the door itself: the line
+# that draws it must have the check within a few lines above.
+door_without_check() {
+  # $1 file, $2 the line that draws the door, $3 how many lines above may hold the check.
+  [ -f "$1" ] || return 0
+  awk -v door="$2" -v back="$3" '
+    { line[NR] = $0 }
+    $0 ~ door && $0 !~ /^[[:space:]]*(\*|\/\/|\/\*)/ {
+      for (i = NR - 1; i >= 1 && i >= NR - back; i--) if (line[i] ~ /BuildConfig\.DEBUG/) next
+      printf "%s:%d: %s\n", FILENAME, NR, $0
+    }
+  ' "$1"
+}
+
+hits=""
+for file in $(grep -rl --include='*.kt' 'onSheet(Sheet.More)' app feature 2>/dev/null | grep -v '/src/test/'); do
+  hits="$hits$(door_without_check "$file" 'onSheet\(Sheet\.More\)' 8)
+"
+done
+shell='app/src/main/java/com/castivio/tv/shell/Shell.kt'
+for door in 'R\.string\.settings_design' 'R\.string\.settings_state_board' 'R\.string\.settings_device_class'; do
+  hits="$hits$(door_without_check "$shell" "$door" 8)
+"
+done
+if [ -n "${hits//[[:space:]]/}" ]; then
+  fail "A developer's door is drawn without the build type's check" \
+       "$hits
+
+  The player's three dots (the statistics and the share), the design board and the
+  device's class in Settings belong to a development build and nowhere else: each is
+  drawn inside 'if (BuildConfig.DEBUG)', which the compiler folds, so a release build
+  does not carry it. Put the check back around the call -- see RELEASE_CHECKLIST.md."
+fi
+
 # ------------------------------------------------------ a trap worth failing on
 # A no-argument TestDispatcher brings its own TestCoroutineScheduler unless something
 # has installed one as Main. Built as a field and handed to production code, every

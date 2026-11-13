@@ -243,8 +243,9 @@ private fun Chip(text: String, fill: Color?, ink: Color, ringed: Boolean, tag: S
 
 /**
  * The controls at the end of the top bar, in the reference's order: the favourite, the sound, the
- * subtitles, the settings, and the rest. The list is not here: it did what Back does, and the owner asked
- * for the one way into the list of channels to be the playlist pill at the foot.
+ * subtitles, the settings, and -- in a development build only -- the rest, which is the door to the statistics.
+ * The list is not here: it did what Back does, and the owner asked for the one way into the list of channels to
+ * be the playlist pill at the foot.
  *
  * Each only where it can act. The favourite needs an item to mark; subtitles are a film's and not a channel's -- a channel plays with its subtitles
  * switched off in both engines, so a button that opened a list of them would offer what is not there.
@@ -301,10 +302,11 @@ private fun ActionCluster(state: PlayerState, actions: PlayerActions) {
             onClick = { actions.onSheet(if (state.sheet == Sheet.Settings) null else Sheet.Settings) },
             active = state.sheet == Sheet.Settings,
         )
-        // **Not on a channel in the hands of a viewer.** What it opens is the statistics, which are for whoever is measuring, and a
-        // share that shared a name. A development build keeps it, as the door to that panel; the constant is folded by the compiler,
-        // so a release build does not carry the button for a channel at all. A film keeps it as it was.
-        if (!live || BuildConfig.DEBUG) {
+        // **Not in the hands of a viewer, on any stream.** What it opens is the statistics, which are for whoever is measuring, and a
+        // share that shared nothing but a name. A development build keeps it, as the door to that panel; the constant is folded by the
+        // compiler, so a release build does not carry the button at all -- for a channel, a film or an episode. The check-invariants
+        // script fails the build if this call loses the check.
+        if (BuildConfig.DEBUG) {
             PlayerButton(
                 icon = CastivioIcons.More,
                 label = stringResource(R.string.player_more),

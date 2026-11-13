@@ -443,12 +443,19 @@ class PlayerLayoutTest {
 
     /**
      * The three dots open the statistics, which are for whoever is measuring: a development build keeps the button as the door to
-     * them and a release build does not carry it for a channel. The unit tests run the development build, so this is the half that
-     * can be asserted here -- that a channel has it and a film has it -- and the compiler folds the other.
+     * them, on a channel and on a film alike, and a release build does not carry it for either. The unit tests run the development
+     * build, so this is the half that can be asserted here -- that both have it -- and the compiler folds the other, which the
+     * check-invariants script holds by failing the build if the button loses its check.
      */
     @Test
-    fun `a development build keeps the three dots on a channel and on a film`() {
+    fun `a development build keeps the three dots on a channel`() {
         compose.show(HANDSET, DeviceClass.Expanded, playingLive())
+        compose.onNodeWithTag(PlayerTags.MORE).assertIsDisplayed()
+    }
+
+    @Test
+    fun `a development build keeps the three dots on a film`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingFilm())
         compose.onNodeWithTag(PlayerTags.MORE).assertIsDisplayed()
     }
 

@@ -154,6 +154,14 @@ reopen, and confirm it is still in that language with the device set to another.
       `forcedState` unless `BuildConfig.DEBUG`, and R8 removes that branch because
       the constant is false at compile time. `check-invariants.sh` fails the build
       if that file loses its check.
+- [ ] **No developer tool is drawn in a viewer's build.** The player's three dots
+      (the statistics and the share, on a channel, a film and an episode), and in
+      Settings the design board and the device's class, are drawn only inside
+      `if (BuildConfig.DEBUG)`; `check-invariants.sh` fails the build if any of those
+      calls is drawn without the check above it. The measuring instruments -- the load
+      strip, the opening panel, a failed fetch's figures, the portal line -- are off
+      unless the package is debuggable (`DevDiagnostics`). Confirm on a release build
+      once one can be made: none of them is on screen.
 - [ ] **No price is shown to somebody who has already paid.** Lifetime, an active
       annual licence, and a licence that merely has not been verified all draw no
       plan cards. `LicenceViewTest` and `LicencePolishTest` hold this.
