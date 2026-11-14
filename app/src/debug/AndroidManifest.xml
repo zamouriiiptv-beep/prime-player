@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+        Castivio Probe: a developer's measuring tool, merged into debug builds only.
+
+        This file lives in the debug source set, so a release or benchmark build never sees it and
+        contains nothing of the tool. It adds one window and a second launcher icon; no permission,
+        no service, no receiver, and nothing the application's own manifest declares is changed.
+
+        A task of its own, so that opening the probe does not bring the application's task forward.
+    -->
+    <application>
+        <activity
+            android:name="com.castivio.tv.probe.ui.ProbeActivity"
+            android:exported="true"
+            android:label="Castivio Probe"
+            android:taskAffinity="com.castivio.tv.probe"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|density|uiMode|keyboard|keyboardHidden|navigation|locale|layoutDirection">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>
