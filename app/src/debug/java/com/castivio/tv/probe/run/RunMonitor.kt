@@ -7,12 +7,20 @@ import com.castivio.tv.probe.core.ProbeEnvironment
 import com.castivio.tv.probe.core.RunProgress
 
 /**
- * Watches a run from beside it: samples what OkHttp itself says is running, ends the run when it must end, and tells the screen where it is.
+ * Watches a run from beside it: samples how many requests are open, ends the run when it must end, and tells the screen where it is.
  *
  * One thread per run, woken every bucket. What it samples is a second opinion on the connections, apart from
- * the bytes counted by the readers: the calls the dispatcher says are running, and the connections its pool holds.
- * It also looks at the network every second and at the clock for the cap, and it is where a stop from the
+ * the bytes counted by the readers: the requests the run has begun and not finished, and the connections the client's
+ * pool holds. It also looks at the network every second and at the clock for the cap, and it is where a stop from the
  * session becomes a cancellation of every request in flight.
+ *
+ * ## Why the requests are the run's own count
+ *
+ * OkHttp keeps a count of running calls, `dispatcher.runningCallsCount()`, and it is not used here. For a synchronous
+ * call -- which is what every request of a run is -- it stops counting the moment the response **headers** arrive,
+ * and the body is read after that, outside it. A run of three connections that are all receiving would read nought
+ * whenever the sampler looked between the headers and the last byte, which is nearly always: a test caught exactly
+ * that. The run's own count, [RunState.inFlightCount], opens with the request and closes after its body.
  */
 internal class RunMonitor(
     private val run: RunState,
@@ -68,7 +76,7 @@ internal class RunMonitor(
     }
 
     private fun sample(tick: Int) {
-        val calls = run.client.dispatcher.runningCallsCount()
+        val calls = run.inFlightCount()
         if (calls > peakRunningCalls) peakRunningCalls = calls
         val pooled = run.client.connectionPool.connectionCount()
         if (pooled > peakPoolConnections) peakPoolConnections = pooled

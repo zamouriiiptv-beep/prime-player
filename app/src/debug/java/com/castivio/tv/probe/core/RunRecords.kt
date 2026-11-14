@@ -72,8 +72,13 @@ data class NetworkNote(
  * What the client side can say about how many connections really carried the run.
  *
  * It is counted four ways that do not depend on one another: the connections that **received bytes**, and in
- * how many 250 ms windows at once; the calls OkHttp itself says are running; the connections in its pool; and the
- * new sockets it opened. Local ports are not among them -- they only name a connection, they do not show it working.
+ * how many 250 ms windows at once; the requests the run has begun and not finished, to the last byte of their bodies;
+ * the connections in its pool; and the new sockets it opened. Local ports are not among them -- they only name a
+ * connection, they do not show it working.
+ *
+ * The requests are the run's own count and not OkHttp's `dispatcher.runningCallsCount()`: for a synchronous call that
+ * one stops counting when the response **headers** arrive, so a body still streaming is not "running" to it, and a run
+ * of three connections that are all receiving reads nought.
  */
 data class ParallelEvidence(
     val workers: Int,

@@ -170,6 +170,14 @@ class HttpRunExecutorTest {
 
     @Test
     fun every_arm_holds_as_many_connections_as_it_has_workers_receiving_at_the_same_moment() {
+        // Every figure is checked and every miss is told at the end, so that one run of the suite says all that is wrong
+        // with the evidence and not the first thing that is.
+        val problems = ArrayList<String>()
+
+        fun want(ok: Boolean, otherwise: String) {
+            if (!ok) problems.add(otherwise)
+        }
+
         for (arm in ProbeArms.candidates) {
             val (ids, all) = library(count = arm.workers * 2, perCategory = 20)
             FakePanel(ids, all).use { panel ->
@@ -179,21 +187,25 @@ class HttpRunExecutorTest {
                 panel.chunkDelayMs = 60L
                 val record = executor(panel, settings = ProbeConfig(bucketMs = 200L)).execute(request(arm)).record
                 val e = record.evidence
+                val name = arm.id
+                val verdict = ParallelProof.verdict(e, minFullWidthMs = 200L)
 
-                assertTrue("${arm.id}: ${record.invalid}", record.valid)
+                want(record.valid, "$name invalid: ${record.invalid}")
                 // The server's own count, which no client figure can stand in for.
-                assertEquals("${arm.id} at the server", arm.workers, panel.peakActive.get())
-                assertTrue("${arm.id} accepted ${panel.accepted.get()}", panel.accepted.get() >= arm.workers)
-                // The client's evidence, four ways that do not depend on one another.
-                assertEquals("${arm.id} calls in flight", arm.workers, e.peakRunningCalls)
-                assertTrue("${arm.id} pool ${e.peakPoolConnections}", e.peakPoolConnections >= arm.workers)
-                assertTrue("${arm.id} sockets opened ${e.newConnections}", e.newConnections >= arm.workers)
-                assertTrue("${arm.id} with bytes ${e.connectionsWithBytes}", e.connectionsWithBytes >= arm.workers)
-                assertTrue("${arm.id} active at once ${e.peakActiveConnections}", e.peakActiveConnections >= arm.workers)
-                assertEquals(listOf("http/1.1"), e.protocols)
-                assertEquals(ParallelVerdict.PROVEN, ParallelProof.verdict(e, minFullWidthMs = 200L))
+                want(panel.peakActive.get() == arm.workers, "$name at the server ${panel.peakActive.get()}")
+                want(panel.accepted.get() >= arm.workers, "$name accepted ${panel.accepted.get()}")
+                // The client's evidence, four ways that do not depend on one another: the requests open (the run's own
+                // count, to the last byte of the body), the pool, the sockets opened, and the bytes of each connection.
+                want(e.peakRunningCalls == arm.workers, "$name requests open ${e.peakRunningCalls}")
+                want(e.peakPoolConnections >= arm.workers, "$name pool ${e.peakPoolConnections}")
+                want(e.newConnections >= arm.workers, "$name sockets opened ${e.newConnections}")
+                want(e.connectionsWithBytes >= arm.workers, "$name with bytes ${e.connectionsWithBytes}")
+                want(e.peakActiveConnections >= arm.workers, "$name active at once ${e.peakActiveConnections}")
+                want(e.protocols == listOf("http/1.1"), "$name protocols ${e.protocols}")
+                want(verdict == ParallelVerdict.PROVEN, "$name verdict $verdict, full width ${e.msAtFullWorkers} ms")
             }
         }
+        assertTrue(problems.joinToString("; "), problems.isEmpty())
     }
 
     @Test
