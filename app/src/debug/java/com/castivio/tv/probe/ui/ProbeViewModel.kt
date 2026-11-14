@@ -3,6 +3,7 @@ package com.castivio.tv.probe.ui
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.castivio.data.database.CastivioDatabase
 import com.castivio.domain.SourceKind
 import com.castivio.domain.SourceRepository
 import com.castivio.tv.probe.core.Fmt
@@ -53,6 +54,7 @@ data class ProbeUi(
 @HiltViewModel
 class ProbeViewModel @Inject constructor(
     private val sources: SourceRepository,
+    private val database: CastivioDatabase,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
@@ -82,27 +84,30 @@ class ProbeViewModel @Inject constructor(
     }
 
     private suspend fun prepare() {
+        // Read diagnostics before activeNow(): that method may promote the oldest saved source.
+        // The probe must report the database as it was found, without changing it for diagnosis.
+        val databaseLines = withContext(Dispatchers.IO) { databaseDiagnostics() }
         val source = withContext(Dispatchers.IO) { sources.activeNow() }
         if (source == null) {
-            unavailable("There is no active subscription.")
+            unavailable("There is no active subscription.", databaseLines)
             return
         }
         if (source.kind != SourceKind.XTREAM) {
-            unavailable("The active subscription is not an Xtream account.")
+            unavailable("The active subscription is not an Xtream account.", databaseLines)
             return
         }
         val url = source.url
         val user = source.username
         val pass = source.password
         if (url.isNullOrBlank() || user.isNullOrBlank() || pass.isNullOrBlank()) {
-            unavailable("The Xtream account has no address or no credentials.")
+            unavailable("The Xtream account has no address or no credentials.", databaseLines)
             return
         }
         val account = ProbeCredentials(url, user, pass)
         val platform = AndroidProbeEnvironment(context)
         credentials = account
         environment = platform
-        headline = headlineOf(account, platform.network())
+        headline = databaseLines + headlineOf(account, platform.network())
         mutableUi.value = ProbeUi(
             headline = headline,
             progress = "Ready. Press Start.",
@@ -114,15 +119,59 @@ class ProbeViewModel @Inject constructor(
         )
     }
 
-    private fun unavailable(message: String) {
+    private fun unavailable(message: String, databaseLines: List<String> = emptyList()) {
         mutableUi.value = ProbeUi(
-            headline = emptyList(),
+            headline = databaseLines,
             progress = message,
             report = "",
             canStart = false,
             canContinue = false,
             canStop = false,
             canCopy = false,
+        )
+    }
+
+    /**
+     * A read-only snapshot of the exact Room file used by the app.
+     *
+     * Do not select source rows: they contain provider URLs and credentials. Only aggregate
+     * counts and protocol names are safe and sufficient to distinguish a missing source row
+     * from a catalogue that remains on disk.
+     */
+    private fun databaseDiagnostics(): List<String> = runCatching {
+        val file = context.getDatabasePath(CastivioDatabase.NAME)
+        val db = database.openHelper.readableDatabase
+        fun scalar(sql: String): Long = db.query(sql).use { cursor ->
+            if (cursor.moveToFirst()) cursor.getLong(0) else 0L
+        }
+        fun grouped(sql: String): List<String> = db.query(sql).use { cursor ->
+            buildList {
+                while (cursor.moveToNext()) {
+                    add("${cursor.getString(0)}=${cursor.getLong(1)}")
+                }
+            }
+        }
+
+        val sourceCount = scalar("SELECT COUNT(*) FROM source")
+        val activeCount = scalar("SELECT COUNT(*) FROM source WHERE is_active = 1")
+        val sourceKinds = grouped("SELECT kind, COUNT(*) FROM source GROUP BY kind ORDER BY kind")
+        val mediaCount = scalar("SELECT COUNT(*) FROM media")
+        val mediaKinds = grouped("SELECT kind, COUNT(*) FROM media GROUP BY kind ORDER BY kind")
+        val groupCount = scalar("SELECT COUNT(*) FROM media_group")
+
+        buildList {
+            add("Database: ${CastivioDatabase.NAME}")
+            add("Database file: ${if (file.exists()) "present" else "missing"} · ${file.length()} bytes")
+            add("Database path: ${file.absolutePath}")
+            add("Subscriptions: total=$sourceCount · active=$activeCount")
+            add("Subscription kinds: ${sourceKinds.ifEmpty { listOf("none") }.joinToString()}")
+            add("Catalogue: media=$mediaCount · groups=$groupCount")
+            add("Media kinds: ${mediaKinds.ifEmpty { listOf("none") }.joinToString()}")
+        }
+    }.getOrElse { error ->
+        listOf(
+            "Database: ${CastivioDatabase.NAME}",
+            "Database diagnostics failed: ${error::class.java.simpleName}",
         )
     }
 
